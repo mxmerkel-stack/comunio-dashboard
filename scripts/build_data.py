@@ -577,6 +577,79 @@ def analyze(raw, names, ids, me_id, squads, market, md_rows, pts_of, balance_of,
     for i, a in enumerate(actions):
         a["prio"] = i + 1
 
+    # --- Next Match: Paarungen, Quoten, Kader-Erwartung, Aufstellung ---
+    import next_match as NM
+    nmi = raw.get("nextMatch") or {}
+    fixtures = nmi.get("fixtures") or NM.fixtures_from_comunio(list(players.values()))
+    odds = nmi.get("odds") or []
+    fx_out = []
+    for f in fixtures:
+        o = None
+        if odds:
+            for cand in odds:
+                if NM.match_name(f["home"], [cand["home"]]) and NM.match_name(f["away"], [cand["away"]]):
+                    o = cand
+                    break
+        imp = NM.implied(o["odd1"], o["oddX"], o["odd2"]) if o else None
+        fx_out.append({**f, "odd1": o and o["odd1"], "oddX": o and o["oddX"], "odd2": o and o["odd2"],
+                       "bookmaker": o and o["bookmaker"], **(imp or {})})
+    fx_out.sort(key=lambda f: f.get("kickoff") or "")
+    team_names = [n for f in fx_out for n in (f["home"], f["away"]) if n]
+
+    def club_fixture(club_name):
+        hit = NM.match_name(club_name, team_names) if club_name else None
+        if not hit:
+            return None, None
+        for f in fx_out:
+            if f["home"] == hit:
+                return f, True
+            if f["away"] == hit:
+                return f, False
+        return None, None
+
+    nm_rows = []
+    for p in squads.get(me_id, []):
+        pid = str(p["id"])
+        b = base.get(pid) or {}
+        mm = model.get(pid, {})
+        f, home = club_fixture(p.get("club"))
+        play = b.get("p_start", 0) + 0.4 * b.get("p_sub", 0)
+        adj_hist = mm.get("adj", 0.0) or 0.0
+        odds_adj, p_win, p_loss = None, None, None
+        if f and f.get("p1") is not None:
+            p_win, p_loss = (f["p1"], f["p2"]) if home else (f["p2"], f["p1"])
+            odds_adj = max(-M.OPP_CAP, min(M.OPP_CAP, (p_win - p_loss) * 3.0))
+        adj = odds_adj if odds_adj is not None else adj_hist
+        p_unav = mm.get("p_unav", b.get("p_unav", 0)) or 0
+        e_match = (1 - p_unav) * (b.get("e_play", 0) + adj * play)
+        opp_name = (f["away"] if home else f["home"]) if f else mm.get("next_opp")
+        nm_rows.append({"id": pid, "name": p.get("name"), "club": p.get("club"), "position": p.get("position"),
+                        "positionName": pos_de.get(p.get("position"), p.get("position")),
+                        "status": p.get("status"), "statusName": p.get("statusName"), "statusInfo": p.get("statusInfo"),
+                        "injury": p.get("injury"), "opponent": opp_name,
+                        "venue": ("Heim" if home else "Auswärts") if f else mm.get("next_venue"),
+                        "kickoff": f and f.get("kickoff"), "played": bool(f and f.get("finished")),
+                        "pWin": p_win, "pLoss": p_loss,
+                        "p_start": round(b.get("p_start", 0) * (1 - p_unav), 3),
+                        "p_play": round((b.get("p_start", 0) + b.get("p_sub", 0)) * (1 - p_unav), 3),
+                        "p_unav": round(p_unav, 3), "e_match": round(e_match, 2),
+                        "adj": round(adj, 2), "adjSource": "Quote" if odds_adj is not None else "Gegnerhistorie",
+                        "inLineup": pid in cur_ids})
+    nm_squad = [{"id": r["id"], "name": r["name"], "position": r["position"], "e_match": r["e_match"]} for r in nm_rows]
+    nm_form, nm_total, nm_ids, nm_forms = M.best_lineup(nm_squad, key="e_match") if nm_squad else (None, 0, [], {})
+    for r in nm_rows:
+        r["inBest"] = r["id"] in nm_ids
+    nm_rows.sort(key=lambda r: (M.POS_ORDER.index(r["position"]) if r["position"] in M.POS_ORDER else 9, -r["e_match"]))
+    nm_now = round(sum(r["e_match"] for r in nm_rows if r["inLineup"]), 2)
+    next_match = {"md": nmi.get("md") or next_md, "date": nmi.get("date") or next_date, "started": nmi.get("started"),
+                  "fixtures": fx_out, "fixtureSource": (fx_out[0]["source"] if fx_out else None),
+                  "oddsAvailable": bool(odds), "bookmaker": next((f["bookmaker"] for f in fx_out if f.get("bookmaker")), None),
+                  "squad": nm_rows, "formation": nm_form, "total": round(nm_total, 2), "nowTotal": nm_now,
+                  "best": [{"name": r["name"], "pos": r["positionName"], "e": r["e_match"], "opponent": r["opponent"],
+                            "venue": r["venue"]} for r in nm_rows if r["inBest"]],
+                  "formations": sorted([{"formation": k, "total": v["total"], "complete": v["complete"]}
+                                        for k, v in nm_forms.items()], key=lambda x: -x["total"])}
+
     opp_list = sorted([{"clubId": k, "adj": round(v, 2)} for k, v in opp.items()], key=lambda r: -r["adj"])
     club_names = {}
     for p in players.values():
@@ -601,7 +674,7 @@ def analyze(raw, names, ids, me_id, squads, market, md_rows, pts_of, balance_of,
             "lineup": {"now": xi_rows(cur_ids), "best": xi_rows(best_ids), "formationNow": M.tactic_name(lu.get("tactic")),
                        "formationBest": best_form},
             "formations": formations, "offers": offers_out, "buyers": buyers, "plans": plans,
-            "forecast": fc, "monthly": monthly, "opponents": opp_list}
+            "forecast": fc, "monthly": monthly, "opponents": opp_list, "nextMatch": next_match}
 
 
 def _fernet():

@@ -104,6 +104,16 @@ select{font:inherit;padding:4px 6px;background:var(--panel);color:var(--fg);bord
       <p class="note">Aktivität = Käufe der letzten 30 Tage im Verhältnis zum aktivsten Manager. Gebotsspanne = Mindestgebot bis +12 %, begrenzt durch den (berechneten) Kontostand.</p></div>
     <div class="card"><h2>Transfer-Pläne</h2><div id="t-plans"></div><p class="note">Kombinationen aus bis zu vier Verkaufskandidaten und bis zu drei Käufen, Gebot 3 % über Mindestgebot, Konto danach nicht negativ. Bewertet nach der besten Aufstellung (erwartete Punkte je Spieltag). Kadergrenzen sind nicht geprüft.</p></div>
   </section>
+  <section id="s-nextmatch">
+    <div class="kpis" id="nm-kpis"></div>
+    <div class="card"><h2 id="nm-title">Paarungen</h2><div id="t-fixtures"></div><p class="note" id="fx-note"></p></div>
+    <div class="card"><h2>Dein Kader am nächsten Spieltag</h2><div id="t-nm-squad"></div>
+      <p class="note">Startelf = Wahrscheinlichkeit für die Startelf, Einsatz = Startelf oder Einwechslung (jeweils inkl. Ausfallrisiko). Erwartete Punkte berücksichtigen den Gegner: mit Quote über die Siegchancen laut Wettanbieter, sonst über die bisherigen Ergebnisse gegen diesen Gegner und Heim/Auswärts.</p></div>
+    <div class="grid2">
+      <div class="card"><h2>Empfohlene Aufstellung</h2><div id="t-nm-best"></div><p class="note" id="nm-best-note"></p></div>
+      <div class="card"><h2>Formationen für diesen Spieltag</h2><div id="t-nm-forms"></div></div>
+    </div>
+  </section>
   <section id="s-aufstellung">
     <div class="grid2">
       <div class="card"><h2>Aufstellung jetzt</h2><div id="t-lu-now"></div></div>
@@ -177,7 +187,7 @@ const isMe = r => String(r.id)===D.me.id;
 document.getElementById("meta").textContent = `${D.community} · Saison ${D.season||""} · Stand ${dt(D.generatedAt)}`;
 
 // Tabs
-const TABS=[["uebersicht","Übersicht"],["aufstellung","Aufstellung"],["kader","Kader"],["markt","Transfermarkt"],["tabelle","Tabelle"],["konten","Kontostände"],["transfers","Transfers"],["ewig","Ewige Tabelle"],["siege","Siege"],["methodik","Methodik"]];
+const TABS=[["uebersicht","Übersicht"],["nextmatch","Next Match"],["aufstellung","Aufstellung"],["kader","Kader"],["markt","Transfermarkt"],["tabelle","Tabelle"],["konten","Kontostände"],["transfers","Transfers"],["ewig","Ewige Tabelle"],["siege","Siege"],["methodik","Methodik"]];
 const tabs=document.getElementById("tabs");
 const CHARTS={}; function show(id){ document.querySelectorAll("section").forEach(s=>s.classList.toggle("on",s.id==="s-"+id)); tabs.querySelectorAll("button").forEach(b=>b.classList.toggle("on",b.dataset.id===id)); try{history.replaceState(null,"","#"+id)}catch(e){} Object.values(CHARTS).forEach(f=>f()); }
 TABS.forEach(([id,l])=>{ const b=el("button",{"data-id":id},l); b.onclick=()=>show(id); tabs.append(b); });
@@ -501,6 +511,40 @@ document.getElementById("opp-note").textContent=`Positiv = gegen diesen Gegner p
   (D.market||[]).forEach(m=>{ const x=m.injury; if(x&&x.url&&!seen.has(x.url)){ seen.add(x.url); src.push({t:x.source||x.url,u:x.url,p:m.name}); } });
   src.unshift({t:"Comunio (Daten der Community, nur lesend abgerufen)",u:"https://www.comunio.de",p:"alle"});
   table("t-sources",src,[{h:"Quelle",v:r=>el("a",{href:r.u,target:"_blank",rel:"noopener"},r.t)},{h:"betrifft",v:r=>r.p}]);
+})();
+
+// Next Match
+(function(){
+  const N=D.nextMatch; if(!N) return;
+  const kick=s=>s? new Date(s).toLocaleString("de-DE",{weekday:"short",day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}):"–";
+  const kk=document.getElementById("nm-kpis");
+  [["Spieltag",(N.md||"–")+".",N.started?"läuft bereits":"steht an"],["Erstes Spiel",N.fixtures&&N.fixtures.length?kick(N.fixtures[0].kickoff):"–",""],
+   ["Empfohlene Elf",(N.total||0).toLocaleString("de-DE",{maximumFractionDigits:1})+" Pkt.",N.formation||""],
+   ["Deine Elf jetzt",(N.nowTotal||0).toLocaleString("de-DE",{maximumFractionDigits:1})+" Pkt.",(N.total-N.nowTotal)>0.05?`+${(N.total-N.nowTotal).toLocaleString("de-DE",{maximumFractionDigits:1})} mit Empfehlung`:"bereits optimal"]
+  ].forEach(([l,v,h])=>kk.append(el("div",{class:"kpi"},el("div",{class:"l"},l),el("div",{class:"v"},v),el("div",{class:"h"},h))));
+  document.getElementById("nm-title").textContent=`Paarungen ${N.md||""}. Spieltag`;
+  const odd=v=>v==null?"–":Number(v).toLocaleString("de-DE",{minimumFractionDigits:2,maximumFractionDigits:2});
+  table("t-fixtures",N.fixtures||[],[{h:"Anstoß",v:r=>kick(r.kickoff),s:r=>r.kickoff},{h:"Heim",v:r=>el("strong",{},r.home||"–")},{h:"Gast",v:r=>el("strong",{},r.away||"–")},
+    {h:"Ergebnis",v:r=>r.goalsHome!=null?`${r.goalsHome}:${r.goalsAway}`+(r.finished?"":" (läuft)"):"–"},
+    {h:"1",v:r=>odd(r.odd1),s:r=>r.odd1||99,n:true},{h:"X",v:r=>odd(r.oddX),s:r=>r.oddX||99,n:true},{h:"2",v:r=>odd(r.odd2),s:r=>r.odd2||99,n:true},
+    {h:"Heimsieg",v:r=>pct(r.p1),s:r=>r.p1||0,n:true},{h:"Remis",v:r=>pct(r.pX),s:r=>r.pX||0,n:true},{h:"Auswärtssieg",v:r=>pct(r.p2),s:r=>r.p2||0,n:true}]);
+  document.getElementById("fx-note").textContent=`Paarungen: ${N.fixtureSource==="OpenLigaDB"?"OpenLigaDB (offizieller Spielplan)":"aus den Comunio-Daten abgeleitet"}. `+
+    (N.oddsAvailable?`Quoten: ${N.bookmaker||"Tipico"} über The Odds API; Wahrscheinlichkeiten ohne Buchmacher-Marge.`:"Quoten: noch nicht verfügbar – dafür fehlt der kostenlose API-Schlüssel (Secret ODDS_API_KEY) oder der Wettanbieter hat noch keine Quoten.");
+  const p2=v=>v==null?"–":Math.round(v*100)+" %";
+  table("t-nm-squad",N.squad||[],[{h:"Spieler",v:r=>el("span",{},r.name,r.inBest?el("span",{class:"pill",style:"margin-left:6px"},"Empfehlung"):"",r.inLineup?el("span",{class:"pill warn",style:"margin-left:6px"},"aufgestellt"):"")},
+    {h:"Position",v:r=>r.positionName},{h:"Verein",v:r=>r.club||"–"},
+    {h:"Gegner",v:r=>r.opponent?`${r.opponent} (${r.venue==="Heim"?"H":"A"})`:"–"},{h:"Anstoß",v:r=>r.played?"gespielt":kick(r.kickoff),s:r=>r.kickoff||""},
+    {h:"Status",v:r=>r.status&&r.status!=="ACTIVE"?el("span",{class:"pill bad",title:(r.statusInfo||"")+(r.injury?" – Rückkehr: "+r.injury.return:"")},r.statusName):"fit",s:r=>r.status},
+    {h:"Startelf",v:r=>p2(r.p_start),s:r=>r.p_start,n:true},{h:"Einsatz",v:r=>el("strong",{},p2(r.p_play)),s:r=>r.p_play,n:true},
+    {h:"Siegchance Team",v:r=>p2(r.pWin),s:r=>r.pWin||0,n:true},
+    {h:"Gegner-Effekt",v:r=>el("span",{title:"Quelle: "+r.adjSource},(r.adj>0?"+":"")+f1(r.adj)),s:r=>r.adj,n:true},
+    {h:"Erwartete Punkte",v:r=>el("strong",{},f2(r.e_match)),s:r=>r.e_match,n:true}],{sort:10,me:r=>r.inBest});
+  table("t-nm-best",N.best||[],[{h:"Position",v:r=>r.pos},{h:"Spieler",v:r=>r.name},{h:"Gegner",v:r=>r.opponent?`${r.opponent} (${r.venue==="Heim"?"H":"A"})`:"–"},{h:"Erwartet",v:r=>f2(r.e),s:r=>r.e,n:true}]);
+  const sw=(N.squad||[]).filter(r=>r.inBest&&!r.inLineup).map(r=>r.name), out=(N.squad||[]).filter(r=>!r.inBest&&r.inLineup).map(r=>r.name);
+  document.getElementById("nm-best-note").textContent=`${N.formation||""} · ${f1(N.total)} erwartete Punkte.`+(sw.length?` Rein: ${sw.join(", ")}. Raus: ${out.join(", ")}.`:" Entspricht deiner aktuellen Aufstellung.");
+  const mxN=Math.max(1,...(N.formations||[]).map(f=>f.total));
+  table("t-nm-forms",N.formations||[],[{h:"Formation",v:r=>r.formation},{h:"Erwartet",v:r=>f1(r.total),s:r=>r.total,n:true},
+    {h:"",v:r=>el("div",{class:"bar",style:`width:${Math.round(150*r.total/mxN)}px;${r.formation===N.formation?"":"opacity:.45"}`}),s:r=>r.total}],{sort:1});
 })();
 
 window.addEventListener("resize",()=>Object.values(CHARTS).forEach(f=>f()));

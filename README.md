@@ -25,6 +25,7 @@ Kontostände aller Manager, Transfers, Kader und Gebotsempfehlungen für den Tra
 | `COMUNIO_USER` | Comunio-Benutzername |
 | `COMUNIO_PASS` | Comunio-Passwort |
 | `PAGE_PASSWORD` | Neues Passwort für die Seite, mindestens 12 Zeichen |
+| `ODDS_API_KEY` | optional: kostenloser Schlüssel von the-odds-api.com für die Tipico-Quoten im Reiter „Next Match“ |
 
 **Settings → Pages → Build and deployment → Source:** „GitHub Actions“
 

@@ -104,6 +104,13 @@ raw = {
     "ownDetails": {str(p["id"]): {"dob": "1999-05-01T00:00:00+02:00", "seasonPoints": {}} for p in squads["5695415"]},
     "stats": stats, "quotes": quotes, "lineup": {"tactic": "433", "ids": own_ids}, "offers": offers,
     "credit": 15881499, "matchdayCalendar": calendar,
+    "nextMatch": {"md": 7, "date": "2026-10-23T20:30:00+02:00", "started": True,
+                  "fixtures": [{"home": h, "away": a, "kickoff": f"2026-10-2{4 + i // 3}T15:30:00Z", "finished": i == 0,
+                                "goalsHome": 2 if i == 0 else None, "goalsAway": 1 if i == 0 else None, "source": "OpenLigaDB"}
+                               for i, (h, a) in enumerate([("FC Bayern München", "Sport-Club Freiburg"), ("1. FC Köln", "VfB Stuttgart"),
+                                                          ("SV Werder Bremen", "Borussia Mönchengladbach")])],
+                  "odds": [{"home": "Bayern Munich", "away": "SC Freiburg", "kickoff": "", "bookmaker": "Tipico (DE)", "odd1": 1.3, "oddX": 6.0, "odd2": 9.0},
+                           {"home": "FC Koln", "away": "VfB Stuttgart", "kickoff": "", "bookmaker": "Tipico (DE)", "odd1": 3.1, "oddX": 3.5, "odd2": 2.2}]},
 }
 DATA.mkdir(parents=True, exist_ok=True)
 (DATA / "raw.json").write_text(json.dumps(raw, ensure_ascii=False, indent=1))

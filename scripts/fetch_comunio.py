@@ -217,6 +217,19 @@ def main():
               "finished": m.get("finished"), "season": m.get("season")}
              for m in (get("/api/matchdays") or []) if isinstance(m, dict)]
 
+    # Nächster Spieltag: Paarungen (OpenLigaDB) und Tipico-Quoten (The Odds API, optional)
+    import next_match as NM
+    open_mds = sorted([m for m in mdays if not m.get("finished") and str(m.get("key", "")).isdigit()],
+                      key=lambda m: int(m["key"]))
+    nm_info = {}
+    if open_mds:
+        nmd = open_mds[0]
+        season = str(nmd.get("season") or "")
+        year = 2000 + int(season.split("/")[0]) if re.match(r"^\d{2}/\d{2}$", season) else datetime.now().year
+        fixtures = NM.fetch_fixtures(year, int(nmd["key"]))
+        nm_info = {"md": int(nmd["key"]), "date": nmd.get("date"), "started": nmd.get("started"),
+                   "fixtures": fixtures, "odds": NM.fetch_odds()}
+
     # Eigener Kontoauszug (seitenweise)
     statement, start = [], 0
     while start < 500:
@@ -303,6 +316,7 @@ def main():
         "offers": offers,
         "credit": credit,
         "matchdayCalendar": mdays,
+        "nextMatch": nm_info,
     }
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(raw, ensure_ascii=False, indent=1))

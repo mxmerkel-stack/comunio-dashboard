@@ -45,6 +45,7 @@ jobs:
         env:
           COMUNIO_USER: ${{ secrets.COMUNIO_USER }}
           COMUNIO_PASS: ${{ secrets.COMUNIO_PASS }}
+          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
         run: python scripts/fetch_comunio.py
 
       - name: Daten aufbereiten
