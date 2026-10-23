@@ -1,0 +1,15 @@
+{
+  "_hinweis": "Saisonregeln der Community. Startkapital in Euro je Manager-ID; 'default' gilt für alle anderen.",
+  "season_start": "2026-07-27",
+  "season_label": "2026/27",
+  "points_bonus_eur": 10000,
+  "start_capital": {
+    "default": 15000000,
+    "5695415": 13040000
+  },
+  "bid": {
+    "base_premium": 0.02,
+    "max_premium": 0.12,
+    "keep_reserve_eur": 0
+  }
+}

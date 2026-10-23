@@ -1,0 +1,6 @@
+# Daten und gebaute Seite gehören nie ins (öffentliche) Repository
+data/
+dist/
+__pycache__/
+*.pyc
+.env

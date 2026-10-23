@@ -1,0 +1,75 @@
+name: Dashboard aktualisieren
+
+on:
+  schedule:
+    - cron: "23 3 * * *"        # täglich ~05:23 Uhr (MESZ), nach den Transfers um 03:00
+    - cron: "41 20 * * 5,6,0"   # Fr/Sa/So abends, nach den Spielen
+  workflow_dispatch: {}          # Knopf "Run workflow" für ein Update von Hand
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    env:
+      DATA_DIR: data
+      DIST_DIR: dist
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Abhängigkeiten
+        run: pip install -r requirements.txt
+
+      - name: Verlauf laden (verschlüsselt)
+        uses: actions/cache/restore@v4
+        with:
+          path: data/history.enc
+          key: history-${{ github.run_id }}
+          restore-keys: history-
+
+      - name: Daten bei Comunio abrufen
+        env:
+          COMUNIO_USER: ${{ secrets.COMUNIO_USER }}
+          COMUNIO_PASS: ${{ secrets.COMUNIO_PASS }}
+        run: python scripts/fetch_comunio.py
+
+      - name: Daten aufbereiten
+        env:
+          PAGE_PASSWORD: ${{ secrets.PAGE_PASSWORD }}
+        run: python scripts/build_data.py
+
+      - name: Verlauf speichern (verschlüsselt)
+        uses: actions/cache/save@v4
+        with:
+          path: data/history.enc
+          key: history-${{ github.run_id }}
+
+      - name: Seite bauen und verschlüsseln
+        env:
+          PAGE_PASSWORD: ${{ secrets.PAGE_PASSWORD }}
+        run: |
+          python scripts/render_site.py
+          python scripts/encrypt_page.py
+          touch dist/.nojekyll
+          printf 'User-agent: *\nDisallow: /\n' > dist/robots.txt
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+      - id: deploy
+        uses: actions/deploy-pages@v4

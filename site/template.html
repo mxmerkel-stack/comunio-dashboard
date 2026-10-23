@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Comunio Zentrale</title>
+<style>
+:root{
+  --bg:#f6f5f1;--panel:#ffffff;--fg:#1d1c1a;--muted:#6b675f;--line:#e4e1d9;
+  --accent:#0f6b4f;--accent-soft:#e3f1ec;--warn:#a5590b;--bad:#b3261e;--good:#0f6b4f;
+  --me:#fff6d6;
+}
+@media (prefers-color-scheme: dark){
+  :root{--bg:#141413;--panel:#1d1c1a;--fg:#ecebe6;--muted:#a19d93;--line:#2f2d29;
+    --accent:#5cc49c;--accent-soft:#1d332b;--warn:#e0a35a;--bad:#ef7b72;--good:#5cc49c;--me:#33301f;}
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);
+  font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+header{padding:20px 16px 8px;max-width:1100px;margin:0 auto}
+h1{font-size:22px;margin:0 0 2px}
+.sub{color:var(--muted);font-size:13px}
+nav{position:sticky;top:0;z-index:2;background:var(--bg);border-bottom:1px solid var(--line)}
+nav .in{max-width:1100px;margin:0 auto;display:flex;gap:4px;overflow-x:auto;padding:0 12px}
+nav button{border:0;background:none;color:var(--muted);padding:12px 10px;font:inherit;cursor:pointer;
+  border-bottom:2px solid transparent;white-space:nowrap}
+nav button.on{color:var(--fg);border-bottom-color:var(--accent);font-weight:600}
+main{max-width:1100px;margin:0 auto;padding:16px}
+section{display:none}section.on{display:block}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:16px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.kpi .l{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.04em}
+.kpi .v{font-size:24px;font-weight:650;margin-top:2px;font-variant-numeric:tabular-nums}
+.kpi .h{color:var(--muted);font-size:12px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:16px;overflow-x:auto}
+.card h2{font-size:16px;margin:0 0 10px}
+.note{color:var(--muted);font-size:12.5px;margin:8px 0 0}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+th,td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+th{font-size:12px;color:var(--muted);font-weight:600;cursor:pointer;user-select:none}
+td.n,th.n{text-align:right}
+tr.me td{background:var(--me)}
+.pill{display:inline-block;padding:1px 7px;border-radius:99px;font-size:12px;background:var(--accent-soft);color:var(--accent)}
+.pill.warn{background:transparent;color:var(--warn);border:1px solid var(--warn)}
+.pill.bad{background:transparent;color:var(--bad);border:1px solid var(--bad)}
+.pos{color:var(--good)}.neg{color:var(--bad)}
+.bar{height:8px;background:var(--accent);border-radius:4px;min-width:2px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:760px){.grid2{grid-template-columns:1fr}}
+svg text{fill:var(--muted);font-size:11px}
+.legend{display:flex;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--muted);margin-top:6px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px}
+select{font:inherit;padding:4px 6px;background:var(--panel);color:var(--fg);border:1px solid var(--line);border-radius:6px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Comunio Zentrale</h1>
+  <div class="sub" id="meta"></div>
+</header>
+<nav><div class="in" id="tabs"></div></nav>
+<main>
+  <section id="s-uebersicht">
+    <div class="kpis" id="kpis"></div>
+    <div class="grid2">
+      <div class="card"><h2>Tabelle</h2><div id="mini-table"></div></div>
+      <div class="card"><h2>Top-Empfehlungen Transfermarkt</h2><div id="mini-market"></div></div>
+    </div>
+    <div class="card"><h2>Punkteverlauf je Spieltag</h2><div id="chart-md"></div></div>
+  </section>
+  <section id="s-tabelle">
+    <div class="card"><h2>Saisontabelle</h2><div id="t-standings"></div></div>
+    <div class="card"><h2>Spieltage</h2><div id="t-matchdays"></div></div>
+  </section>
+  <section id="s-ewig">
+    <div class="card"><h2>Ewige Tabelle</h2><div id="t-alltime"></div>
+      <p class="note">Summe aller abgeschlossenen Saisons plus aktuelle Saison.</p></div>
+    <div class="card"><h2>Saisons im Überblick</h2><div id="t-seasons"></div></div>
+  </section>
+  <section id="s-siege">
+    <div class="card"><h2>Siege-Ranking</h2><div id="t-wins"></div>
+      <p class="note">Saisonsiege aus der Historie, Spieltagssiege der laufenden Saison (Gleichstand zählt für alle).</p></div>
+  </section>
+  <section id="s-konten">
+    <div class="card"><h2>Kontostände</h2><div id="t-accounts"></div>
+      <p class="note" id="acc-note"></p></div>
+    <div class="card"><h2>Verlauf Kontostand</h2><div id="chart-bal"></div></div>
+  </section>
+  <section id="s-markt">
+    <div class="card"><h2>Transfermarkt</h2><div id="t-market"></div>
+      <p class="note">Empfohlenes Gebot = Marktwert + Aufschlag (Faustregel nach Punkten pro Mio. €). „Konkurrenz“ zeigt, ob ein anderer Manager rechnerisch genug Geld hätte, um mitzubieten.</p></div>
+  </section>
+  <section id="s-transfers">
+    <div class="card"><h2>Transfers dieser Saison</h2>
+      <div style="margin-bottom:8px"><select id="tf-filter"></select></div>
+      <div id="t-transfers"></div></div>
+  </section>
+  <section id="s-kader">
+    <div class="card"><h2>Kader</h2>
+      <div style="margin-bottom:8px"><select id="sq-filter"></select></div>
+      <div id="t-squad"></div></div>
+  </section>
+</main>
+<script>
+window.DATA = __DATA__;
+</script>
+<script>
+(function(){
+const D = window.DATA;
+const eur = v => v==null ? "–" : new Intl.NumberFormat("de-DE",{maximumFractionDigits:0}).format(v) + " €";
+const mio = v => v==null ? "–" : (v/1e6).toLocaleString("de-DE",{minimumFractionDigits:2,maximumFractionDigits:2}) + " Mio.";
+const int = v => v==null ? "–" : Number(v).toLocaleString("de-DE");
+const dt = s => s ? new Date(s).toLocaleString("de-DE",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}) : "–";
+const nameOf = id => (D.managers.find(m=>m.id===String(id))||{}).name || "?";
+const COLORS = ["#0f6b4f","#c2410c","#2563eb","#9333ea","#ca8a04","#db2777","#0891b2","#4b5563"];
+const colorOf = id => COLORS[D.managers.findIndex(m=>m.id===String(id)) % COLORS.length];
+
+function el(tag, attrs, ...kids){
+  const e=document.createElement(tag);
+  for(const [k,v] of Object.entries(attrs||{})){ if(k==="class") e.className=v; else if(k==="style") e.style.cssText=v; else e.setAttribute(k,v); }
+  for(const k of kids.flat()){ if(k==null) continue; e.append(k instanceof Node ? k : document.createTextNode(String(k))); }
+  return e;
+}
+// Sortierbare Tabelle: cols = [{h, v:(row)=>display, s:(row)=>sortValue, n:true(numeric), cls:(row)=>""}]
+function table(target, rows, cols, opts={}){
+  const box=document.getElementById(target); box.textContent="";
+  let sortIdx=opts.sort ?? -1, dir=(sortIdx>=0 && cols[sortIdx].n) ? -1 : 1;
+  const t=el("table"); const thead=el("thead"); const tb=el("tbody"); t.append(thead,tb); box.append(t);
+  const hr=el("tr"); thead.append(hr);
+  cols.forEach((c,i)=>{ const th=el("th",{class:c.n?"n":""},c.h); th.onclick=()=>{ dir = sortIdx===i ? -dir : (c.n?-1:1); sortIdx=i; draw(); }; hr.append(th); });
+  function draw(){
+    let r=rows.slice();
+    if(sortIdx>=0){ const c=cols[sortIdx]; const sv=c.s||c.v; r.sort((a,b)=>{const x=sv(a),y=sv(b); return (x>y?1:x<y?-1:0)*dir;}); }
+    tb.textContent="";
+    for(const row of r){
+      const tr=el("tr",{class: opts.me && opts.me(row) ? "me":""});
+      for(const c of cols){ const v=c.v(row); const td=el("td",{class:(c.n?"n ":"")+(c.cls?c.cls(row):"")}); if(v instanceof Node) td.append(v); else td.textContent = v ?? "–"; tr.append(td); }
+      tb.append(tr);
+    }
+  }
+  draw();
+}
+const isMe = r => String(r.id)===D.me.id;
+
+// Kopf
+document.getElementById("meta").textContent = `${D.community} · Saison ${D.season||""} · Stand ${dt(D.generatedAt)}`;
+
+// Tabs
+const TABS=[["uebersicht","Übersicht"],["tabelle","Tabelle"],["ewig","Ewige Tabelle"],["siege","Siege"],["konten","Kontostände"],["markt","Transfermarkt"],["transfers","Transfers"],["kader","Kader"]];
+const tabs=document.getElementById("tabs");
+function show(id){ document.querySelectorAll("section").forEach(s=>s.classList.toggle("on",s.id==="s-"+id)); tabs.querySelectorAll("button").forEach(b=>b.classList.toggle("on",b.dataset.id===id)); try{history.replaceState(null,"","#"+id)}catch(e){} }
+TABS.forEach(([id,l])=>{ const b=el("button",{"data-id":id},l); b.onclick=()=>show(id); tabs.append(b); });
+{ const h=location.hash.slice(1); show(TABS.some(t=>t[0]===h) ? h : "uebersicht"); }
+
+// KPIs
+const k=document.getElementById("kpis");
+[["Platz", D.me.rank+".", D.me.gap? `${D.me.gap} Pkt. hinter Platz 1` : "Tabellenführer"],
+ ["Punkte", int(D.me.points), ""],
+ ["Kontostand", mio(D.me.balance), D.me.deviation ? `Abweichung zur Schätzung: ${eur(D.me.deviation)}` : "deckt sich mit der Schätzung"],
+ ["Teamwert", mio(D.me.teamValue), ""],
+ ["Nächste Transfers", dt(D.nextTransfers), ""]
+].forEach(([l,v,h])=>k.append(el("div",{class:"kpi"},el("div",{class:"l"},l),el("div",{class:"v"},v),el("div",{class:"h"},h))));
+
+// Tabelle
+const stCols=[{h:"#",v:r=>r.rank,n:true},{h:"Manager",v:r=>r.name},{h:"Punkte",v:r=>int(r.points),s:r=>r.points,n:true},{h:"Rückstand",v:r=>r.gap?"−"+r.gap:"–",s:r=>r.gap,n:true},{h:"Teamwert",v:r=>mio(r.teamValue),s:r=>r.teamValue,n:true}];
+table("t-standings",D.standings,stCols,{me:isMe});
+table("mini-table",D.standings,stCols.slice(0,4),{me:isMe});
+
+// Spieltage-Matrix
+(function(){
+  const box=document.getElementById("t-matchdays"); const t=el("table"); const hr=el("tr",{},el("th",{},"Spieltag"));
+  D.standings.forEach(s=>hr.append(el("th",{class:"n"},s.name)));
+  t.append(el("thead",{},hr)); const tb=el("tbody"); t.append(tb);
+  D.matchdays.slice().reverse().forEach(md=>{
+    const tr=el("tr",{},el("td",{},md.name));
+    D.standings.forEach(s=>{ const p=md.points[s.id]; const win=md.winners.includes(s.id); tr.append(el("td",{class:"n"}, win? el("span",{class:"pill"},p) : (p??"–"))); });
+    tb.append(tr);
+  });
+  box.append(t);
+})();
+
+// Linienchart (SVG) – series: [{id,name,values:[{x,y}]}]
+function lineChart(target, series, xLabels, fmt){
+  const box=document.getElementById(target); box.textContent="";
+  if(!xLabels.length){ box.append(el("p",{class:"note"},"Noch keine Daten.")); return; }
+  const W=Math.max(box.clientWidth||600,320), H=240, L=58, R=12, T=10, B=28;
+  const ys=series.flatMap(s=>s.values.map(v=>v.y)).filter(v=>v!=null);
+  let lo=Math.min(...ys), hi=Math.max(...ys); if(lo===hi){lo-=1;hi+=1;}
+  const pad=(hi-lo)*0.08; lo-=pad; hi+=pad;
+  const x=i=>L+(xLabels.length===1?(W-L-R)/2:i*(W-L-R)/(xLabels.length-1)), y=v=>T+(1-(v-lo)/(hi-lo))*(H-T-B);
+  const ns="http://www.w3.org/2000/svg"; const svg=document.createElementNS(ns,"svg");
+  svg.setAttribute("viewBox",`0 0 ${W} ${H}`); svg.setAttribute("width","100%");
+  const mk=(tag,a)=>{const e=document.createElementNS(ns,tag); for(const [kk,vv] of Object.entries(a)) e.setAttribute(kk,vv); svg.append(e); return e;};
+  for(let i=0;i<=4;i++){ const v=lo+(hi-lo)*i/4; mk("line",{x1:L,x2:W-R,y1:y(v),y2:y(v),stroke:"currentColor","stroke-opacity":.08}); const tx=mk("text",{x:L-6,y:y(v)+4,"text-anchor":"end"}); tx.textContent=fmt(v); }
+  const step=Math.ceil(xLabels.length/8);
+  xLabels.forEach((l,i)=>{ if(i%step) return; const tx=mk("text",{x:x(i),y:H-8,"text-anchor":"middle"}); tx.textContent=l; });
+  series.forEach(s=>{
+    const pts=s.values.map((v,i)=>v.y==null?null:[x(i),y(v.y)]).filter(Boolean);
+    mk("polyline",{points:pts.map(p=>p.join(",")).join(" "),fill:"none",stroke:colorOf(s.id),"stroke-width":s.id===D.me.id?3:1.8});
+    pts.forEach((p,i)=>{ const c=mk("circle",{cx:p[0],cy:p[1],r:3,fill:colorOf(s.id)}); const tt=document.createElementNS(ns,"title"); tt.textContent=`${s.name}: ${fmt(s.values[i].y)}`; c.append(tt); });
+  });
+  box.append(svg);
+  const lg=el("div",{class:"legend"}); series.forEach(s=>lg.append(el("span",{},el("i",{style:"background:"+colorOf(s.id)}),s.name))); box.append(lg);
+}
+const mdLabels=D.matchdays.map(m=>String(m.key));
+const cum={}; const mdSeries=D.standings.map(s=>({id:s.id,name:s.name,values:D.matchdays.map(m=>{ const p=Number(m.points[s.id])||0; cum[s.id]=(cum[s.id]||0)+p; return {y:cum[s.id]}; })}));
+lineChart("chart-md", mdSeries, mdLabels, v=>Math.round(v));
+
+// Ewige Tabelle
+table("t-alltime",D.alltime,[{h:"#",v:r=>r.rank,n:true},{h:"Manager",v:r=>r.name},{h:"Punkte gesamt",v:r=>int(r.points),s:r=>r.points,n:true},{h:"davon aktuell",v:r=>int(r.current),s:r=>r.current,n:true},{h:"Saisons",v:r=>r.seasons,n:true},{h:"Ø je Saison",v:r=>int(r.avg),s:r=>r.avg||0,n:true}],{me:isMe});
+(function(){
+  const box=document.getElementById("t-seasons"); const t=el("table"); const hr=el("tr",{},el("th",{},"Saison"));
+  D.alltime.forEach(a=>hr.append(el("th",{class:"n"},a.name))); hr.append(el("th",{},"Sieger"));
+  t.append(el("thead",{},hr)); const tb=el("tbody"); t.append(tb);
+  D.seasons.slice().reverse().forEach(s=>{
+    const tr=el("tr",{},el("td",{},s.label));
+    D.alltime.forEach(a=>{ const p=s.points[a.id]; tr.append(el("td",{class:"n"}, s.winners.includes(a.id)? el("span",{class:"pill"},int(p)) : (p? int(p):"–"))); });
+    tr.append(el("td",{},s.winners.map(nameOf).join(", "))); tb.append(tr);
+  });
+  box.append(t);
+})();
+
+// Siege
+const maxW=Math.max(1,...D.wins.map(w=>w.titles*10+w.matchdayWins));
+table("t-wins",D.wins,[{h:"Manager",v:r=>r.name},{h:"Saisonsiege",v:r=>r.titles,n:true},{h:"Spieltagssiege (Saison)",v:r=>r.matchdayWins,n:true},
+  {h:"",v:r=>el("div",{class:"bar",style:`width:${Math.round(120*(r.titles*10+r.matchdayWins)/maxW)}px`}),s:r=>r.titles*10+r.matchdayWins}],{me:isMe});
+
+// Konten
+table("t-accounts",D.accounts,[{h:"Manager",v:r=>r.name},{h:"Kontostand",v:r=>eur(r.balance),s:r=>r.balance,n:true,cls:r=>r.balance<0?"neg":""},
+  {h:"",v:r=>r.real!=null?el("span",{class:"pill"},"echt"):el("span",{class:"pill warn"},"geschätzt"),s:r=>r.real!=null?1:0},
+  {h:"Start",v:r=>mio(r.start),s:r=>r.start,n:true},{h:"Verkäufe",v:r=>mio(r.sales),s:r=>r.sales,n:true,cls:()=>"pos"},
+  {h:"Käufe",v:r=>mio(r.buys),s:r=>r.buys,n:true,cls:()=>"neg"},{h:"Punkteprämie",v:r=>mio(r.bonus),s:r=>r.bonus,n:true},
+  {h:"Teamwert",v:r=>mio(r.teamValue),s:r=>r.teamValue,n:true},{h:"Gesamt",v:r=>mio(r.total),s:r=>r.total,n:true}],{me:isMe,sort:1});
+document.getElementById("acc-note").textContent = "Schätzung = Startkapital + Verkäufe − Käufe + 10.000 € je Punkt. Strafen/Gutschriften sind nicht enthalten. " + (D.me.deviation? `Bei dir weicht die Schätzung um ${eur(D.me.deviation)} vom echten Kontostand ab.` : "");
+const hDates=D.history.map(h=>h.date.slice(5).split("-").reverse().join("."));
+lineChart("chart-bal", D.managers.map(m=>({id:m.id,name:m.name,values:D.history.map(h=>({y:h.balance[m.id]??null}))})), hDates, v=>(v/1e6).toFixed(1)+" M");
+
+// Markt
+const mkCols=[{h:"Spieler",v:r=>r.name},{h:"Verein",v:r=>r.club},{h:"Pos.",v:r=>({keeper:"TW",defender:"AB",midfielder:"MF",striker:"ST"}[r.position]||r.position)},
+  {h:"Besitzer",v:r=>r.owner||"Computer"},{h:"Punkte",v:r=>r.points,n:true},{h:"Marktwert",v:r=>mio(r.marketValue),s:r=>r.marketValue,n:true},
+  {h:"Pkt./Mio.",v:r=>r.pointsPerMio.toLocaleString("de-DE"),s:r=>r.pointsPerMio,n:true},
+  {h:"Empf. Gebot",v:r=>el("strong",{},eur(r.bid)),s:r=>r.bid,n:true},{h:"Aufschlag",v:r=>r.premium.toLocaleString("de-DE")+" %",s:r=>r.premium,n:true},
+  {h:"Status",v:r=>r.status&&r.status!=="ACTIVE"?el("span",{class:"pill bad"},r.status):"",s:r=>r.status},
+  {h:"Bezahlbar",v:r=>r.affordable?"ja":el("span",{class:"neg"},"nein"),s:r=>r.affordable?1:0},
+  {h:"Konkurrenz",v:r=>r.rivalCanOutbid?el("span",{class:"pill warn"},"kann mitbieten"):"–",s:r=>r.rivalCanOutbid?1:0},
+  {h:"Restzeit",v:r=>r.remainingDays!=null? r.remainingDays+" T.":"–",s:r=>r.remainingDays,n:true}];
+table("t-market",D.market,mkCols,{sort:6});
+table("mini-market",D.market.filter(m=>m.status==="ACTIVE"||!m.status).slice(0,6),[mkCols[0],mkCols[4],mkCols[5],mkCols[7]]);
+
+// Transfers
+const tf=document.getElementById("tf-filter"); tf.append(el("option",{value:""},"Alle Manager")); D.managers.forEach(m=>tf.append(el("option",{value:m.name},m.name)));
+const drawTf=()=>table("t-transfers",D.transfers.filter(t=>!tf.value||t.from===tf.value||t.to===tf.value),[{h:"Datum",v:r=>dt(r.date),s:r=>r.date},{h:"Spieler",v:r=>r.player},{h:"von",v:r=>r.from},{h:"an",v:r=>r.to},{h:"Preis",v:r=>eur(r.price),s:r=>r.price,n:true}]);
+tf.onchange=drawTf; drawTf();
+
+// Kader
+const sf=document.getElementById("sq-filter"); D.managers.forEach(m=>sf.append(el("option",{value:m.id},m.name))); sf.value=D.me.id;
+const drawSq=()=>table("t-squad",D.squads[sf.value]||[],[{h:"Spieler",v:r=>r.name},{h:"Verein",v:r=>r.club},{h:"Pos.",v:r=>({keeper:"TW",defender:"AB",midfielder:"MF",striker:"ST"}[r.position]||r.position)},
+  {h:"Punkte",v:r=>r.points,s:r=>Number(r.points),n:true},{h:"Ø",v:r=>r.avg,s:r=>Number(r.avg),n:true},{h:"Marktwert",v:r=>mio(r.marketValue),s:r=>r.marketValue,n:true},
+  {h:"Kaufpreis",v:r=>mio(r.purchasePrice),s:r=>r.purchasePrice||0,n:true},
+  {h:"+/−",v:r=>r.purchasePrice? mio(r.marketValue-r.purchasePrice):"–",s:r=>(r.marketValue||0)-(r.purchasePrice||0),n:true,cls:r=>r.purchasePrice?(r.marketValue>=r.purchasePrice?"pos":"neg"):""},
+  {h:"Status",v:r=>r.status&&r.status!=="ACTIVE"?el("span",{class:"pill bad"},r.status):""}],{sort:5});
+sf.onchange=drawSq; drawSq();
+
+window.addEventListener("resize",()=>{ lineChart("chart-md", mdSeries, mdLabels, v=>Math.round(v)); });
+})();
+</script>
+</body>
+</html>
