@@ -1,15 +1,159 @@
 {
-  "_hinweis": "Saisonregeln der Community. Startkapital in Euro je Manager-ID; 'default' gilt für alle anderen.",
-  "season_start": "2026-07-27",
-  "season_label": "2026/27",
-  "points_bonus_eur": 10000,
-  "start_capital": {
-    "default": 15000000,
-    "5695415": 13040000
+ "_hinweis": "Regeln und Korrekturen der Community. Manager werden über ihre Comunio-ID angesprochen.",
+ "season_label": "2026/27",
+ "season_start": "2026-05-27",
+ "points_bonus_eur": 10000,
+ "balance_reference": {
+  "_hinweis": "Nach den Strafen/Gutschriften zum Saisonübergang (25./26.05.) hatte jeder Manager 10 Mio. €, am 27.05. kamen 5 Mio. € Saisonwechsel-Bonus dazu.",
+  "after": "2026-05-26T09:00:00+02:00",
+  "base_eur": 15000000
+ },
+ "news_transfers_from": "2026-05-31",
+ "seed_transfers": [
+  {
+   "date": "2026-05-27T04:40:00+02:00",
+   "player": "Røssing-Lelesiit",
+   "price": 200000,
+   "fromId": 1,
+   "toId": 13782745
   },
-  "bid": {
-    "base_premium": 0.02,
-    "max_premium": 0.12,
-    "keep_reserve_eur": 0
+  {
+   "date": "2026-05-27T04:40:00+02:00",
+   "player": "Guirassy",
+   "price": 10440000,
+   "fromId": 1,
+   "toId": 5695415
+  },
+  {
+   "date": "2026-05-27T04:40:00+02:00",
+   "player": "Grifo",
+   "price": 4777777,
+   "fromId": 1,
+   "toId": 5872179
+  },
+  {
+   "date": "2026-05-27T04:40:00+02:00",
+   "player": "van den Berg",
+   "price": 300000,
+   "fromId": 1,
+   "toId": 13554099
+  },
+  {
+   "date": "2026-05-28T07:02:00+02:00",
+   "player": "Røssing-Lelesiit",
+   "price": 463200,
+   "fromId": 13782745,
+   "toId": 1
+  },
+  {
+   "date": "2026-05-28T04:42:00+02:00",
+   "player": "Amaimouni-Echghouyab",
+   "price": 1970000,
+   "fromId": 1,
+   "toId": 9025745
+  },
+  {
+   "date": "2026-05-28T04:42:00+02:00",
+   "player": "Nebel",
+   "price": 4990000,
+   "fromId": 1,
+   "toId": 9025745
+  },
+  {
+   "date": "2026-05-28T04:42:00+02:00",
+   "player": "Thomas",
+   "price": 480000,
+   "fromId": 1,
+   "toId": 5872179
+  },
+  {
+   "date": "2026-05-29T04:44:00+02:00",
+   "player": "V. Becker",
+   "price": 799000,
+   "fromId": 1,
+   "toId": 9025745
+  },
+  {
+   "date": "2026-05-29T04:44:00+02:00",
+   "player": "Poulsen",
+   "price": 501000,
+   "fromId": 1,
+   "toId": 9025745
+  },
+  {
+   "date": "2026-05-29T04:44:00+02:00",
+   "player": "Bülter",
+   "price": 2497000,
+   "fromId": 1,
+   "toId": 5695415
+  },
+  {
+   "date": "2026-05-29T04:44:00+02:00",
+   "player": "Siljević",
+   "price": 160000,
+   "fromId": 1,
+   "toId": 5872179
+  },
+  {
+   "date": "2026-05-29T04:44:00+02:00",
+   "player": "Castrop",
+   "price": 1050000,
+   "fromId": 1,
+   "toId": 9025745
+  },
+  {
+   "date": "2026-05-29T04:44:00+02:00",
+   "player": "Damjanović",
+   "price": 1420200,
+   "fromId": 1,
+   "toId": 13780917
+  },
+  {
+   "date": "2026-05-29T04:44:00+02:00",
+   "player": "Eduardo",
+   "price": 170000,
+   "fromId": 1,
+   "toId": 5872179
+  },
+  {
+   "date": "2026-05-30T04:43:00+02:00",
+   "player": "Belocian",
+   "price": 1771000,
+   "fromId": 1,
+   "toId": 13780917
+  },
+  {
+   "date": "2026-05-30T04:43:00+02:00",
+   "player": "Ramaj",
+   "price": 699999,
+   "fromId": 1,
+   "toId": 13780917
+  },
+  {
+   "date": "2026-05-30T04:43:00+02:00",
+   "player": "Zetterer",
+   "price": 999999,
+   "fromId": 1,
+   "toId": 13780917
   }
+ ],
+ "champions": {
+  "_hinweis": "Meister, die aus den Comunio-Daten nicht ableitbar sind (Saison = Jahr des Saisonendes).",
+  "09/10": "Johannes",
+  "10/11": "Christian",
+  "12/13": "Johannes",
+  "14/15": "Johannes",
+  "21/22": "Sven",
+  "22/23": "Sven",
+  "23/24": "Sven"
+ },
+ "former_managers": [
+  "Christian",
+  "Sven"
+ ],
+ "bid": {
+  "base_premium": 0.02,
+  "max_premium": 0.12,
+  "keep_reserve_eur": 0
+ }
 }

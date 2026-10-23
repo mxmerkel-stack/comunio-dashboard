@@ -7,7 +7,7 @@ from pathlib import Path
 
 random.seed(7)
 DATA = Path(os.environ.get("DATA_DIR", Path(__file__).resolve().parent.parent / "data"))
-members = [{"id": 5695415, "name": "Testmanager"}, {"id": 101, "name": "Adler"}, {"id": 102, "name": "Bauer"},
+members = [{"id": 5695415, "name": "Testmanager", "login": "test1"}, {"id": 101, "name": "Adler"}, {"id": 102, "name": "Bauer"},
            {"id": 103, "name": "Lindner"}, {"id": 104, "name": "Peters"}, {"id": 105, "name": "Kaiser"}]
 md = []
 tot = {m["id"]: 0 for m in members}
@@ -26,7 +26,8 @@ players = ["Müller", "Kimmich", "Wirtz", "Musiala", "Tah", "Baumann", "Undav", 
 market = [{"id": 30000 + i, "name": n, "club": "Testverein", "position": random.choice(["keeper", "defender", "midfielder", "striker"]),
            "points": str(random.randint(0, 60)), "marketValue": str(random.randint(5, 150) * 100000),
            "recommendedPrice": "-1", "trend": "UP", "status": random.choice(["ACTIVE"] * 5 + ["INJURED"]),
-           "owner": random.choice([None, "Adler"]), "remainingDays": random.randint(1, 13), "date": "2026-10-21T04:34:45+0200"}
+           "statusInfo": "", "seasonPoints": {"24/25": str(random.randint(0, 150)), "25/26": str(random.randint(0, 180))},
+           "owner": random.choice([None, None, "Adler"]), "remainingDays": random.randint(1, 13), "date": "2026-10-21T04:34:45+0200"}
           for i, n in enumerate(players)]
 transfers = []
 for i in range(25):
@@ -40,7 +41,7 @@ for i in range(25):
                       "toId": to["id"], "to": to["name"]})
 squads = {str(m["id"]): [{"id": 31000 + j, "name": random.choice(players), "club": "Testverein", "position": "midfielder",
                           "points": str(random.randint(0, 50)), "avg": "3.5", "marketValue": random.randint(5, 150) * 100000,
-                          "status": "ACTIVE", "purchasePrice": random.randint(5, 150) * 100000, "purchaseDate": "2026-08-01T00:00:00+02:00"}
+                          "status": random.choice(["ACTIVE"]*6+["REHABILITATION"]), "statusInfo": "Reha nach Muskelverletzung", "purchasePrice": random.randint(5, 150) * 100000, "purchaseDate": "2026-08-01T00:00:00+02:00"}
                          for j in range(11)] for m in members}
 raw = {
     "fetchedAt": "2026-10-23T18:30:00+00:00",
@@ -53,6 +54,9 @@ raw = {
     "nextTransfers": "2026-10-24T03:00:00+02:00",
     "statement": [{"date": "2026-10-23T04:55:03+02:00", "type": "TRANSFER", "amount": 3224000, "text": "Müller"}],
     "transfers": transfers,
+    "bonuses": [{"newsId": 1, "date": "2026-05-25T15:31:00+02:00", "amount": -9000000, "name": "Testmanager", "reason": "Saisonübergang"},
+                {"newsId": 2, "date": "2026-09-02T10:00:00+02:00", "amount": -500000, "name": "Adler", "reason": "Aufstellung vergessen"},
+                {"newsId": 3, "date": "2026-09-03T10:00:00+02:00", "amount": 250000, "name": "Bauer", "reason": "Tippspiel"}],
 }
 DATA.mkdir(parents=True, exist_ok=True)
 (DATA / "raw.json").write_text(json.dumps(raw, ensure_ascii=False, indent=1))

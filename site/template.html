@@ -31,7 +31,7 @@ section{display:none}section.on{display:block}
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:16px}
 .kpi{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
 .kpi .l{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.04em}
-.kpi .v{font-size:24px;font-weight:650;margin-top:2px;font-variant-numeric:tabular-nums}
+.kpi .v{font-size:22px;font-weight:650;margin-top:2px;font-variant-numeric:tabular-nums}
 .kpi .h{color:var(--muted);font-size:12px}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:16px;overflow-x:auto}
 .card h2{font-size:16px;margin:0 0 10px}
@@ -51,6 +51,7 @@ tr.me td{background:var(--me)}
 svg text{fill:var(--muted);font-size:11px}
 .legend{display:flex;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--muted);margin-top:6px}
 .legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px}
+a{color:var(--accent)}
 select{font:inherit;padding:4px 6px;background:var(--panel);color:var(--fg);border:1px solid var(--line);border-radius:6px}
 </style>
 </head>
@@ -65,7 +66,7 @@ select{font:inherit;padding:4px 6px;background:var(--panel);color:var(--fg);bord
     <div class="kpis" id="kpis"></div>
     <div class="grid2">
       <div class="card"><h2>Tabelle</h2><div id="mini-table"></div></div>
-      <div class="card"><h2>Top-Empfehlungen Transfermarkt</h2><div id="mini-market"></div></div>
+      <div class="card"><h2>Top-Empfehlungen vom Computer</h2><div id="mini-market"></div><p class="note">Nur Spieler, die der Computer anbietet.</p></div>
     </div>
     <div class="card"><h2>Punkteverlauf je Spieltag</h2><div id="chart-md"></div></div>
   </section>
@@ -75,23 +76,26 @@ select{font:inherit;padding:4px 6px;background:var(--panel);color:var(--fg);bord
   </section>
   <section id="s-ewig">
     <div class="card"><h2>Ewige Tabelle</h2><div id="t-alltime"></div>
-      <p class="note">Summe aller abgeschlossenen Saisons plus aktuelle Saison.</p></div>
+      <p class="note">Summe aller abgeschlossenen Saisons plus aktuelle Saison. Meistertitel inklusive der manuell ergänzten Jahre.</p></div>
+    <div class="card"><h2>Meister</h2><div id="t-champions"></div></div>
     <div class="card"><h2>Saisons im Überblick</h2><div id="t-seasons"></div></div>
   </section>
   <section id="s-siege">
     <div class="card"><h2>Siege-Ranking</h2><div id="t-wins"></div>
-      <p class="note">Saisonsiege aus der Historie, Spieltagssiege der laufenden Saison (Gleichstand zählt für alle).</p></div>
+      <p class="note">Meistertitel aus der Historie und den manuellen Ergänzungen, Spieltagssiege der laufenden Saison (Gleichstand zählt für alle).</p></div>
   </section>
   <section id="s-konten">
     <div class="card"><h2>Kontostände</h2><div id="t-accounts"></div>
       <p class="note" id="acc-note"></p></div>
+    <div class="card"><h2>Strafen &amp; Gutschriften</h2><div id="t-bonuses"></div></div>
     <div class="card"><h2>Verlauf Kontostand</h2><div id="chart-bal"></div></div>
   </section>
   <section id="s-markt">
     <div class="card"><h2>Transfermarkt</h2><div id="t-market"></div>
-      <p class="note">Empfohlenes Gebot = Marktwert + Aufschlag (Faustregel nach Punkten pro Mio. €). „Konkurrenz“ zeigt, ob ein anderer Manager rechnerisch genug Geld hätte, um mitzubieten.</p></div>
+      <p class="note" id="mk-note"></p></div>
   </section>
   <section id="s-transfers">
+    <div class="card"><h2>Transfers je Manager</h2><div id="t-tfstats"></div></div>
     <div class="card"><h2>Transfers dieser Saison</h2>
       <div style="margin-bottom:8px"><select id="tf-filter"></select></div>
       <div id="t-transfers"></div></div>
@@ -99,7 +103,7 @@ select{font:inherit;padding:4px 6px;background:var(--panel);color:var(--fg);bord
   <section id="s-kader">
     <div class="card"><h2>Kader</h2>
       <div style="margin-bottom:8px"><select id="sq-filter"></select></div>
-      <div id="t-squad"></div></div>
+      <div id="t-squad"></div><p class="note" id="sq-note"></p></div>
   </section>
 </main>
 <script>
@@ -149,7 +153,7 @@ document.getElementById("meta").textContent = `${D.community} · Saison ${D.seas
 // Tabs
 const TABS=[["uebersicht","Übersicht"],["tabelle","Tabelle"],["ewig","Ewige Tabelle"],["siege","Siege"],["konten","Kontostände"],["markt","Transfermarkt"],["transfers","Transfers"],["kader","Kader"]];
 const tabs=document.getElementById("tabs");
-function show(id){ document.querySelectorAll("section").forEach(s=>s.classList.toggle("on",s.id==="s-"+id)); tabs.querySelectorAll("button").forEach(b=>b.classList.toggle("on",b.dataset.id===id)); try{history.replaceState(null,"","#"+id)}catch(e){} }
+const CHARTS={}; function show(id){ document.querySelectorAll("section").forEach(s=>s.classList.toggle("on",s.id==="s-"+id)); tabs.querySelectorAll("button").forEach(b=>b.classList.toggle("on",b.dataset.id===id)); try{history.replaceState(null,"","#"+id)}catch(e){} Object.values(CHARTS).forEach(f=>f()); }
 TABS.forEach(([id,l])=>{ const b=el("button",{"data-id":id},l); b.onclick=()=>show(id); tabs.append(b); });
 { const h=location.hash.slice(1); show(TABS.some(t=>t[0]===h) ? h : "uebersicht"); }
 
@@ -157,7 +161,7 @@ TABS.forEach(([id,l])=>{ const b=el("button",{"data-id":id},l); b.onclick=()=>sh
 const k=document.getElementById("kpis");
 [["Platz", D.me.rank+".", D.me.gap? `${D.me.gap} Pkt. hinter Platz 1` : "Tabellenführer"],
  ["Punkte", int(D.me.points), ""],
- ["Kontostand", mio(D.me.balance), D.me.deviation ? `Abweichung zur Schätzung: ${eur(D.me.deviation)}` : "deckt sich mit der Schätzung"],
+ ["Kontostand", eur(D.me.balance), "verfügbar laut Comunio"],
  ["Teamwert", mio(D.me.teamValue), ""],
  ["Nächste Transfers", dt(D.nextTransfers), ""]
 ].forEach(([l,v,h])=>k.append(el("div",{class:"kpi"},el("div",{class:"l"},l),el("div",{class:"v"},v),el("div",{class:"h"},h))));
@@ -182,7 +186,8 @@ table("mini-table",D.standings,stCols.slice(0,4),{me:isMe});
 
 // Linienchart (SVG) – series: [{id,name,values:[{x,y}]}]
 function lineChart(target, series, xLabels, fmt){
-  const box=document.getElementById(target); box.textContent="";
+  const box=document.getElementById(target); if(!box.offsetParent && box.childNodes.length) return; box.textContent="";
+  if(!box.offsetParent) return;
   if(!xLabels.length){ box.append(el("p",{class:"note"},"Noch keine Daten.")); return; }
   const W=Math.max(box.clientWidth||600,320), H=240, L=58, R=12, T=10, B=28;
   const ys=series.flatMap(s=>s.values.map(v=>v.y)).filter(v=>v!=null);
@@ -205,64 +210,88 @@ function lineChart(target, series, xLabels, fmt){
 }
 const mdLabels=D.matchdays.map(m=>String(m.key));
 const cum={}; const mdSeries=D.standings.map(s=>({id:s.id,name:s.name,values:D.matchdays.map(m=>{ const p=Number(m.points[s.id])||0; cum[s.id]=(cum[s.id]||0)+p; return {y:cum[s.id]}; })}));
-lineChart("chart-md", mdSeries, mdLabels, v=>Math.round(v));
+CHARTS.md=()=>lineChart("chart-md", mdSeries, mdLabels, v=>Math.round(v)); CHARTS.md();
 
-// Ewige Tabelle
-table("t-alltime",D.alltime,[{h:"#",v:r=>r.rank,n:true},{h:"Manager",v:r=>r.name},{h:"Punkte gesamt",v:r=>int(r.points),s:r=>r.points,n:true},{h:"davon aktuell",v:r=>int(r.current),s:r=>r.current,n:true},{h:"Saisons",v:r=>r.seasons,n:true},{h:"Ø je Saison",v:r=>int(r.avg),s:r=>r.avg||0,n:true}],{me:isMe});
+// Ewige Tabelle & Meister
+table("t-alltime",D.alltime,[{h:"#",v:r=>r.rank,n:true},{h:"Manager",v:r=>r.name},{h:"Punkte gesamt",v:r=>int(r.points),s:r=>r.points,n:true},{h:"davon aktuell",v:r=>int(r.current),s:r=>r.current,n:true},{h:"Meistertitel",v:r=>r.titles||"–",s:r=>r.titles,n:true},{h:"Saisons",v:r=>r.seasons,n:true},{h:"Ø je Saison",v:r=>int(r.avg),s:r=>r.avg||0,n:true}],{me:isMe});
+table("t-champions",D.seasons.slice().reverse(),[{h:"Saison",v:r=>r.label,s:r=>r.label.split("/")[1]},{h:"Meister",v:r=>el("strong",{},r.winnerNames.join(", ")||"–"),s:r=>r.winnerNames.join(",")},
+  {h:"Punkte",v:r=>{const w=r.winners[0]; return w&&r.points[w]? int(r.points[w]) : "–";},n:true},
+  {h:"Quelle",v:r=>r.source==="manuell"?el("span",{class:"pill warn"},"ergänzt"):"aus Punkten"}]);
 (function(){
   const box=document.getElementById("t-seasons"); const t=el("table"); const hr=el("tr",{},el("th",{},"Saison"));
-  D.alltime.forEach(a=>hr.append(el("th",{class:"n"},a.name))); hr.append(el("th",{},"Sieger"));
+  D.alltime.forEach(a=>hr.append(el("th",{class:"n"},a.name))); hr.append(el("th",{},"Meister"));
   t.append(el("thead",{},hr)); const tb=el("tbody"); t.append(tb);
   D.seasons.slice().reverse().forEach(s=>{
     const tr=el("tr",{},el("td",{},s.label));
-    D.alltime.forEach(a=>{ const p=s.points[a.id]; tr.append(el("td",{class:"n"}, s.winners.includes(a.id)? el("span",{class:"pill"},int(p)) : (p? int(p):"–"))); });
-    tr.append(el("td",{},s.winners.map(nameOf).join(", "))); tb.append(tr);
+    D.alltime.forEach(a=>{ const p=s.points[a.id]; tr.append(el("td",{class:"n"}, s.winners.includes(a.id)? el("span",{class:"pill"},p?int(p):"🏆") : (p? int(p):"–"))); });
+    tr.append(el("td",{},s.winnerNames.join(", "))); tb.append(tr);
   });
   box.append(t);
 })();
 
 // Siege
 const maxW=Math.max(1,...D.wins.map(w=>w.titles*10+w.matchdayWins));
-table("t-wins",D.wins,[{h:"Manager",v:r=>r.name},{h:"Saisonsiege",v:r=>r.titles,n:true},{h:"Spieltagssiege (Saison)",v:r=>r.matchdayWins,n:true},
+table("t-wins",D.wins,[{h:"Manager",v:r=>r.name},{h:"Meistertitel",v:r=>r.titles,n:true},{h:"Spieltagssiege (Saison)",v:r=>r.former?"–":r.matchdayWins,s:r=>r.matchdayWins,n:true},
   {h:"",v:r=>el("div",{class:"bar",style:`width:${Math.round(120*(r.titles*10+r.matchdayWins)/maxW)}px`}),s:r=>r.titles*10+r.matchdayWins}],{me:isMe});
 
 // Konten
-table("t-accounts",D.accounts,[{h:"Manager",v:r=>r.name},{h:"Kontostand",v:r=>eur(r.balance),s:r=>r.balance,n:true,cls:r=>r.balance<0?"neg":""},
-  {h:"",v:r=>r.real!=null?el("span",{class:"pill"},"echt"):el("span",{class:"pill warn"},"geschätzt"),s:r=>r.real!=null?1:0},
-  {h:"Start",v:r=>mio(r.start),s:r=>r.start,n:true},{h:"Verkäufe",v:r=>mio(r.sales),s:r=>r.sales,n:true,cls:()=>"pos"},
-  {h:"Käufe",v:r=>mio(r.buys),s:r=>r.buys,n:true,cls:()=>"neg"},{h:"Punkteprämie",v:r=>mio(r.bonus),s:r=>r.bonus,n:true},
+const sgn=v=>!v?"–":(v>0?"+":"−")+eur(Math.abs(v));
+table("t-accounts",D.accounts,[{h:"Manager",v:r=>r.name},{h:"Kontostand",v:r=>el("strong",{},eur(r.balance)),s:r=>r.balance,n:true,cls:r=>r.balance<0?"neg":""},
+  {h:"",v:r=>r.real!=null?el("span",{class:"pill"},"echt"):el("span",{class:"pill warn"},"berechnet"),s:r=>r.real!=null?1:0},
+  {h:"Basis 27.05.",v:r=>eur(r.base),s:r=>r.base,n:true},{h:"Verkäufe",v:r=>sgn(r.sales),s:r=>r.sales,n:true,cls:()=>"pos"},
+  {h:"Käufe",v:r=>sgn(-r.buys),s:r=>r.buys,n:true,cls:()=>"neg"},{h:"Punkteprämie",v:r=>sgn(r.pointsBonus),s:r=>r.pointsBonus,n:true},
+  {h:"Strafen/Gutschr.",v:r=>r.penalties?sgn(r.penalties):"–",s:r=>r.penalties,n:true,cls:r=>r.penalties<0?"neg":(r.penalties>0?"pos":"")},
+  {h:"Berechnet",v:r=>eur(r.estimate),s:r=>r.estimate,n:true},
   {h:"Teamwert",v:r=>mio(r.teamValue),s:r=>r.teamValue,n:true},{h:"Gesamt",v:r=>mio(r.total),s:r=>r.total,n:true}],{me:isMe,sort:1});
-document.getElementById("acc-note").textContent = "Schätzung = Startkapital + Verkäufe − Käufe + 10.000 € je Punkt. Strafen/Gutschriften sind nicht enthalten. " + (D.me.deviation? `Bei dir weicht die Schätzung um ${eur(D.me.deviation)} vom echten Kontostand ab.` : "");
+document.getElementById("acc-note").textContent = "Berechnung: 15 Mio. € am 27.05. (10 Mio. nach Strafen/Gutschriften zum Saisonübergang + 5 Mio. Saisonwechsel-Bonus) + Verkäufe − Käufe + 10.000 € je Punkt + spätere Strafen/Gutschriften. Dein Kontostand ist der echte Wert von Comunio." + (D.me.deviation? ` Deine eigene Berechnung weicht um ${eur(D.me.deviation)} davon ab – so groß kann der Fehler bei den anderen ungefähr sein.` : " Deine eigene Berechnung stimmt exakt.");
+table("t-bonuses",D.bonuses,[{h:"Datum",v:r=>dt(r.date),s:r=>r.date},{h:"Manager",v:r=>r.name},{h:"Betrag",v:r=>sgn(r.amount),s:r=>r.amount,n:true,cls:r=>r.amount<0?"neg":"pos"},{h:"Begründung",v:r=>r.reason||"–"},
+  {h:"",v:r=>r.counted?el("span",{class:"pill"},"eingerechnet"):el("span",{class:"pill warn"},"Saisonübergang")}]);
 const hDates=D.history.map(h=>h.date.slice(5).split("-").reverse().join("."));
-lineChart("chart-bal", D.managers.map(m=>({id:m.id,name:m.name,values:D.history.map(h=>({y:h.balance[m.id]??null}))})), hDates, v=>(v/1e6).toFixed(1)+" M");
+CHARTS.bal=()=>lineChart("chart-bal", D.managers.map(m=>({id:m.id,name:m.name,values:D.history.map(h=>({y:h.balance[m.id]??null}))})), hDates, v=>(v/1e6).toFixed(1)+" M"); CHARTS.bal();
 
 // Markt
-const mkCols=[{h:"Spieler",v:r=>r.name},{h:"Verein",v:r=>r.club},{h:"Pos.",v:r=>({keeper:"TW",defender:"AB",midfielder:"MF",striker:"ST"}[r.position]||r.position)},
-  {h:"Besitzer",v:r=>r.owner||"Computer"},{h:"Punkte",v:r=>r.points,n:true},{h:"Marktwert",v:r=>mio(r.marketValue),s:r=>r.marketValue,n:true},
-  {h:"Pkt./Mio.",v:r=>r.pointsPerMio.toLocaleString("de-DE"),s:r=>r.pointsPerMio,n:true},
+const recPill=r=>el("span",{class:"pill"+(r.recommendation==="ja"?"":r.recommendation==="vielleicht"?" warn":" bad"),title:r.reason},r.recommendation);
+const injCell=r=>{ if(r.injury) return el("span",{title:(r.injury.note||"")+(r.injury.source?" – "+r.injury.source:"")},r.injury.return||"unklar"); return r.status&&r.status!=="ACTIVE"? "unklar":""; };
+const statusCell=r=>r.status&&r.status!=="ACTIVE"?el("span",{class:"pill bad",title:r.statusInfo||""},r.statusName):"";
+const recOrder={ja:2,vielleicht:1,nein:0};
+const mkCols=[{h:"Spieler",v:r=>r.name},{h:"Verein",v:r=>r.club||"–"},{h:"Position",v:r=>r.positionName},
+  {h:"Besitzer",v:r=>r.owner||"Computer"},{h:"Punkte",v:r=>r.points,n:true},{h:"Vorsaison",v:r=>r.prevPoints??"–",s:r=>r.prevPoints??-999,n:true},
+  {h:"Marktwert",v:r=>mio(r.marketValue),s:r=>r.marketValue,n:true},
+  {h:"Kaufempfehlung",v:recPill,s:r=>recOrder[r.recommendation]*10+r.rank},
   {h:"Empf. Gebot",v:r=>el("strong",{},eur(r.bid)),s:r=>r.bid,n:true},{h:"Aufschlag",v:r=>r.premium.toLocaleString("de-DE")+" %",s:r=>r.premium,n:true},
-  {h:"Status",v:r=>r.status&&r.status!=="ACTIVE"?el("span",{class:"pill bad"},r.status):"",s:r=>r.status},
+  {h:"Status",v:statusCell,s:r=>r.status},{h:"Rückkehr",v:injCell,s:r=>r.injury?r.injury.return:""},
   {h:"Bezahlbar",v:r=>r.affordable?"ja":el("span",{class:"neg"},"nein"),s:r=>r.affordable?1:0},
-  {h:"Konkurrenz",v:r=>r.rivalCanOutbid?el("span",{class:"pill warn"},"kann mitbieten"):"–",s:r=>r.rivalCanOutbid?1:0},
+  {h:"Können sich leisten",v:r=>r.rivals.length?r.rivals.join(", "):"niemand",s:r=>r.rivals.length},
   {h:"Restzeit",v:r=>r.remainingDays!=null? r.remainingDays+" T.":"–",s:r=>r.remainingDays,n:true}];
-table("t-market",D.market,mkCols,{sort:6});
-table("mini-market",D.market.filter(m=>m.status==="ACTIVE"||!m.status).slice(0,6),[mkCols[0],mkCols[4],mkCols[5],mkCols[7]]);
+table("t-market",D.market,mkCols,{sort:7});
+document.getElementById("mk-note").textContent = `Kaufempfehlung: Punkte dieser Saison doppelt gewichtet plus Vorsaison${D.prevSeason?" ("+D.prevSeason+")":""} anteilig, im Verhältnis zum Marktwert. Oberes Drittel = ja, mittleres = vielleicht, unteres oder verletzt/Reha/gesperrt = nein. Übersteigt das Gebot dein Guthaben, wird aus „ja“ ein „vielleicht“. Empfohlenes Gebot = Marktwert + 2–12 % Aufschlag. „Können sich leisten“ = Manager, deren (berechneter) Kontostand das Gebot deckt. Fahre über die Empfehlung für die Begründung.`;
+const mini=D.market.filter(m=>m.fromComputer && m.recommendation!=="nein").sort((a,b)=>recOrder[b.recommendation]-recOrder[a.recommendation]||b.rank-a.rank).slice(0,6);
+table("mini-market",mini,[mkCols[0],mkCols[2],mkCols[4],mkCols[6],mkCols[7],mkCols[8]]);
+if(!mini.length) document.getElementById("mini-market").append(el("p",{class:"note"},"Aktuell keine empfehlenswerten Computer-Spieler."));
 
 // Transfers
+table("t-tfstats",D.transferStats,[{h:"Manager",v:r=>r.name},{h:"Transfers",v:r=>el("strong",{},r.total),s:r=>r.total,n:true},{h:"Käufe",v:r=>r.buys,n:true},{h:"Verkäufe",v:r=>r.sells,n:true},
+  {h:"vom Computer",v:r=>r.fromComputer,n:true},{h:"an Computer",v:r=>r.toComputer,n:true},{h:"zw. Managern",v:r=>r.betweenManagers,n:true},
+  {h:"Ausgaben",v:r=>mio(r.buySum),s:r=>r.buySum,n:true},{h:"Einnahmen",v:r=>mio(r.sellSum),s:r=>r.sellSum,n:true},
+  {h:"Saldo",v:r=>mio(r.net),s:r=>r.net,n:true,cls:r=>r.net<0?"neg":"pos"}],{me:isMe,sort:1});
 const tf=document.getElementById("tf-filter"); tf.append(el("option",{value:""},"Alle Manager")); D.managers.forEach(m=>tf.append(el("option",{value:m.name},m.name)));
 const drawTf=()=>table("t-transfers",D.transfers.filter(t=>!tf.value||t.from===tf.value||t.to===tf.value),[{h:"Datum",v:r=>dt(r.date),s:r=>r.date},{h:"Spieler",v:r=>r.player},{h:"von",v:r=>r.from},{h:"an",v:r=>r.to},{h:"Preis",v:r=>eur(r.price),s:r=>r.price,n:true}]);
 tf.onchange=drawTf; drawTf();
 
 // Kader
+const rumorCell=r=>{ if(!r.rumor) return "–"; const x=r.rumor; const w=el("span",{title:x.note||""},`${x.target? x.target+" · ":""}${x.probability!=null? Math.round(x.probability*100)+" %":""}`);
+  if(x.url){ const a=el("a",{href:x.url,target:"_blank",rel:"noopener"}," ("+(x.source||"Quelle")+")"); w.append(a);} else if(x.source){ w.append(" ("+x.source+")"); } return w; };
 const sf=document.getElementById("sq-filter"); D.managers.forEach(m=>sf.append(el("option",{value:m.id},m.name))); sf.value=D.me.id;
-const drawSq=()=>table("t-squad",D.squads[sf.value]||[],[{h:"Spieler",v:r=>r.name},{h:"Verein",v:r=>r.club},{h:"Pos.",v:r=>({keeper:"TW",defender:"AB",midfielder:"MF",striker:"ST"}[r.position]||r.position)},
+const drawSq=()=>table("t-squad",D.squads[sf.value]||[],[{h:"Spieler",v:r=>r.name},{h:"Verein",v:r=>r.club},{h:"Position",v:r=>r.positionName},
   {h:"Punkte",v:r=>r.points,s:r=>Number(r.points),n:true},{h:"Ø",v:r=>r.avg,s:r=>Number(r.avg),n:true},{h:"Marktwert",v:r=>mio(r.marketValue),s:r=>r.marketValue,n:true},
   {h:"Kaufpreis",v:r=>mio(r.purchasePrice),s:r=>r.purchasePrice||0,n:true},
   {h:"+/−",v:r=>r.purchasePrice? mio(r.marketValue-r.purchasePrice):"–",s:r=>(r.marketValue||0)-(r.purchasePrice||0),n:true,cls:r=>r.purchasePrice?(r.marketValue>=r.purchasePrice?"pos":"neg"):""},
-  {h:"Status",v:r=>r.status&&r.status!=="ACTIVE"?el("span",{class:"pill bad"},r.status):""}],{sort:5});
+  {h:"Status",v:statusCell,s:r=>r.status},{h:"Rückkehr",v:injCell,s:r=>r.injury?r.injury.return:""},
+  {h:"Transfergerücht",v:rumorCell,s:r=>r.rumor?r.rumor.probability||0:-1}],{sort:5});
 sf.onchange=drawSq; drawSq();
+document.getElementById("sq-note").textContent = `Gerüchte mit geschätzter Wechselwahrscheinlichkeit${D.research.rumorsAsOf?" (Stand "+D.research.rumorsAsOf+")":""}, Rückkehrtermine${D.research.injuriesAsOf?" (Stand "+D.research.injuriesAsOf+")":""} aus Online-Quellen (kicker, transfermarkt.de, Bild, Vereinsseiten). Fahre über einen Eintrag für Details.`;
 
-window.addEventListener("resize",()=>{ lineChart("chart-md", mdSeries, mdLabels, v=>Math.round(v)); });
+window.addEventListener("resize",()=>Object.values(CHARTS).forEach(f=>f()));
 })();
 </script>
 </body>

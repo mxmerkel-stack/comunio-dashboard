@@ -6,6 +6,7 @@ Zugangsdaten kommen ausschließlich aus Umgebungsvariablen:
 Es wird nichts gepostet, geboten oder verändert – nur GET-Abrufe nach dem Login.
 """
 import json
+import re
 import os
 import sys
 import time
@@ -107,7 +108,7 @@ def main():
         squads[str(m["id"])] = [{
             "id": p.get("id"), "name": p.get("name"), "club": D(p.get("club")).get("name"),
             "position": p.get("position"), "points": p.get("points"), "avg": p.get("averagePoints"),
-            "marketValue": p.get("quotedprice"), "status": p.get("status"),
+            "marketValue": p.get("quotedprice"), "status": p.get("status"), "statusInfo": p.get("statusInfo"),
             "purchasePrice": D(p.get("purchaseInfo")).get("price"),
             "purchaseDate": D(p.get("purchaseInfo")).get("date"),
         } for p in sq.get("items", [])]
@@ -117,7 +118,8 @@ def main():
     market_items = [{
         "id": it["_embedded"]["player"].get("id"),
         "name": it["_embedded"]["player"].get("name"),
-        "club": it["_embedded"]["player"].get("club"),
+        "club": D(it["_embedded"]["player"].get("club")).get("name") or it["_embedded"]["player"].get("club"),
+        "statusInfo": it["_embedded"]["player"].get("statusInfo"),
         "position": it["_embedded"]["player"].get("position"),
         "points": it["_embedded"]["player"].get("points"),
         "marketValue": it["_embedded"]["player"].get("quotedPrice"),
@@ -127,7 +129,16 @@ def main():
         "owner": D(it["_embedded"].get("owner")).get("name"),
         "remainingDays": it.get("remaining"),
         "date": it.get("date"),
-    } for it in market.get("items", [])]
+    } for it in market.get("items", []) if isinstance(it, dict)]
+    # Vorsaison-Punkte je Marktspieler aus den Spielerdetails
+    for mi in market_items:
+        try:
+            det = get(f"/api/communities/{cid}/users/{me.get('id')}/players/{mi['id']}")
+            hist = D(det.get("historical")).get("points") or []
+            mi["seasonPoints"] = {h.get("season"): h.get("points") for h in hist if isinstance(h, dict)}
+        except SystemExit:
+            mi["seasonPoints"] = {}
+        time.sleep(0.2)
 
     # Eigener Kontoauszug (seitenweise)
     statement, start = [], 0
@@ -166,12 +177,31 @@ def main():
         start += 50
         time.sleep(0.3)
 
+    # Strafen & Gutschriften (Communityleiter)
+    bonuses, start = [], 0
+    pat = re.compile(r"(Disziplinarstrafe|Gutschrift):\s*([\d.]+)\s+wurden\s+(.+?)\s+vom Communityleiter.*?(?:Begründung:\s*(.*))?$", re.S)
+    while start < 300:
+        page = get(links["game:news"] + f"?group=true&originaltypes=true&start={start}&limit=50&type=TRANSACTION_BONUS")
+        groups = D(page.get("newsList")).get("groups") or {}
+        entries = [e for g in (groups.values() if isinstance(groups, dict) else groups) for e in D(g).get("entries", []) if isinstance(e, dict)]
+        for e in entries:
+            text = D(e.get("message")).get("text") or ""
+            m = pat.search(text.strip())
+            if m:
+                amount = int(m.group(2).replace(".", ""))
+                bonuses.append({"newsId": e.get("id"), "date": e.get("date"),
+                                "amount": -amount if m.group(1) == "Disziplinarstrafe" else amount,
+                                "name": m.group(3).strip(), "reason": (m.group(4) or "").strip()})
+        if not D(page.get("newsList")).get("hasMore") or not entries:
+            break
+        start += 50
+
     raw = {
         "fetchedAt": datetime.now(timezone.utc).isoformat(),
         "me": {"id": me.get("id"), "name": me.get("firstName") or me.get("name"),
                "budget": me.get("budget"), "teamValue": me.get("teamValue"), "points": me.get("points")},
         "community": {"id": cid, "name": community.get("name")},
-        "members": [{"id": m["id"], "name": (m.get("firstName") or m.get("login") or "").strip()}
+        "members": [{"id": m["id"], "name": (m.get("firstName") or m.get("login") or "").strip(), "login": m.get("login")}
                     for m in members.get("members", [])],
         "standings": [{
             "userId": i["_embedded"]["user"]["id"], "name": (i["_embedded"]["user"].get("name") or "").strip(),
@@ -188,11 +218,12 @@ def main():
         "nextTransfers": market.get("nextTransfersDateTime"),
         "statement": statement,
         "transfers": transfers,
+        "bonuses": bonuses,
     }
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(raw, ensure_ascii=False, indent=1))
     # Bewusst keine Inhalte ausgeben – die Action-Logs eines öffentlichen Repos sind öffentlich.
-    print(f"ok: {len(raw['members'])} Manager, {len(matchdays)} Spieltage, {len(market_items)} Marktspieler, {len(transfers)} Transfers")
+    print(f"ok: {len(bonuses)} Strafen/Gutschriften, {len(raw['members'])} Manager, {len(matchdays)} Spieltage, {len(market_items)} Marktspieler, {len(transfers)} Transfers")
 
 
 if __name__ == "__main__":

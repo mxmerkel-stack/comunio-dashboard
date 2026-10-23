@@ -1,0 +1,102 @@
+{
+ "asOf": "23.10.2026",
+ "_hinweis": "Wahrscheinlichkeit = eigene Einschätzung, dass der Spieler den Verein bis Sommer 2027 verlässt. Schlüssel = Comunio-Spieler-ID.",
+ "players": {
+  "34014": {
+   "name": "Olise",
+   "target": "Real Madrid / Liverpool",
+   "probability": 0.25,
+   "note": "Vertrag bis 2029, Bayern schließt Verkauf aus; Vertragsgespräche stocken, Olise fordert Ausstiegsklausel (Sport Bild, 05.10.). Im Winter sehr unwahrscheinlich.",
+   "source": "Roundtable / Sport Bild",
+   "url": "https://roundtable.io/sports/soccer/premier-league/liverpool/transfers/liverpool-in-the-race-to-sign-bayern-star-michael-olise-as-real-madrid-circle"
+  },
+  "33837": {
+   "name": "Lukeba",
+   "target": "FC Bayern",
+   "probability": 0.3,
+   "note": "Bayern beobachtet ihn als möglichen Upamecano-Ersatz; Ausstiegsklausel sinkt 2027 auf 65 Mio. €. Ein Wechsel nach München würde ihn in der Bundesliga halten.",
+   "source": "Sky / 90min",
+   "url": "https://www.90min.de/leipzig-star-als-upamecano-ersatz-lukeba-will-zum-fc-bayern"
+  },
+  "32206": {
+   "name": "Waldschmidt",
+   "target": "Hertha BSC",
+   "probability": 0.35,
+   "note": "Vertrag bis 30.06.2027, keine Stammplatzgarantie; Hertha hat laut Bild angefragt (Aug. 2026). Wechsel in die 2. Liga würde ihn aus Comunio nehmen.",
+   "source": "ms-aktuell / Bild",
+   "url": "https://ms-aktuell.de/?p=151275"
+  },
+  "32654": {
+   "name": "Nicolas",
+   "target": null,
+   "probability": 0.1,
+   "note": "Ausstiegsklausel (10–15 Mio. €) ist im Sommer abgelaufen, keine heißen Spuren.",
+   "source": "ligainsider (16.06.)",
+   "url": "https://ligainsider.de/moritz-nicolas_6295/gladbach-keeper-nicolas-und-die-ausstiegsklausel-414268/"
+  },
+  "33858": {
+   "name": "Deman",
+   "target": null,
+   "probability": 0.05,
+   "note": "Werder plant laut Clemens Fritz fest mit ihm, Wechsel kein Thema mehr.",
+   "source": "ligainsider / DeichStube",
+   "url": "https://ligainsider.de/olivier-deman_36310/werder-plant-naechste-saison-fest-mit-deman-413887/"
+  },
+  "33236": {
+   "name": "Musiala",
+   "target": null,
+   "probability": 0.03,
+   "note": "Vertrag bis 2030; derzeit verletzt, keine Wechselgerüchte.",
+   "source": "eigene Recherche",
+   "url": null
+  },
+  "34236": {
+   "name": "Massengo",
+   "target": null,
+   "probability": 0.05,
+   "note": "Keine aktuellen Wechselgerüchte gefunden (kicker, transfermarkt.de, Bild, ligainsider, Vereinsseite).",
+   "source": "eigene Recherche",
+   "url": null
+  },
+  "34238": {
+   "name": "Maksimović",
+   "target": null,
+   "probability": 0.05,
+   "note": "Keine aktuellen Wechselgerüchte gefunden (kicker, transfermarkt.de, Bild, ligainsider, Vereinsseite).",
+   "source": "eigene Recherche",
+   "url": null
+  },
+  "34294": {
+   "name": "Daghim",
+   "target": null,
+   "probability": 0.03,
+   "note": "Erst im Sommer für ca. 14,5 Mio. € aus Salzburg gekommen. Keine aktuellen Wechselgerüchte gefunden (kicker, transfermarkt.de, Bild, ligainsider, Vereinsseite).",
+   "source": "eigene Recherche",
+   "url": null
+  },
+  "34405": {
+   "name": "Zobel",
+   "target": null,
+   "probability": 0.05,
+   "note": "Keine aktuellen Wechselgerüchte gefunden (kicker, transfermarkt.de, Bild, ligainsider, Vereinsseite).",
+   "source": "eigene Recherche",
+   "url": null
+  },
+  "34438": {
+   "name": "Brackelmann",
+   "target": null,
+   "probability": 0.05,
+   "note": "Neuzugang des FCA. Keine aktuellen Wechselgerüchte gefunden (kicker, transfermarkt.de, Bild, ligainsider, Vereinsseite).",
+   "source": "eigene Recherche",
+   "url": null
+  },
+  "34527": {
+   "name": "Gagzow",
+   "target": null,
+   "probability": 0.05,
+   "note": "Keine aktuellen Wechselgerüchte gefunden (kicker, transfermarkt.de, Bild, ligainsider, Vereinsseite).",
+   "source": "eigene Recherche",
+   "url": null
+  }
+ }
+}
