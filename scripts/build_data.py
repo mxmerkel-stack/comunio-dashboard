@@ -7,9 +7,12 @@ Zusätzliche Recherche (Gerüchte, Verletzungen) kommt aus research/*.json.
 import json
 import os
 import re
+import statistics
 from collections import defaultdict
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
+
+import model as M
 
 ROOT = Path(__file__).resolve().parent.parent
 DATA = Path(os.environ.get("DATA_DIR", ROOT / "data"))
@@ -291,6 +294,9 @@ def build(raw, history):
         squads[uid] = [{**p, **enrich(p), "marketValue": num(p.get("marketValue")),
                         "purchasePrice": num(p.get("purchasePrice"), None)} for p in players]
 
+    # =============== Analysen aus der Comunio Zentrale ===============
+    an = analyze(raw, names, ids, me_id, squads, market, md_rows, pts_of, balance_of, injuries, tx_unique, own_cash)
+
     # --- Verlauf (ein Eintrag pro Tag) ---
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     snap = {"date": today, "balance": dict(balance_of), "points": dict(pts_of), "teamValue": dict(tv_of)}
@@ -322,7 +328,280 @@ def build(raw, history):
         "squads": squads,
         "research": {"rumorsAsOf": rumors_asof, "injuriesAsOf": injuries_asof},
         "history": history,
+        **an,
     }, history
+
+
+def analyze(raw, names, ids, me_id, squads, market, md_rows, pts_of, balance_of, injuries, tx, own_cash):
+    """Prognosen, Aufstellung, Angebote, Flips, Käufer, Pläne, Saisonprognose, Monatswertung, Empfehlungen."""
+    fetched = raw.get("fetchedAt") or datetime.now(timezone.utc).isoformat()
+    cal = [c for c in (raw.get("matchdayCalendar") or []) if isinstance(c, dict)]
+    finished = [int(c["key"]) for c in cal if c.get("finished") and str(c.get("key", "")).isdigit()]
+    played = max(finished) if finished else len(md_rows)
+    remaining = max(M.SEASON_MDS - played, 0)
+    next_md = played + 1 if remaining else None
+    next_date = next((c.get("date") for c in cal if str(c.get("key")) == str(next_md)), None)
+
+    # --- Spieler-Modell ---
+    players = {}
+    for uid, sq in squads.items():
+        for p in sq:
+            players[str(p["id"])] = {**p, "ownerId": uid}
+    for m in market:
+        players.setdefault(str(m["id"]), {**m})
+    positions = {pid: p.get("position") for pid, p in players.items()}
+    histories = {pid: M.parse_history(rows) for pid, rows in (raw.get("stats") or {}).items()}
+    means = M.position_means(histories, positions)
+    base = {pid: M.player_base(histories.get(pid, []), positions.get(pid), means, players[pid].get("status"))
+            for pid in players}
+    opp, venue = M.opponent_factors(histories, base)
+    model = M.enrich_players(players, histories, means, opp, venue, remaining,
+                             {k: v for k, v in (injuries or {}).items()})
+
+    def mrow(p):
+        pid = str(p["id"])
+        mm = model.get(pid, {})
+        return {"id": pid, "name": p.get("name"), "position": p.get("position"),
+                "e_next": mm.get("e_next", 0.0), "e_base": mm.get("e_base", 0.0),
+                "marketValue": num(p.get("marketValue"))}
+
+    squads_model = {uid: [mrow(p) for p in sq] for uid, sq in squads.items()}
+
+    # Kader aller Manager um Prognosen ergänzen, beste Elf je Manager markieren
+    xi_of = {}
+    for uid, sq in squads.items():
+        _, total, xi_ids, _ = M.best_lineup(squads_model[uid]) if squads_model[uid] else (None, 0, [], {})
+        xi_of[uid] = round(total, 1)
+        for p in sq:
+            mm = model.get(str(p["id"]), {})
+            p.update({k: mm.get(k) for k in ("e_next", "e_base", "p_start", "p_sub", "p_unav", "proj",
+                                             "exp_rest", "next_opp", "next_venue", "adj", "p_inj5", "p_ban")})
+            p["inXI"] = str(p["id"]) in xi_ids
+
+    # --- Eigene Aufstellung ---
+    own = squads_model.get(me_id, [])
+    lu = raw.get("lineup") or {}
+    cur_ids = [i for i in lu.get("ids", []) if i and i != "None"]
+    lineup_now = M.lineup_total(own, cur_ids)
+    best_form, best_total, best_ids, forms = M.best_lineup(own) if own else (None, 0, [], {})
+    look = {s["id"]: s for s in own}
+    pos_de = {"keeper": "Tor", "defender": "Abwehr", "midfielder": "Mittelfeld", "striker": "Sturm"}
+
+    def xi_rows(id_list):
+        rows = [look[i] for i in id_list if i in look]
+        rows.sort(key=lambda s: M.POS_ORDER.index(s["position"]) if s["position"] in M.POS_ORDER else 9)
+        return [{"id": s["id"], "name": s["name"], "pos": pos_de.get(s["position"], s["position"]),
+                 "e": round(s["e_next"], 2)} for s in rows]
+
+    formations = sorted([{"formation": k, "total": v["total"], "complete": v["complete"]} for k, v in forms.items()],
+                        key=lambda r: -r["total"])
+    lineup_loss = {}
+    for s in own:
+        _, t, _, _ = M.best_lineup(own, exclude=(s["id"],))
+        lineup_loss[s["id"]] = round(best_total - t, 2)
+
+    # --- Angebote an dich ---
+    offers = [o for o in (raw.get("offers") or []) if str(o.get("toId")) == me_id or o.get("type") == "SALE"]
+    comp = [o for o in offers if str(o.get("fromId")) == M.COMPUTER_ID and num(o.get("marketValue"))]
+    ratios = [num(o["price"]) / num(o["marketValue"]) for o in comp if num(o.get("price"))]
+    r_mean = statistics.fmean(ratios) if ratios else 1.0
+    r_min = min(ratios) if ratios else 0.95
+    r_max = max(ratios) if ratios else 1.05
+    own_by_id = {str(p["id"]): p for p in squads.get(me_id, [])}
+    offers_out = []
+    for o in sorted(offers, key=lambda o: -(num(o.get("price"), 0) or 0)):
+        p = own_by_id.get(str(o.get("playerId")), {})
+        mv = num(o.get("marketValue"), 0) or num(p.get("marketValue"), 0)
+        buy = num(p.get("purchasePrice"))
+        offers_out.append({"player": o.get("player"), "from": names.get(str(o.get("fromId")), o.get("from") or "Computer"),
+                           "price": num(o.get("price"), 0), "marketValue": mv,
+                           "pct": round((num(o.get("price"), 0) / mv - 1) * 100, 1) if mv else None,
+                           "profit": (num(o.get("price"), 0) - buy) if buy else None, "date": o.get("date"),
+                           "lineupLoss": lineup_loss.get(str(o.get("playerId")))})
+    best_offer = {}
+    for o in offers:
+        pid = str(o.get("playerId"))
+        best_offer[pid] = max(best_offer.get(pid, 0), num(o.get("price"), 0))
+
+    # --- Eigener Kader mit Kennzahlen ---
+    quotes = raw.get("quotes") or {}
+    det = raw.get("ownDetails") or {}
+    own_rows = []
+    for p in squads.get(me_id, []):
+        pid = str(p["id"])
+        mm = model.get(pid, {})
+        mv = num(p.get("marketValue"), 0)
+        buy = num(p.get("purchasePrice"))
+        sp = num(p.get("points"), 0)
+        own_rows.append({"id": pid, "name": p.get("name"), "club": p.get("club"), "position": p.get("position"),
+                         "positionName": pos_de.get(p.get("position"), p.get("position")),
+                         "status": p.get("status"), "statusName": p.get("statusName"), "statusInfo": p.get("statusInfo"),
+                         "age": M.age(det.get(pid, {}).get("dob")), "inLineup": pid in cur_ids, "inBest": pid in best_ids,
+                         "next_opp": mm.get("next_opp"), "next_venue": mm.get("next_venue"), "adj": mm.get("adj"),
+                         "e_next": mm.get("e_next"), "p_start": round(mm.get("p_start", 0), 3),
+                         "p_sub": round(mm.get("p_sub", 0), 3), "p_unav": round(mm.get("p_unav", 0), 3),
+                         "season_pts": sp, "proj": mm.get("proj"), "exp_rest": mm.get("exp_rest"),
+                         "p_inj5": mm.get("p_inj5"), "yellow": mm.get("yellow"), "p_ban": mm.get("p_ban"),
+                         "marketValue": mv, "purchasePrice": buy, "pnl": (mv - buy) if buy else None,
+                         "pnl_pct": round((mv / buy - 1) * 100, 1) if buy else None,
+                         "mv_tr7": M.trend(quotes.get(pid), 7), "mv_tr30": M.trend(quotes.get(pid), 30),
+                         "mv_per_pt": round(mv / sp) if sp > 0 else None,
+                         "pts_per_mio": round((mm.get("proj") or 0) / max(mv, 1) * 1e6, 1),
+                         "offer": best_offer.get(pid) or None, "lineupLoss": lineup_loss.get(pid),
+                         "onMarket": p.get("onMarket"), "minBid": num(p.get("minBid")),
+                         "rumor": p.get("rumor"), "injury": p.get("injury")})
+    own_rows.sort(key=lambda r: -(r["e_next"] or 0))
+
+    # Punkte und Rollen je Spieltag (eigener Kader, laufende Saison)
+    games = []
+    for r in own_rows:
+        for g in histories.get(r["id"], []):
+            if g.get("season") == "cur":
+                games.append({"id": r["id"], "player": r["name"], "md": int(num(g.get("md"), 0)),
+                              "pts": g["pts"], "role": g["role"], "status": g.get("status"),
+                              "minute": g.get("in") or g.get("out"), "goals": num(g.get("goals"), 0),
+                              "yellow": num(g.get("yellow"), 0)})
+
+    # --- Transfermarkt: Prognose, Flip, mögliche Käufer ---
+    since = (datetime.fromisoformat(fetched.replace("Z", "+00:00")) - timedelta(days=30)).isoformat()
+    buys30 = defaultdict(int)
+    for t in tx:
+        if (t.get("date") or "") >= since[:19] and str(t.get("toId")) in ids:
+            buys30[str(t.get("toId"))] += 1
+    max30 = max(buys30.values()) if buys30 else 1
+    buyers = []
+    for m in market:
+        pid = str(m["id"])
+        mm = model.get(pid, {})
+        mv = num(m.get("marketValue"), 0)
+        rec = num(m.get("recommendedPrice"))
+        min_bid = rec if rec and rec > 0 else mv
+        mine = str(m.get("ownerId")) == me_id
+        m.update({"e_next": mm.get("e_next"), "e_base": mm.get("e_base"), "proj": mm.get("proj"),
+                  "exp_rest": mm.get("exp_rest"), "p_start": round(mm.get("p_start", 0), 3),
+                  "p_unav": round(mm.get("p_unav", 0), 3), "p_inj5": mm.get("p_inj5"),
+                  "next_opp": mm.get("next_opp"), "next_venue": mm.get("next_venue"),
+                  "minBid": min_bid, "discPct": round((min_bid / mv - 1) * 100, 1) if mv else None,
+                  "mine": mine, "remainingText": M.hours_text(m.get("remainingDays")),
+                  "projPerMio": round((mm.get("proj") or 0) / max(mv, 1) * 1e6, 1),
+                  "age": M.age(m.get("dob"))})
+        if not mine:
+            m["flipEv"] = round(mv * r_mean - min_bid)
+            m["flipWorst"] = round(mv * r_min - min_bid)
+            likely = []
+            for uid in ids:
+                if uid == me_id:
+                    continue
+                bal = balance_of.get(uid, 0)
+                act = buys30.get(uid, 0) / max30
+                afford = bal >= min_bid
+                score = act * (1.0 if afford else 0.15)
+                hi = min(bal, round(min_bid * 1.12, -3)) if afford else None
+                buyers.append({"playerId": pid, "player": m.get("name"), "manager": names[uid], "balance": bal,
+                               "affordable": afford, "buys30": buys30.get(uid, 0), "activity": round(act, 2),
+                               "score": round(score, 2), "bidLow": round(min_bid), "bidMid": round(min_bid * 1.04, -3),
+                               "bidHigh": hi})
+                if afford and score > 0:
+                    likely.append((score, names[uid]))
+            m["likelyBuyers"] = [n for _, n in sorted(likely, reverse=True)[:3]]
+
+    # --- Transfer-Pläne ---
+    def sale_price(s):
+        return best_offer.get(s["id"]) or (s["marketValue"] or 0) * r_mean
+
+    def buy_price(mk):
+        return round((num(mk.get("minBid"), 0) or num(mk.get("marketValue"), 0)) * 1.03, -3)
+
+    cands = []
+    for m in market:
+        if m.get("mine") or (m.get("status") or "ACTIVE") not in ("ACTIVE", "WEAKENED"):
+            continue
+        cands.append({**mrow(m), "minBid": m.get("minBid"), "marketValue": num(m.get("marketValue"))})
+    plans, _ = M.transfer_plans(own, cands, own_cash, sale_price, buy_price) if own else ([], {})
+    for p in plans:
+        p["delta_rest"] = round(p["delta_md"] * remaining, 1)
+
+    # --- Saisonprognose ---
+    md_points = defaultdict(list)
+    for md in md_rows:
+        for uid in ids:
+            md_points[uid].append(md["points"].get(uid))
+    fc = M.forecast(ids, squads_model, md_points, pts_of, remaining)
+    for r in fc:
+        r["name"] = names[r["id"]]
+
+    # --- Monatswertung ---
+    monthly = M.monthly(md_rows, cal, names)
+
+    # --- Mindestgebote eigener Marktspieler unter Marktwert ---
+    stale = [m for m in market if m.get("mine") and num(m.get("minBid"), 0) < num(m.get("marketValue"), 0)]
+    stale_gap = sum(num(m.get("marketValue"), 0) - num(m.get("minBid"), 0) for m in stale)
+
+    # --- Handlungsempfehlungen ---
+    actions = []
+    eur = lambda v: f"{v / 1e6:.2f}".replace(".", ",") + " Mio. €"
+    f1 = lambda v: f"{v:.1f}".replace(".", ",")
+    if own_cash < 0:
+        top = max(offers_out, key=lambda o: o["price"]) if offers_out else None
+        detail = f"Dein Konto steht bei {eur(own_cash)}."
+        if top:
+            detail += f" Verkaufst du {top['player']} zum Angebot von {top['from']} ({eur(top['price'])}), bleiben {eur(own_cash + top['price'])}."
+        actions.append({"tag": "Konto", "title": "Kontostand ausgleichen", "detail": detail})
+    if own and best_total - lineup_now >= 0.5:
+        missing = [look[i]["name"] for i in best_ids if i not in cur_ids and i in look]
+        dropped = [look[i]["name"] for i in cur_ids if i not in best_ids and i in look]
+        actions.append({"tag": "Aufstellung", "title": f"Aufstellung für Spieltag {next_md} ändern",
+                        "detail": f"{best_form} mit {', '.join(missing) or '–'}, ohne {', '.join(dropped) or '–'} bringt "
+                                  f"{f1(best_total)} statt {f1(lineup_now)} erwartete Punkte (+{f1(best_total - lineup_now)})."})
+    if plans:
+        p = plans[0]
+        actions.append({"tag": "Transfer", "title": f"Plan {p['id']}: " + (f"{', '.join(p['sell'])} verkaufen, " if p['sell'] else "") + f"{', '.join(p['buy'])} kaufen",
+                        "detail": f"Kosten etwa {eur(p['cost'])}, Erlös {eur(p['proceeds'])}. Erwartet +{f1(p['delta_md'])} Punkte je Spieltag "
+                                  f"in der besten Aufstellung, Konto danach {eur(p['cash_after'])}."})
+    if stale:
+        actions.append({"tag": "Risiko", "title": "Mindestgebote unter Marktwert prüfen",
+                        "detail": f"Bei {len(stale)} deiner gelisteten Spieler liegt das Mindestgebot zusammen {eur(stale_gap)} unter dem Marktwert. Nimm Spieler vom Markt, die du behalten willst."})
+    flips = sorted([m for m in market if not m.get("mine") and (m.get("flipEv") or 0) > 0], key=lambda m: -m["flipEv"])[:2]
+    for m in flips:
+        actions.append({"tag": "Flip", "title": f"Flip-Chance: {m['name']}",
+                        "detail": f"Mindestgebot {eur(m['minBid'])} bei Marktwert {eur(m['marketValue'])}. Erwarteter Gewinn beim Weiterverkauf an den Computer etwa {round(m['flipEv'] / 1000)} T €, schlechtester beobachteter Fall {round(m['flipWorst'] / 1000)} T €. Restzeit: {m['remainingText']}"})
+    above = [o for o in offers_out if (o["pct"] or 0) > 0]
+    if offers_out:
+        actions.append({"tag": "Verkauf", "title": "Angebote nur mit Prämie annehmen",
+                        "detail": f"{len(offers_out)} Angebote liegen zwischen {f1(min(o['pct'] or 0 for o in offers_out))} % und {f1(max(o['pct'] or 0 for o in offers_out))} % des Marktwerts."
+                                  + (f" Über Marktwert: {', '.join(sorted(set(o['player'] for o in above)))}." if above else "")})
+    losers = sorted([r for r in own_rows if r["pnl"] is not None and r["pnl"] < -500000], key=lambda r: r["pnl"])[:1]
+    for r in losers:
+        actions.append({"tag": "Verlust", "title": f"{r['name']} liegt {eur(-r['pnl'])} unter Kaufpreis",
+                        "detail": f"{int(r['season_pts'])} Punkte, Startelf-Chance {round(r['p_start'] * 100)} %. Ein Verkauf lohnt vor allem, wenn du das Geld für einen Startspieler brauchst."})
+    for i, a in enumerate(actions):
+        a["prio"] = i + 1
+
+    opp_list = sorted([{"clubId": k, "adj": round(v, 2)} for k, v in opp.items()], key=lambda r: -r["adj"])
+    club_names = {}
+    for p in players.values():
+        nm = p.get("nextMatch") or {}
+        if nm.get("homeId"):
+            club_names[nm["homeId"]] = nm.get("home")
+        if nm.get("guestId"):
+            club_names[nm["guestId"]] = nm.get("guest")
+        if p.get("clubId"):
+            club_names[p["clubId"]] = p.get("club")
+    for r in opp_list:
+        r["club"] = club_names.get(r["clubId"], str(r["clubId"]))
+
+    status = {"nextMd": next_md, "nextDate": next_date, "remaining": remaining, "played": played,
+              "lineupNow": lineup_now, "lineupBest": best_total, "lineupGain": round(best_total - lineup_now, 2),
+              "formationBest": best_form, "formationNow": M.tactic_name(lu.get("tactic")),
+              "offerMean": round(r_mean, 4), "offerMin": round(r_min, 4), "offerMax": round(r_max, 4),
+              "offerN": len(ratios), "staleGap": stale_gap, "staleN": len(stale), "credit": num(raw.get("credit")),
+              "venueHome": round(venue.get(True, 0), 2), "venueAway": round(venue.get(False, 0), 2),
+              "planDelta": plans[0]["delta_md"] if plans else None, "xiOf": xi_of}
+    return {"status": status, "actions": actions, "ownSquad": own_rows, "games": games,
+            "lineup": {"now": xi_rows(cur_ids), "best": xi_rows(best_ids), "formationNow": M.tactic_name(lu.get("tactic")),
+                       "formationBest": best_form},
+            "formations": formations, "offers": offers_out, "buyers": buyers, "plans": plans,
+            "forecast": fc, "monthly": monthly, "opponents": opp_list}
 
 
 def _fernet():

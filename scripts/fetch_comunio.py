@@ -111,7 +111,14 @@ def main():
             "marketValue": p.get("quotedprice"), "status": p.get("status"), "statusInfo": p.get("statusInfo"),
             "purchasePrice": D(p.get("purchaseInfo")).get("price"),
             "purchaseDate": D(p.get("purchaseInfo")).get("date"),
-        } for p in sq.get("items", [])]
+            "clubId": D(p.get("club")).get("id"), "linedup": p.get("linedup"), "onMarket": p.get("onMarket"),
+            "minBid": p.get("recommendedprice"),
+            "nextMatch": {"homeId": D(D(p.get("nextMatch")).get("home")).get("id"),
+                          "home": D(D(p.get("nextMatch")).get("home")).get("name"),
+                          "guestId": D(D(p.get("nextMatch")).get("guest")).get("id"),
+                          "guest": D(D(p.get("nextMatch")).get("guest")).get("name"),
+                          "kickoff": D(p.get("nextMatch")).get("kickoff")},
+        } for p in sq.get("items", []) if isinstance(p, dict)]
         time.sleep(0.3)
 
     market = get(links["game:exchangemarket"])
@@ -127,6 +134,8 @@ def main():
         "trend": it["_embedded"]["player"].get("trend"),
         "status": it["_embedded"]["player"].get("status"),
         "owner": D(it["_embedded"].get("owner")).get("name"),
+        "ownerId": D(it["_embedded"].get("owner")).get("id"),
+        "clubId": D(it["_embedded"]["player"].get("club")).get("id"),
         "remainingDays": it.get("remaining"),
         "date": it.get("date"),
     } for it in market.get("items", []) if isinstance(it, dict)]
@@ -136,9 +145,77 @@ def main():
             det = get(f"/api/communities/{cid}/users/{me.get('id')}/players/{mi['id']}")
             hist = D(det.get("historical")).get("points") or []
             mi["seasonPoints"] = {h.get("season"): h.get("points") for h in hist if isinstance(h, dict)}
+            mi["dob"] = D(det.get("extendedInfo")).get("dob")
+            nm = [x for x in (det.get("nextMatches") or []) if isinstance(x, dict)]
+            if nm:
+                mi["nextMatch"] = {"homeId": D(nm[0].get("homeClub")).get("id"), "home": D(nm[0].get("homeClub")).get("name"),
+                                   "guestId": D(nm[0].get("guestClub")).get("id"), "guest": D(nm[0].get("guestClub")).get("name"),
+                                   "kickoff": nm[0].get("kickoff")}
         except SystemExit:
             mi["seasonPoints"] = {}
         time.sleep(0.2)
+
+    # Spielerdetails des eigenen Kaders (Alter, Vorsaisons)
+    own_details = {}
+    for p in squads.get(str(me.get("id")), []):
+        try:
+            det = get(f"/api/communities/{cid}/users/{me.get('id')}/players/{p['id']}")
+            hist = D(det.get("historical")).get("points") or []
+            own_details[str(p["id"])] = {"dob": D(det.get("extendedInfo")).get("dob"),
+                                         "seasonPoints": {h.get("season"): h.get("points") for h in hist if isinstance(h, dict)}}
+        except SystemExit:
+            pass
+        time.sleep(0.2)
+
+    # Spielstatistik je Spieltag (alle Kader- und Marktspieler) – Grundlage der Prognosen
+    player_ids = {str(p["id"]) for ps in squads.values() for p in ps} | {str(m["id"]) for m in market_items}
+    stats = {}
+    for pid in sorted(player_ids):
+        try:
+            res = get(f"/api/players/{pid}/match-statistics-history")
+        except SystemExit:
+            continue
+        rows = []
+        for e in res.get("matchStatisticsCollection") or []:
+            if not isinstance(e, dict):
+                continue
+            md, mt = D(e.get("matchday")), D(e.get("match"))
+            rows.append({"season": "cur" if md.get("seasonEnd") == 9999999 else md.get("seasonEnd"),
+                         "md": md.get("key"), "date": (md.get("timestamp") or "")[:10],
+                         "points": e.get("points"), "in": e.get("in"), "out": e.get("out"),
+                         "status": e.get("status"), "yellow": e.get("yellow"), "yellowRed": e.get("yellowRed"),
+                         "red": e.get("red"), "goals": e.get("goals"), "clubId": e.get("clubId"),
+                         "homeId": D(mt.get("home")).get("id"), "guestId": D(mt.get("guest")).get("id")})
+        stats[pid] = rows
+        time.sleep(0.15)
+
+    # Marktwertverlauf (eigener Kader + Markt)
+    quotes = {}
+    for pid in sorted({str(p["id"]) for p in squads.get(str(me.get("id")), [])} | {str(m["id"]) for m in market_items}):
+        try:
+            q = get(f"/api/players/{pid}/quote-history")
+            quotes[pid] = [[(x.get("datetime_string") or "")[:10], x.get("quotedPrice")]
+                           for x in (q.get("quoteCollection") or [])[:40] if isinstance(x, dict)]
+        except SystemExit:
+            pass
+        time.sleep(0.15)
+
+    # Eigene Aufstellung, Angebote an dich, Spieltagskalender
+    lineup_raw = get(links["game:lineup"])
+    lineup = {"tactic": lineup_raw.get("tactic"),
+              "ids": [str(D(v).get("id")) for k, v in sorted(D(D(lineup_raw.get("items")).get("lineup")).items(),
+                                                            key=lambda kv: int(kv[0]) if str(kv[0]).isdigit() else 0)]}
+    off = get(links["game:readOffers"] + "?current")
+    offers = [{"id": o.get("id"), "type": o.get("type"), "state": o.get("state"), "price": o.get("price"),
+               "date": o.get("datecreated"), "playerId": D(o.get("tradable")).get("id"),
+               "player": D(o.get("tradable")).get("name"), "marketValue": D(o.get("tradable")).get("quotedPrice"),
+               "fromId": D(o.get("user")).get("id"), "from": (D(o.get("user")).get("name") or "").strip(),
+               "toId": D(o.get("tradingPartner")).get("id")}
+              for o in (off.get("items") or []) if isinstance(o, dict)]
+    credit = off.get("credit")
+    mdays = [{"key": m.get("matchdayKey"), "date": m.get("timestamp"), "started": m.get("started"),
+              "finished": m.get("finished"), "season": m.get("season")}
+             for m in (get("/api/matchdays") or []) if isinstance(m, dict)]
 
     # Eigener Kontoauszug (seitenweise)
     statement, start = [], 0
@@ -219,11 +296,18 @@ def main():
         "statement": statement,
         "transfers": transfers,
         "bonuses": bonuses,
+        "ownDetails": own_details,
+        "stats": stats,
+        "quotes": quotes,
+        "lineup": lineup,
+        "offers": offers,
+        "credit": credit,
+        "matchdayCalendar": mdays,
     }
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(raw, ensure_ascii=False, indent=1))
     # Bewusst keine Inhalte ausgeben – die Action-Logs eines öffentlichen Repos sind öffentlich.
-    print(f"ok: {len(bonuses)} Strafen/Gutschriften, {len(raw['members'])} Manager, {len(matchdays)} Spieltage, {len(market_items)} Marktspieler, {len(transfers)} Transfers")
+    print(f"ok: {len(stats)} Spielerhistorien, {len(offers)} Angebote, {len(bonuses)} Strafen/Gutschriften, {len(raw['members'])} Manager, {len(matchdays)} Spieltage, {len(market_items)} Marktspieler, {len(transfers)} Transfers")
 
 
 if __name__ == "__main__":

@@ -64,6 +64,7 @@ select{font:inherit;padding:4px 6px;background:var(--panel);color:var(--fg);bord
 <main>
   <section id="s-uebersicht">
     <div class="kpis" id="kpis"></div>
+    <div class="card"><h2>Heute zu entscheiden</h2><div id="actions"></div></div>
     <div class="grid2">
       <div class="card"><h2>Tabelle</h2><div id="mini-table"></div></div>
       <div class="card"><h2>Top-Empfehlungen vom Computer</h2><div id="mini-market"></div><p class="note">Nur Spieler, die der Computer anbietet.</p></div>
@@ -73,11 +74,15 @@ select{font:inherit;padding:4px 6px;background:var(--panel);color:var(--fg);bord
   <section id="s-tabelle">
     <div class="card"><h2>Saisontabelle</h2><div id="t-standings"></div></div>
     <div class="card"><h2>Spieltage</h2><div id="t-matchdays"></div></div>
+    <div class="card"><h2>Prognose Endtabelle</h2><div id="t-forecast"></div><p class="note" id="fc-note"></p></div>
+    <div class="card"><h2>Monatswertung</h2><div id="t-monthly"></div></div>
   </section>
   <section id="s-ewig">
     <div class="card"><h2>Ewige Tabelle</h2><div id="t-alltime"></div>
       <p class="note">Summe aller abgeschlossenen Saisons plus aktuelle Saison. Meistertitel inklusive der manuell ergänzten Jahre.</p></div>
+    <div class="card"><h2>Ewige Tabelle nach Schnitt</h2><div id="t-alltime-avg"></div><p class="note">Durchschnittliche Punkte je abgeschlossener Saison.</p></div>
     <div class="card"><h2>Meister</h2><div id="t-champions"></div></div>
+    <div class="card"><h2>Saisonendstände</h2><div id="t-ranks"></div><p class="note">Platzierung unter den heutigen Mitgliedern, berechnet aus den Saisonpunkten.</p></div>
     <div class="card"><h2>Saisons im Überblick</h2><div id="t-seasons"></div></div>
   </section>
   <section id="s-siege">
@@ -91,8 +96,21 @@ select{font:inherit;padding:4px 6px;background:var(--panel);color:var(--fg);bord
     <div class="card"><h2>Verlauf Kontostand</h2><div id="chart-bal"></div></div>
   </section>
   <section id="s-markt">
+    <div class="card"><h2>Deine Angebote</h2><div id="t-offers"></div><p class="note" id="of-note"></p></div>
     <div class="card"><h2>Transfermarkt</h2><div id="t-market"></div>
       <p class="note" id="mk-note"></p></div>
+    <div class="card"><h2>Preis und Leistung</h2><div id="chart-pp"></div><p class="note">Marktwert gegen prognostizierte Saisonpunkte. Je weiter oben links, desto mehr Punkte pro Euro.</p></div>
+    <div class="card"><h2>Mögliche Käufer</h2><div style="margin-bottom:8px"><select id="by-filter"></select></div><div id="t-buyers"></div>
+      <p class="note">Aktivität = Käufe der letzten 30 Tage im Verhältnis zum aktivsten Manager. Gebotsspanne = Mindestgebot bis +12 %, begrenzt durch den (berechneten) Kontostand.</p></div>
+    <div class="card"><h2>Transfer-Pläne</h2><div id="t-plans"></div><p class="note">Kombinationen aus bis zu vier Verkaufskandidaten und bis zu drei Käufen, Gebot 3 % über Mindestgebot, Konto danach nicht negativ. Bewertet nach der besten Aufstellung (erwartete Punkte je Spieltag). Kadergrenzen sind nicht geprüft.</p></div>
+  </section>
+  <section id="s-aufstellung">
+    <div class="grid2">
+      <div class="card"><h2>Aufstellung jetzt</h2><div id="t-lu-now"></div></div>
+      <div class="card"><h2>Empfohlene Aufstellung</h2><div id="t-lu-best"></div></div>
+    </div>
+    <div class="card"><h2>Formationen im Vergleich</h2><div id="t-formations"></div></div>
+    <div class="card"><h2>Was fehlt, wenn ein Spieler wegfällt</h2><div id="t-loss"></div><p class="note">Verlust an erwarteten Punkten der besten Aufstellung, wenn der Spieler fehlt.</p></div>
   </section>
   <section id="s-transfers">
     <div class="card"><h2>Transfers je Manager</h2><div id="t-tfstats"></div></div>
@@ -101,9 +119,17 @@ select{font:inherit;padding:4px 6px;background:var(--panel);color:var(--fg);bord
       <div id="t-transfers"></div></div>
   </section>
   <section id="s-kader">
-    <div class="card"><h2>Kader</h2>
+    <div class="card"><h2>Dein Kader mit Prognosen</h2><div id="t-own"></div><p class="note">E nächster Spieltag = erwartete Punkte inkl. Gegner und Heim/Auswärts. Start/Joker/Ausfall = Wahrscheinlichkeiten. Prognose = Saisonpunkte + erwartete Restpunkte.</p></div>
+    <div class="card"><h2>Wechselgerüchte</h2><div id="t-rumors"></div><p class="note" id="ru-note"></p></div>
+    <div class="card"><h2>Punkte je Spieltag</h2><div id="t-games"></div><p class="note">S = Startelf, J = Joker, – = nicht eingesetzt, + = verletzt/gesperrt.</p></div>
+    <div class="card"><h2>Kader aller Manager</h2>
       <div style="margin-bottom:8px"><select id="sq-filter"></select></div>
       <div id="t-squad"></div><p class="note" id="sq-note"></p></div>
+  </section>
+  <section id="s-methodik">
+    <div class="card"><h2>So wurde gerechnet</h2><div id="t-method"></div></div>
+    <div class="card"><h2>Gegnerfaktor</h2><div id="t-opp"></div><p class="note" id="opp-note"></p></div>
+    <div class="card"><h2>Quellen</h2><div id="t-sources"></div></div>
   </section>
 </main>
 <script>
@@ -151,7 +177,7 @@ const isMe = r => String(r.id)===D.me.id;
 document.getElementById("meta").textContent = `${D.community} · Saison ${D.season||""} · Stand ${dt(D.generatedAt)}`;
 
 // Tabs
-const TABS=[["uebersicht","Übersicht"],["tabelle","Tabelle"],["ewig","Ewige Tabelle"],["siege","Siege"],["konten","Kontostände"],["markt","Transfermarkt"],["transfers","Transfers"],["kader","Kader"]];
+const TABS=[["uebersicht","Übersicht"],["aufstellung","Aufstellung"],["kader","Kader"],["markt","Transfermarkt"],["tabelle","Tabelle"],["konten","Kontostände"],["transfers","Transfers"],["ewig","Ewige Tabelle"],["siege","Siege"],["methodik","Methodik"]];
 const tabs=document.getElementById("tabs");
 const CHARTS={}; function show(id){ document.querySelectorAll("section").forEach(s=>s.classList.toggle("on",s.id==="s-"+id)); tabs.querySelectorAll("button").forEach(b=>b.classList.toggle("on",b.dataset.id===id)); try{history.replaceState(null,"","#"+id)}catch(e){} Object.values(CHARTS).forEach(f=>f()); }
 TABS.forEach(([id,l])=>{ const b=el("button",{"data-id":id},l); b.onclick=()=>show(id); tabs.append(b); });
@@ -163,6 +189,9 @@ const k=document.getElementById("kpis");
  ["Punkte", int(D.me.points), ""],
  ["Kontostand", eur(D.me.balance), "verfügbar laut Comunio"],
  ["Teamwert", mio(D.me.teamValue), ""],
+ ["Kreditrahmen", D.status&&D.status.credit!=null? eur(D.status.credit):"–", "laut Comunio"],
+ ["Aufstellung", D.status? (D.status.lineupNow??0).toLocaleString("de-DE",{maximumFractionDigits:1})+" Pkt.":"–", D.status&&D.status.lineupGain>0.05? `beste Elf: ${(D.status.lineupBest).toLocaleString("de-DE",{maximumFractionDigits:1})} (${D.status.formationBest})` : "beste mögliche Elf"],
+ ["Nächster Spieltag", D.status&&D.status.nextMd? D.status.nextMd+".":"–", D.status&&D.status.nextDate? dt(D.status.nextDate):""],
  ["Nächste Transfers", dt(D.nextTransfers), ""]
 ].forEach(([l,v,h])=>k.append(el("div",{class:"kpi"},el("div",{class:"l"},l),el("div",{class:"v"},v),el("div",{class:"h"},h))));
 
@@ -257,16 +286,21 @@ const recOrder={ja:2,vielleicht:1,nein:0};
 const mkCols=[{h:"Spieler",v:r=>r.name},{h:"Verein",v:r=>r.club||"–"},{h:"Position",v:r=>r.positionName},
   {h:"Besitzer",v:r=>r.owner||"Computer"},{h:"Punkte",v:r=>r.points,n:true},{h:"Vorsaison",v:r=>r.prevPoints??"–",s:r=>r.prevPoints??-999,n:true},
   {h:"Marktwert",v:r=>mio(r.marketValue),s:r=>r.marketValue,n:true},
-  {h:"Kaufempfehlung",v:recPill,s:r=>recOrder[r.recommendation]*10+r.rank},
+  {h:"Kaufempfehlung",v:recPill,s:r=>-(recOrder[r.recommendation]*10+r.rank)},
+  {h:"E nächster Sp.",v:r=>r.e_next==null?"–":r.e_next.toLocaleString("de-DE",{minimumFractionDigits:2,maximumFractionDigits:2}),s:r=>r.e_next||0,n:true},
+  {h:"Prognose Saison",v:r=>r.proj==null?"–":Math.round(r.proj),s:r=>r.proj||0,n:true},
+  {h:"Mindestgebot",v:r=>mio(r.minBid),s:r=>r.minBid||0,n:true},
+  {h:"Flip-Gewinn",v:r=>r.flipEv==null?"–":(r.flipEv>0?"+":"")+Math.round(r.flipEv/1000).toLocaleString("de-DE")+" T €",s:r=>r.flipEv??-1e12,n:true,cls:r=>r.flipEv==null?"":(r.flipEv>0?"pos":"neg")},
   {h:"Empf. Gebot",v:r=>el("strong",{},eur(r.bid)),s:r=>r.bid,n:true},{h:"Aufschlag",v:r=>r.premium.toLocaleString("de-DE")+" %",s:r=>r.premium,n:true},
   {h:"Status",v:statusCell,s:r=>r.status},{h:"Rückkehr",v:injCell,s:r=>r.injury?r.injury.return:""},
   {h:"Bezahlbar",v:r=>r.affordable?"ja":el("span",{class:"neg"},"nein"),s:r=>r.affordable?1:0},
   {h:"Können sich leisten",v:r=>r.rivals.length?r.rivals.join(", "):"niemand",s:r=>r.rivals.length},
-  {h:"Restzeit",v:r=>r.remainingDays!=null? r.remainingDays+" T.":"–",s:r=>r.remainingDays,n:true}];
+  {h:"Wahrsch. Mitbieter",v:r=>(r.likelyBuyers||[]).join(", ")||"–"},
+  {h:"Restzeit",v:r=>r.remainingText||"–",s:r=>r.remainingDays,n:true}];
 table("t-market",D.market,mkCols,{sort:7});
 document.getElementById("mk-note").textContent = `Kaufempfehlung: Punkte dieser Saison doppelt gewichtet plus Vorsaison${D.prevSeason?" ("+D.prevSeason+")":""} anteilig, im Verhältnis zum Marktwert. Oberes Drittel = ja, mittleres = vielleicht, unteres oder verletzt/Reha/gesperrt = nein. Übersteigt das Gebot dein Guthaben, wird aus „ja“ ein „vielleicht“. Empfohlenes Gebot = Marktwert + 2–12 % Aufschlag. „Können sich leisten“ = Manager, deren (berechneter) Kontostand das Gebot deckt. Fahre über die Empfehlung für die Begründung.`;
 const mini=D.market.filter(m=>m.fromComputer && m.recommendation!=="nein").sort((a,b)=>recOrder[b.recommendation]-recOrder[a.recommendation]||b.rank-a.rank).slice(0,6);
-table("mini-market",mini,[mkCols[0],mkCols[2],mkCols[4],mkCols[6],mkCols[7],mkCols[8]]);
+table("mini-market",mini,[mkCols[0],mkCols[2],mkCols[4],mkCols[6],mkCols[7],mkCols[12]]);
 if(!mini.length) document.getElementById("mini-market").append(el("p",{class:"note"},"Aktuell keine empfehlenswerten Computer-Spieler."));
 
 // Transfers
@@ -279,7 +313,7 @@ const drawTf=()=>table("t-transfers",D.transfers.filter(t=>!tf.value||t.from===t
 tf.onchange=drawTf; drawTf();
 
 // Kader
-const rumorCell=r=>{ if(!r.rumor) return "–"; const x=r.rumor; const w=el("span",{title:x.note||""},`${x.target? x.target+" · ":""}${x.probability!=null? Math.round(x.probability*100)+" %":""}`);
+const rumorCell=r=>{ if(!r.rumor) return "–"; const x=r.rumor; const w=el("span",{title:x.note||""},`${x.target? x.target+" · ":""}${x.pWinter!=null? "W "+Math.round(x.pWinter*100)+" % / S "+Math.round(x.pSummer*100)+" %" : (x.probability!=null? Math.round(x.probability*100)+" %":"")}`);
   if(x.url){ const a=el("a",{href:x.url,target:"_blank",rel:"noopener"}," ("+(x.source||"Quelle")+")"); w.append(a);} else if(x.source){ w.append(" ("+x.source+")"); } return w; };
 const sf=document.getElementById("sq-filter"); D.managers.forEach(m=>sf.append(el("option",{value:m.id},m.name))); sf.value=D.me.id;
 const drawSq=()=>table("t-squad",D.squads[sf.value]||[],[{h:"Spieler",v:r=>r.name},{h:"Verein",v:r=>r.club},{h:"Position",v:r=>r.positionName},
@@ -287,9 +321,187 @@ const drawSq=()=>table("t-squad",D.squads[sf.value]||[],[{h:"Spieler",v:r=>r.nam
   {h:"Kaufpreis",v:r=>mio(r.purchasePrice),s:r=>r.purchasePrice||0,n:true},
   {h:"+/−",v:r=>r.purchasePrice? mio(r.marketValue-r.purchasePrice):"–",s:r=>(r.marketValue||0)-(r.purchasePrice||0),n:true,cls:r=>r.purchasePrice?(r.marketValue>=r.purchasePrice?"pos":"neg"):""},
   {h:"Status",v:statusCell,s:r=>r.status},{h:"Rückkehr",v:injCell,s:r=>r.injury?r.injury.return:""},
+  {h:"E nächster Sp.",v:r=>r.e_next==null?"–":r.e_next.toLocaleString("de-DE",{minimumFractionDigits:2,maximumFractionDigits:2}),s:r=>r.e_next||0,n:true},
+  {h:"Beste Elf",v:r=>r.inXI?el("span",{class:"pill"},"ja"):"–",s:r=>r.inXI?1:0},
   {h:"Transfergerücht",v:rumorCell,s:r=>r.rumor?r.rumor.probability||0:-1}],{sort:5});
 sf.onchange=drawSq; drawSq();
 document.getElementById("sq-note").textContent = `Gerüchte mit geschätzter Wechselwahrscheinlichkeit${D.research.rumorsAsOf?" (Stand "+D.research.rumorsAsOf+")":""}, Rückkehrtermine${D.research.injuriesAsOf?" (Stand "+D.research.injuriesAsOf+")":""} aus Online-Quellen (kicker, transfermarkt.de, Bild, Vereinsseiten). Fahre über einen Eintrag für Details.`;
+
+// ===================== Bereiche aus der Comunio Zentrale =====================
+const S=D.status||{};
+const pct=v=>v==null?"–":Math.round(v*100)+" %";
+const f1=v=>v==null?"–":Number(v).toLocaleString("de-DE",{minimumFractionDigits:1,maximumFractionDigits:1});
+const f2=v=>v==null?"–":Number(v).toLocaleString("de-DE",{minimumFractionDigits:2,maximumFractionDigits:2});
+const signed=(v,fmt)=>v==null?"–":(v>0?"+":"")+fmt(v);
+
+// Handlungsempfehlungen
+(function(){
+  const box=document.getElementById("actions"); box.textContent="";
+  if(!(D.actions||[]).length){ box.append(el("p",{class:"note"},"Aktuell nichts Dringendes.")); return; }
+  const list=el("div",{style:"display:grid;gap:10px"});
+  D.actions.forEach(a=>list.append(el("div",{style:"display:grid;grid-template-columns:auto 1fr;gap:4px 12px;align-items:start"},
+    el("span",{class:"pill"+(a.tag==="Konto"||a.tag==="Risiko"||a.tag==="Verlust"?" warn":"")},a.tag),
+    el("div",{},el("strong",{},a.prio+". "+a.title),el("div",{class:"note",style:"margin:2px 0 0"},a.detail)))));
+  box.append(list);
+})();
+
+// Aufstellung
+const luCols=[{h:"Position",v:r=>r.pos},{h:"Spieler",v:r=>r.name},{h:"Erwartet",v:r=>f2(r.e),s:r=>r.e,n:true}];
+if(D.lineup){
+  table("t-lu-now",D.lineup.now,luCols);
+  document.getElementById("t-lu-now").append(el("p",{class:"note"},`${D.lineup.formationNow||""} · ${f1(S.lineupNow)} erwartete Punkte`));
+  table("t-lu-best",D.lineup.best,luCols);
+  document.getElementById("t-lu-best").append(el("p",{class:"note"},`${D.lineup.formationBest||""} · ${f1(S.lineupBest)} erwartete Punkte (${signed(S.lineupGain,f1)})`));
+}
+const maxF=Math.max(1,...(D.formations||[]).map(f=>f.total));
+table("t-formations",D.formations||[],[{h:"Formation",v:r=>r.formation},{h:"Erwartete Punkte",v:r=>f1(r.total),s:r=>r.total,n:true},
+  {h:"",v:r=>el("div",{class:"bar",style:`width:${Math.round(220*r.total/maxF)}px;${r.formation===S.formationBest?"":"opacity:.45"}`}),s:r=>r.total},
+  {h:"",v:r=>r.formation===S.formationBest?el("span",{class:"pill"},"beste"):(r.formation===S.formationNow?el("span",{class:"pill warn"},"aktuell"):(r.complete?"":"unvollständig"))}],{sort:1});
+const own=(D.ownSquad||[]);
+const maxL=Math.max(0.1,...own.map(r=>r.lineupLoss||0));
+table("t-loss",own.slice().sort((a,b)=>(b.lineupLoss||0)-(a.lineupLoss||0)),[{h:"Spieler",v:r=>r.name},{h:"Position",v:r=>r.positionName},
+  {h:"Verlust",v:r=>f2(r.lineupLoss),s:r=>r.lineupLoss||0,n:true},{h:"",v:r=>el("div",{class:"bar",style:`width:${Math.round(220*(r.lineupLoss||0)/maxL)}px;background:var(--warn)`}),s:r=>r.lineupLoss||0}]);
+
+// Eigener Kader mit Prognosen
+const stPill=r=>r.status&&r.status!=="ACTIVE"?el("span",{class:"pill bad",title:r.statusInfo||""},r.statusName):"fit";
+table("t-own",own,[{h:"Spieler",v:r=>el("span",{},r.name,r.inLineup?el("span",{class:"pill",style:"margin-left:6px"},"Elf"):"")},
+  {h:"Position",v:r=>r.positionName},{h:"Alter",v:r=>f1(r.age),s:r=>r.age||0,n:true},{h:"Status",v:stPill,s:r=>r.status},
+  {h:"Nächster Gegner",v:r=>r.next_opp?`${r.next_opp} (${r.next_venue==="Heim"?"H":"A"})`:"–"},
+  {h:"E nächster Sp.",v:r=>el("strong",{},f2(r.e_next)),s:r=>r.e_next||0,n:true},{h:"Gegner-Effekt",v:r=>signed(r.adj,f1),s:r=>r.adj||0,n:true},
+  {h:"Start",v:r=>pct(r.p_start),s:r=>r.p_start,n:true},{h:"Joker",v:r=>pct(r.p_sub),s:r=>r.p_sub,n:true},{h:"Ausfall",v:r=>pct(r.p_unav),s:r=>r.p_unav,n:true},
+  {h:"Punkte",v:r=>int(r.season_pts),s:r=>r.season_pts,n:true},{h:"Prognose",v:r=>int(Math.round(r.proj||0)),s:r=>r.proj||0,n:true},
+  {h:"Verletzungsrisiko 5 Sp.",v:r=>pct(r.p_inj5),s:r=>r.p_inj5||0,n:true},{h:"Gelb",v:r=>r.yellow??"–",n:true},{h:"Sperre bis Saisonende",v:r=>pct(r.p_ban),s:r=>r.p_ban||0,n:true},
+  {h:"Marktwert",v:r=>mio(r.marketValue),s:r=>r.marketValue,n:true},{h:"Kaufpreis",v:r=>mio(r.purchasePrice),s:r=>r.purchasePrice||0,n:true},
+  {h:"+/−",v:r=>r.pnl==null?"–":signed(r.pnl/1e6,f2)+" Mio.",s:r=>r.pnl||0,n:true,cls:r=>r.pnl==null?"":(r.pnl>=0?"pos":"neg")},
+  {h:"MW 7 T.",v:r=>r.mv_tr7==null?"–":signed(r.mv_tr7,f1)+" %",s:r=>r.mv_tr7||0,n:true,cls:r=>(r.mv_tr7||0)>=0?"pos":"neg"},
+  {h:"MW 30 T.",v:r=>r.mv_tr30==null?"–":signed(r.mv_tr30,f1)+" %",s:r=>r.mv_tr30||0,n:true,cls:r=>(r.mv_tr30||0)>=0?"pos":"neg"},
+  {h:"Pkt./Mio. (Prog.)",v:r=>f1(r.pts_per_mio),s:r=>r.pts_per_mio,n:true},
+  {h:"Bestes Angebot",v:r=>r.offer?eur(r.offer):"–",s:r=>r.offer||0,n:true},
+  {h:"Auf dem Markt",v:r=>r.onMarket?(r.minBid&&r.minBid<r.marketValue?el("span",{class:"pill warn",title:"Mindestgebot unter Marktwert"},"ja, "+mio(r.minBid)):"ja"):"–"},
+  {h:"Rückkehr",v:injCell,s:r=>r.injury?r.injury.return:""}],{sort:5,me:r=>r.inLineup});
+
+// Wechselgerüchte
+const rumorRows=own.filter(r=>r.rumor).map(r=>({...r.rumor,player:r.name}));
+table("t-rumors",rumorRows,[{h:"Spieler",v:r=>r.player},{h:"Status",v:r=>r.status||"–"},{h:"Ziel",v:r=>r.target||"–"},
+  {h:"Winter",v:r=>pct(r.pWinter),s:r=>r.pWinter||0,n:true},{h:"Sommer",v:r=>pct(r.pSummer),s:r=>r.pSummer||0,n:true},
+  {h:"Einordnung",v:r=>el("span",{style:"white-space:normal;display:inline-block;min-width:280px;max-width:520px"},r.note||"")},
+  {h:"Quelle",v:r=>r.url?el("a",{href:r.url,target:"_blank",rel:"noopener"},r.source||"Link"):(r.source||"–")}],{sort:4});
+document.getElementById("ru-note").textContent=`Stand ${D.research.rumorsAsOf||"–"}. Winter/Sommer = geschätzte Wahrscheinlichkeit eines Vereinswechsels im Winter 2027 bzw. Sommer 2027.`;
+
+// Spiele je Spieler (Matrix)
+(function(){
+  const box=document.getElementById("t-games"); box.textContent="";
+  const mds=[...new Set((D.games||[]).map(g=>g.md))].sort((a,b)=>a-b);
+  if(!mds.length){ box.append(el("p",{class:"note"},"Keine Spieldaten.")); return; }
+  const t=el("table"); const hr=el("tr",{},el("th",{},"Spieler")); mds.forEach(m=>hr.append(el("th",{class:"n"},m+".")));
+  t.append(el("thead",{},hr)); const tb=el("tbody"); t.append(tb);
+  own.forEach(r=>{ const tr=el("tr",{},el("td",{},r.name));
+    mds.forEach(m=>{ const g=(D.games||[]).find(x=>x.id===r.id&&x.md===m);
+      let txt="–", cls="n", title="";
+      if(g){ if(g.role==="start"||g.role==="sub"){ txt=(g.pts==null?"0":g.pts)+" "+(g.role==="start"?"S":"J"); cls+= (g.pts||0)<0?" neg":""; title=g.minute?("Minute "+g.minute):""; } else if(g.role==="unav"){ txt="+"; title=g.status; } }
+      tr.append(el("td",{class:cls,title},txt)); });
+    tb.append(tr); });
+  box.append(t);
+})();
+
+// Angebote
+table("t-offers",D.offers||[],[{h:"Spieler",v:r=>r.player},{h:"Von",v:r=>r.from},{h:"Angebot",v:r=>el("strong",{},eur(r.price)),s:r=>r.price,n:true},
+  {h:"Marktwert",v:r=>eur(r.marketValue),s:r=>r.marketValue,n:true},{h:"zum MW",v:r=>r.pct==null?"–":signed(r.pct,f1)+" %",s:r=>r.pct||0,n:true,cls:r=>(r.pct||0)>=0?"pos":"neg"},
+  {h:"Gewinn zum Kaufpreis",v:r=>r.profit==null?"–":signed(r.profit/1e6,f2)+" Mio.",s:r=>r.profit||0,n:true,cls:r=>r.profit==null?"":(r.profit>=0?"pos":"neg")},
+  {h:"Aufstellungsverlust",v:r=>f2(r.lineupLoss),s:r=>r.lineupLoss||0,n:true},{h:"Datum",v:r=>dt(r.date),s:r=>r.date}],{sort:2});
+document.getElementById("of-note").textContent = S.offerN ? `Computer-Angebote liegen im Schnitt bei ${f1((S.offerMean-1)*100)} % zum Marktwert (Spanne ${f1((S.offerMin-1)*100)} bis ${f1((S.offerMax-1)*100)} %, ${S.offerN} Angebote). Kreditrahmen: ${eur(S.credit)}.` : "Aktuell keine Computer-Angebote.";
+
+// Preis und Leistung (Streudiagramm)
+function scatter(target, pts){
+  const box=document.getElementById(target); if(!box.offsetParent && box.childNodes.length) return; box.textContent=""; if(!box.offsetParent) return;
+  if(!pts.length){ box.append(el("p",{class:"note"},"Keine Daten.")); return; }
+  const W=Math.max(box.clientWidth||600,320), H=300, L=58, R=12, T=12, B=34;
+  const xs=pts.map(p=>p.x), ys=pts.map(p=>p.y);
+  const x0=0, x1=Math.max(...xs)*1.05||1, y0=Math.min(0,...ys), y1=Math.max(...ys)*1.08||1;
+  const x=v=>L+(v-x0)/(x1-x0)*(W-L-R), y=v=>T+(1-(v-y0)/(y1-y0))*(H-T-B);
+  const ns="http://www.w3.org/2000/svg"; const svg=document.createElementNS(ns,"svg"); svg.setAttribute("viewBox",`0 0 ${W} ${H}`); svg.setAttribute("width","100%");
+  const mk=(tag,a)=>{const e=document.createElementNS(ns,tag); for(const [k,v] of Object.entries(a)) e.setAttribute(k,v); svg.append(e); return e;};
+  for(let i=0;i<=4;i++){ const v=y0+(y1-y0)*i/4; mk("line",{x1:L,x2:W-R,y1:y(v),y2:y(v),stroke:"currentColor","stroke-opacity":.08}); const t=mk("text",{x:L-6,y:y(v)+4,"text-anchor":"end"}); t.textContent=Math.round(v); }
+  for(let i=0;i<=4;i++){ const v=x0+(x1-x0)*i/4; const t=mk("text",{x:x(v),y:H-10,"text-anchor":"middle"}); t.textContent=(v/1e6).toFixed(0)+" M"; }
+  pts.forEach(p=>{ const c=mk("circle",{cx:x(p.x),cy:y(p.y),r:5,fill:p.color,"fill-opacity":.8}); const tt=document.createElementNS(ns,"title"); tt.textContent=`${p.label}: ${mio(p.x)}, ${Math.round(p.y)} Pkt. Prognose`; c.append(tt); });
+  box.append(svg);
+  const lg=el("div",{class:"legend"}); [["Dein Kader","#0f6b4f"],["Transfermarkt","#c2410c"]].forEach(([n,c])=>lg.append(el("span",{},el("i",{style:"background:"+c}),n))); box.append(lg);
+}
+const ppPts=own.map(r=>({x:r.marketValue||0,y:r.proj||0,label:r.name,color:"#0f6b4f"})).concat((D.market||[]).filter(m=>!m.mine).map(m=>({x:m.marketValue||0,y:m.proj||0,label:m.name,color:"#c2410c"})));
+CHARTS.pp=()=>scatter("chart-pp",ppPts); CHARTS.pp();
+
+// Mögliche Käufer
+const byF=document.getElementById("by-filter"); byF.append(el("option",{value:""},"Alle Marktspieler"));
+[...new Set((D.buyers||[]).map(b=>b.player))].forEach(n=>byF.append(el("option",{value:n},n)));
+const drawBy=()=>table("t-buyers",(D.buyers||[]).filter(b=>!byF.value||b.player===byF.value).filter(b=>byF.value||b.score>0),
+  [{h:"Spieler",v:r=>r.player},{h:"Manager",v:r=>r.manager},{h:"Kontostand",v:r=>eur(r.balance),s:r=>r.balance,n:true,cls:r=>r.balance<0?"neg":""},
+   {h:"Kann sich leisten",v:r=>r.affordable?"ja":el("span",{class:"neg"},"nein"),s:r=>r.affordable?1:0},
+   {h:"Käufe 30 T.",v:r=>r.buys30,n:true},{h:"Aktivität",v:r=>pct(r.activity),s:r=>r.activity,n:true},
+   {h:"Gebotsspanne",v:r=>r.affordable?`${mio(r.bidLow)} – ${mio(r.bidHigh)}`:"–",s:r=>r.bidHigh||0},
+   {h:"Wahrscheinlichkeit",v:r=>pct(r.score),s:r=>r.score,n:true}],{sort:7});
+byF.onchange=drawBy; drawBy();
+
+// Transfer-Pläne
+table("t-plans",D.plans||[],[{h:"Plan",v:r=>r.id},{h:"Verkaufen",v:r=>r.sell.join(", ")||"–"},{h:"Kaufen",v:r=>el("strong",{},r.buy.join(", "))},
+  {h:"Erlös",v:r=>mio(r.proceeds),s:r=>r.proceeds,n:true},{h:"Kosten",v:r=>mio(r.cost),s:r=>r.cost,n:true},{h:"Konto danach",v:r=>mio(r.cash_after),s:r=>r.cash_after,n:true},
+  {h:"+ Punkte/Spieltag",v:r=>signed(r.delta_md,f1),s:r=>r.delta_md,n:true,cls:()=>"pos"},{h:"+ Punkte Rest",v:r=>signed(r.delta_rest,f1),s:r=>r.delta_rest,n:true,cls:()=>"pos"}]);
+if(!(D.plans||[]).length) document.getElementById("t-plans").append(el("p",{class:"note"},"Kein Plan verbessert die Aufstellung bei nicht-negativem Konto."));
+
+// Prognose Endtabelle
+table("t-forecast",D.forecast||[],[{h:"#",v:r=>r.rank_final,n:true},{h:"Manager",v:r=>r.name},{h:"Punkte jetzt",v:r=>int(r.pts_now),s:r=>r.pts_now,n:true},
+  {h:"Ø je Spieltag (Prognose)",v:r=>f1(r.rate),s:r=>r.rate,n:true},{h:"Erwartet am Ende",v:r=>el("strong",{},int(r.exp_final)),s:r=>r.exp_final,n:true},
+  {h:"Spanne (10–90 %)",v:r=>`${int(r.p10)} – ${int(r.p90)}`,s:r=>r.p10},{h:"Meister",v:r=>pct(r.p_title),s:r=>r.p_title,n:true},
+  {h:"Top 3",v:r=>pct(r.p_top3),s:r=>r.p_top3,n:true},{h:"Ø Platz",v:r=>f2(r.exp_rank),s:r=>r.exp_rank,n:true}],{me:isMe});
+document.getElementById("fc-note").textContent=`${int(4000)} Simulationen der restlichen ${S.remaining??"–"} Spieltage. Tempo je Manager = 70 % erwartete Punkte der besten Elf aus dem aktuellen Kader + 30 % bisheriger Schnitt, Streuung aus den eigenen Spieltagen.`;
+
+// Monatswertung
+(function(){
+  const box=document.getElementById("t-monthly"); box.textContent="";
+  const months=[...new Set((D.monthly||[]).map(m=>m.month))];
+  if(!months.length){ box.append(el("p",{class:"note"},"Noch keine Daten.")); return; }
+  const t=el("table"); const hr=el("tr",{},el("th",{},"Manager")); months.forEach(m=>{ const [y,mo]=m.split("-"); hr.append(el("th",{class:"n"},new Date(+y,+mo-1,1).toLocaleDateString("de-DE",{month:"long",year:"2-digit"}))); });
+  t.append(el("thead",{},hr)); const tb=el("tbody"); t.append(tb);
+  D.standings.forEach(s=>{ const tr=el("tr",{class:s.id===D.me.id?"me":""},el("td",{},s.name));
+    months.forEach(m=>{ const r=(D.monthly||[]).find(x=>x.month===m&&x.id===s.id); tr.append(el("td",{class:"n"}, r? (r.rank===1? el("span",{class:"pill"},r.points+" 🏆") : r.points+" ("+r.rank+".)") : "–")); });
+    tb.append(tr); });
+  box.append(t);
+})();
+
+// Ewige Tabelle nach Schnitt & Saisonendstände
+table("t-alltime-avg",D.alltime.filter(a=>a.avg),[{h:"Manager",v:r=>r.name},{h:"Ø je Saison",v:r=>el("strong",{},int(r.avg)),s:r=>r.avg,n:true},{h:"Saisons",v:r=>r.seasons,n:true},{h:"Punkte gesamt",v:r=>int(r.points),s:r=>r.points,n:true}],{me:isMe,sort:1});
+(function(){
+  const box=document.getElementById("t-ranks"); box.textContent="";
+  const ss=D.seasons.filter(s=>Object.values(s.points||{}).some(v=>v>0)).slice().reverse();
+  const t=el("table"); const hr=el("tr",{},el("th",{},"Saison")); D.alltime.forEach(a=>hr.append(el("th",{class:"n"},a.name)));
+  t.append(el("thead",{},hr)); const tb=el("tbody"); t.append(tb);
+  ss.forEach(s=>{ const ranked=Object.entries(s.points).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]).map(([k])=>k);
+    const tr=el("tr",{},el("td",{},s.label)); D.alltime.forEach(a=>{ const r=ranked.indexOf(a.id); tr.append(el("td",{class:"n"}, r<0?"–": (r===0? el("span",{class:"pill"},"1."):(r+1)+"."))); }); tb.append(tr); });
+  box.append(t);
+})();
+
+// Methodik
+const METHOD=[
+ ["Datenbasis","Comunio-Schnittstelle: Tabelle, Spieltage, alle Kader, Transfermarkt, Transfer- und Strafen-News, dein Kontoauszug, deine Aufstellung und Angebote sowie die Spielhistorie jedes Kader- und Marktspielers (laufende und Vorsaison)."],
+ ["Erwartete Punkte","Gewichteter Mittelwert der Punkte je Einsatz, getrennt nach Startelf und Einwechslung, jedes Spiel mit Halbwertszeit 12 Spieltage. Wenige Daten werden zum Positionsschnitt gezogen. Multipliziert mit den Wahrscheinlichkeiten für Startelf, Joker und Ausfall."],
+ ["Gegner und Heimvorteil","Abweichung der Punkte vom eigenen Mittel je Gegner und Heim/Auswärts, stark gedämpft und auf ±1,5 Punkte begrenzt. Nur als schwaches Signal lesen."],
+ ["Verletzungen","Ausfallwahrscheinlichkeit aus dem aktuellen Status (angeschlagen, Reha, verletzt, gesperrt), den recherchierten Rückkehrterminen und der eigenen Ausfallhistorie. Für die Restsaison erholt sie sich schrittweise zur Grundrate."],
+ ["Sperren","Gelbe Karten je Einsatz, gedämpft zum Schnitt; Wahrscheinlichkeit, bis Saisonende die 5. Gelbe zu sehen (Poisson)."],
+ ["Aufstellung","Beste Elf je Formation (3-4-3, 3-5-2, 4-3-3, 4-4-2, 4-5-1, 5-3-2, 5-4-1) nach erwarteten Punkten für den nächsten Spieltag."],
+ ["Saisonprognose","4.000 Simulationen der restlichen Spieltage. Die Spanne zeigt das 10. bis 90. Perzentil."],
+ ["Flip-Deals","Erwarteter Gewinn = Marktwert × mittleres Computer-Angebot (aus deinen aktuellen Angeboten) − Mindestgebot. Mitbieter und Marktwertänderung über Nacht sind nicht eingerechnet."],
+ ["Transfer-Pläne","Alle Kombinationen aus bis zu vier von fünf Verkaufskandidaten und bis zu drei von zwölf Marktspielern, Gebot 3 % über Mindestgebot, Konto danach nicht negativ."],
+ ["Kontostände","Basis 15 Mio. € am 27.05. plus Verkäufe, minus Käufe, plus 10.000 € je Punkt, plus spätere Strafen/Gutschriften. Dein eigener Wert ist der echte Kontostand."],
+ ["Grenzen","Es wird nichts gekauft, verkauft oder geboten – das Dashboard liest nur. Kadergrenzen und Regeln zu negativem Konto sind nicht geprüft."]];
+table("t-method",METHOD.map(([a,b])=>({a,b})),[{h:"Thema",v:r=>el("strong",{},r.a)},{h:"Erklärung",v:r=>el("span",{style:"white-space:normal;display:inline-block;min-width:300px"},r.b)}]);
+table("t-opp",D.opponents||[],[{h:"Gegner",v:r=>r.club},{h:"Effekt (Punkte je Spieler)",v:r=>signed(r.adj,f2),s:r=>r.adj,n:true,cls:r=>r.adj>=0?"pos":"neg"}],{sort:1});
+document.getElementById("opp-note").textContent=`Positiv = gegen diesen Gegner punkten Spieler eher mehr. Heimvorteil ${signed(S.venueHome,f2)}, auswärts ${signed(S.venueAway,f2)} Punkte.`;
+(function(){
+  const src=[]; const seen=new Set();
+  own.forEach(r=>{ [r.rumor,r.injury].forEach(x=>{ if(x&&x.url&&!seen.has(x.url)){ seen.add(x.url); src.push({t:x.source||x.url,u:x.url,p:r.name}); } }); });
+  (D.market||[]).forEach(m=>{ const x=m.injury; if(x&&x.url&&!seen.has(x.url)){ seen.add(x.url); src.push({t:x.source||x.url,u:x.url,p:m.name}); } });
+  src.unshift({t:"Comunio (Daten der Community, nur lesend abgerufen)",u:"https://www.comunio.de",p:"alle"});
+  table("t-sources",src,[{h:"Quelle",v:r=>el("a",{href:r.u,target:"_blank",rel:"noopener"},r.t)},{h:"betrifft",v:r=>r.p}]);
+})();
 
 window.addEventListener("resize",()=>Object.values(CHARTS).forEach(f=>f()));
 })();

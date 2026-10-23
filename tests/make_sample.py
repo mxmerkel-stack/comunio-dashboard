@@ -43,6 +43,50 @@ squads = {str(m["id"]): [{"id": 31000 + j, "name": random.choice(players), "club
                           "points": str(random.randint(0, 50)), "avg": "3.5", "marketValue": random.randint(5, 150) * 100000,
                           "status": random.choice(["ACTIVE"]*6+["REHABILITATION"]), "statusInfo": "Reha nach Muskelverletzung", "purchasePrice": random.randint(5, 150) * 100000, "purchaseDate": "2026-08-01T00:00:00+02:00"}
                          for j in range(11)] for m in members}
+# Spielstatistiken, Aufstellung, Angebote, Kalender
+pos_cycle = ["keeper", "defender", "defender", "defender", "defender", "midfielder", "midfielder", "midfielder",
+             "midfielder", "striker", "striker", "striker"]
+clubs = [(1, "FC Bayern München"), (3, "Borussia Mönchengladbach"), (6, "SV Werder Bremen"), (13, "1. FC Köln"),
+         (14, "VfB Stuttgart"), (21, "Sport-Club Freiburg")]
+stats = {}
+for uid, sq in squads.items():
+    for j, p in enumerate(sq):
+        p["id"] = int(uid) * 100 + j
+        p["position"] = pos_cycle[j % len(pos_cycle)]
+        cid, cname = random.choice(clubs)
+        oid, oname = random.choice([c for c in clubs if c[0] != cid])
+        p.update(clubId=cid, club=cname, onMarket=False, minBid=-1, linedup=j < 11,
+                 nextMatch={"homeId": cid, "home": cname, "guestId": oid, "guest": oname, "kickoff": "2026-10-24T15:30:00+02:00"})
+sq_extra = {"id": 5695415 * 100 + 11, "name": "Ersatzmann", "club": "Testverein", "position": "striker", "points": "5",
+            "avg": "1", "marketValue": 900000, "status": "ACTIVE", "statusInfo": "", "purchasePrice": 1500000,
+            "purchaseDate": "2026-08-01", "clubId": 1, "onMarket": True, "minBid": 800000, "linedup": False, "nextMatch": {}}
+squads["5695415"].append(sq_extra)
+all_players = [p for sq in squads.values() for p in sq] + market
+for i, m in enumerate(market):
+    m["clubId"], m["club"] = clubs[i % len(clubs)]
+    m["ownerId"] = 101 if m["owner"] == "Adler" else 1
+for p in all_players:
+    rows = []
+    for season, n in (("cur", 6), (397004, 34)):
+        for mdk in range(n, 0, -1):
+            r = random.random()
+            role_pts = None if r < 0.25 else random.randint(-2, 14)
+            sub_in = str(random.randint(55, 85)) if 0.25 <= r < 0.4 else None
+            oid = random.choice(clubs)[0]
+            rows.append({"season": season, "md": str(mdk), "date": "2026-10-01", "points": None if role_pts is None else str(role_pts),
+                         "in": sub_in, "out": None, "status": "ACTIVE", "yellow": "1" if random.random() < 0.1 else None,
+                         "yellowRed": None, "red": None, "goals": None, "clubId": p.get("clubId", 1),
+                         "homeId": p.get("clubId", 1), "guestId": oid})
+    stats[str(p["id"])] = rows
+quotes = {str(p["id"]): [[f"2026-10-{23 - k:02d}", int(p["marketValue"]) + k * 10000] for k in range(23)]
+          for p in squads["5695415"] + market}
+own_ids = [str(p["id"]) for p in squads["5695415"][:11]]
+offers = [{"id": k, "type": "SALE", "state": "PENDING", "price": int(int(p["marketValue"]) * random.uniform(0.95, 1.1)),
+           "date": "2026-10-23T06:26:10+02:00", "playerId": p["id"], "player": p["name"], "marketValue": p["marketValue"],
+           "fromId": 1, "from": "Computer", "toId": 5695415} for k, p in enumerate(squads["5695415"][:6])]
+offers.append({**offers[0], "id": 99, "fromId": 102, "from": "Bauer", "price": offers[0]["price"] + 200000})
+calendar = [{"key": str(k), "date": f"2026-{8 + (k - 1) // 3:02d}-{(k * 7) % 27 + 1:02d}T20:30:00+02:00",
+             "started": k <= 7, "finished": k <= 6, "season": "26/27"} for k in range(1, 11)]
 raw = {
     "fetchedAt": "2026-10-23T18:30:00+00:00",
     "me": {"id": "5695415", "name": "Testmanager", "budget": "496499", "teamValue": "61540000", "points": str(tot[5695415])},
@@ -57,6 +101,9 @@ raw = {
     "bonuses": [{"newsId": 1, "date": "2026-05-25T15:31:00+02:00", "amount": -9000000, "name": "Testmanager", "reason": "Saisonübergang"},
                 {"newsId": 2, "date": "2026-09-02T10:00:00+02:00", "amount": -500000, "name": "Adler", "reason": "Aufstellung vergessen"},
                 {"newsId": 3, "date": "2026-09-03T10:00:00+02:00", "amount": 250000, "name": "Bauer", "reason": "Tippspiel"}],
+    "ownDetails": {str(p["id"]): {"dob": "1999-05-01T00:00:00+02:00", "seasonPoints": {}} for p in squads["5695415"]},
+    "stats": stats, "quotes": quotes, "lineup": {"tactic": "433", "ids": own_ids}, "offers": offers,
+    "credit": 15881499, "matchdayCalendar": calendar,
 }
 DATA.mkdir(parents=True, exist_ok=True)
 (DATA / "raw.json").write_text(json.dumps(raw, ensure_ascii=False, indent=1))
