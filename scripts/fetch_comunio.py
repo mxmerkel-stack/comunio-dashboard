@@ -202,9 +202,15 @@ def main():
 
     # Eigene Aufstellung, Angebote an dich, Spieltagskalender
     lineup_raw = get(links["game:lineup"])
-    lineup = {"tactic": lineup_raw.get("tactic"),
-              "ids": [str(D(v).get("id")) for k, v in sorted(D(D(lineup_raw.get("items")).get("lineup")).items(),
-                                                            key=lambda kv: int(kv[0]) if str(kv[0]).isdigit() else 0)]}
+    lu_items = D(D(lineup_raw.get("items")).get("lineup"))
+    slots = []
+    for k in range(1, 12):
+        v = D(lu_items.get(str(k)))
+        slots.append({"slot": k, "id": str(v.get("id")) if v.get("id") else None, "name": v.get("name"),
+                      "type": v.get("type"), "status": v.get("status"), "statusInfo": v.get("statusInfo"),
+                      "matchStatus": v.get("matchStatus"), "exchangeable": v.get("isExchangeable")})
+    lineup = {"tactic": lineup_raw.get("tactic"), "slots": slots,
+              "ids": [sl["id"] for sl in slots if sl["id"]]}
     off = get(links["game:readOffers"] + "?current")
     offers = [{"id": o.get("id"), "type": o.get("type"), "state": o.get("state"), "price": o.get("price"),
                "date": o.get("datecreated"), "playerId": D(o.get("tradable")).get("id"),

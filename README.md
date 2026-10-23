@@ -25,6 +25,9 @@ Kontostände aller Manager, Transfers, Kader und Gebotsempfehlungen für den Tra
 | `COMUNIO_USER` | Comunio-Benutzername |
 | `COMUNIO_PASS` | Comunio-Passwort |
 | `PAGE_PASSWORD` | Neues Passwort für die Seite, mindestens 12 Zeichen |
+| `MAIL_USERNAME` | optional: Gmail-Adresse für die Morgen-Mail am Spieltag |
+| `MAIL_APP_PASSWORD` | optional: App-Passwort dieses Gmail-Kontos (Google-Konto → Sicherheit → App-Passwörter) |
+| `MAIL_TO` | optional: Empfänger, falls nicht die Gmail-Adresse selbst |
 | `ODDS_API_KEY` | optional: kostenloser Schlüssel von the-odds-api.com für die Tipico-Quoten im Reiter „Next Match“ |
 
 **Settings → Pages → Build and deployment → Source:** „GitHub Actions“

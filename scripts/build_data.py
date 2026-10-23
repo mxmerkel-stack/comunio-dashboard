@@ -296,6 +296,14 @@ def build(raw, history):
 
     # =============== Analysen aus der Comunio Zentrale ===============
     an = analyze(raw, names, ids, me_id, squads, market, md_rows, pts_of, balance_of, injuries, tx_unique, own_cash)
+    # Prüfung vor dem Aufstellungsschluss (auch Grundlage der Morgen-Mail)
+    import checks as C
+    an["checks"] = C.lineup_checks(raw, an.get("nextMatch") or {}, me_acc["balance"], an.get("offers"), an.get("ownSquad") or [])
+    warn_actions = [{"tag": "Warnung", "title": i["title"], "detail": i["detail"]}
+                    for i in an["checks"]["issues"] if i["level"] == "warn"]
+    an["actions"] = warn_actions + [a for a in an["actions"] if not (warn_actions and a["tag"] == "Konto")]
+    for n_, a_ in enumerate(an["actions"]):
+        a_["prio"] = n_ + 1
 
     # --- Verlauf (ein Eintrag pro Tag) ---
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")

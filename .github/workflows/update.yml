@@ -4,7 +4,12 @@ on:
   schedule:
     - cron: "23 3 * * *"        # täglich ~05:23 Uhr (MESZ), nach den Transfers um 03:00
     - cron: "41 20 * * 5,6,0"   # Fr/Sa/So abends, nach den Spielen
-  workflow_dispatch: {}          # Knopf "Run workflow" für ein Update von Hand
+  workflow_dispatch:             # Knopf "Run workflow" für ein Update von Hand
+    inputs:
+      force_mail:
+        description: "Morgen-Mail jetzt senden (Test)"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -52,6 +57,15 @@ jobs:
         env:
           PAGE_PASSWORD: ${{ secrets.PAGE_PASSWORD }}
         run: python scripts/build_data.py
+
+      - name: Morgen-Mail (Aufstellung und Kontostand prüfen)
+        continue-on-error: true
+        env:
+          MAIL_USERNAME: ${{ secrets.MAIL_USERNAME }}
+          MAIL_APP_PASSWORD: ${{ secrets.MAIL_APP_PASSWORD }}
+          MAIL_TO: ${{ secrets.MAIL_TO }}
+          FORCE_MAIL: ${{ inputs.force_mail }}
+        run: python scripts/send_mail.py
 
       - name: Verlauf speichern (verschlüsselt)
         uses: actions/cache/save@v4
