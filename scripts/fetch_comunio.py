@@ -37,10 +37,16 @@ def _request(url, data=None, token=None, retries=3):
         except urllib.error.HTTPError as e:
             # Bei Login-Fehlern nicht wiederholen (Account-Sperre vermeiden)
             if e.code in (400, 401, 403):
-                raise SystemExit(f"Comunio antwortet mit HTTP {e.code} für {url.split('?')[0]}")
+                try:
+                    detail = json.loads(e.read().decode("utf-8"))
+                    detail = detail.get("error_description") or detail.get("error") or detail.get("message") or ""
+                except Exception:
+                    detail = ""
+                raise SystemExit(f"Comunio antwortet mit HTTP {e.code} für {url.replace(BASE, '').split('?')[0]} {str(detail)[:120]}")
             last = e
         except Exception as e:  # Netzwerk
             last = e
+            print(f"::warning title=Comunio-Abruf::Versuch {attempt + 1}: {type(e).__name__}: {str(e)[:150]}")
         time.sleep(2 * (attempt + 1))
     raise SystemExit(f"Abruf fehlgeschlagen: {url.split('?')[0]} ({type(last).__name__})")
 
@@ -187,4 +193,8 @@ if __name__ == "__main__":
         main()
     except SystemExit as e:
         print(f"Fehler: {e}", file=sys.stderr)
+        print(f"::error title=Comunio-Abruf::{e}")  # als Annotation sichtbar, ohne Daten
         sys.exit(1)
+    except Exception as e:
+        print(f"::error title=Comunio-Abruf::{type(e).__name__}: {str(e)[:200]}")
+        raise
