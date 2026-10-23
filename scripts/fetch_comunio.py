@@ -20,6 +20,11 @@ OUT = Path(os.environ.get("DATA_DIR", "data")) / "raw.json"
 MAX_NEWS = int(os.environ.get("MAX_NEWS", "400"))
 
 
+def D(x):
+    """Nur Objekte weiterverwenden – Comunio liefert manchmal Text statt Objekt."""
+    return x if isinstance(x, dict) else {}
+
+
 def _request(url, data=None, token=None, retries=3):
     headers = {"User-Agent": UA, "Accept": "application/json"}
     if token:
@@ -100,11 +105,11 @@ def main():
     for m in members.get("members", []):
         sq = get(f"/api/users/{m['id']}/squad")
         squads[str(m["id"])] = [{
-            "id": p.get("id"), "name": p.get("name"), "club": (p.get("club") or {}).get("name"),
+            "id": p.get("id"), "name": p.get("name"), "club": D(p.get("club")).get("name"),
             "position": p.get("position"), "points": p.get("points"), "avg": p.get("averagePoints"),
             "marketValue": p.get("quotedprice"), "status": p.get("status"),
-            "purchasePrice": (p.get("purchaseInfo") or {}).get("price"),
-            "purchaseDate": (p.get("purchaseInfo") or {}).get("date"),
+            "purchasePrice": D(p.get("purchaseInfo")).get("price"),
+            "purchaseDate": D(p.get("purchaseInfo")).get("date"),
         } for p in sq.get("items", [])]
         time.sleep(0.3)
 
@@ -119,7 +124,7 @@ def main():
         "recommendedPrice": it["_embedded"]["player"].get("recommendedPrice"),
         "trend": it["_embedded"]["player"].get("trend"),
         "status": it["_embedded"]["player"].get("status"),
-        "owner": (it["_embedded"].get("owner") or {}).get("name"),
+        "owner": D(it["_embedded"].get("owner")).get("name"),
         "remainingDays": it.get("remaining"),
         "date": it.get("date"),
     } for it in market.get("items", [])]
@@ -130,7 +135,7 @@ def main():
         page = get(links["game:statement"] + f"?start={start}&limit=50")
         entries = page.get("entries", [])
         statement += [{"date": e.get("date"), "type": e.get("type"), "amount": e.get("amount"),
-                       "text": (e.get("details") or {}).get("name")} for e in entries]
+                       "text": D(e.get("details")).get("name")} for e in entries]
         if len(entries) < 50:
             break
         start += 50
@@ -139,22 +144,24 @@ def main():
     transfers, start = [], 0
     while start < MAX_NEWS:
         page = get(links["game:news"] + f"?group=true&originaltypes=true&start={start}&limit=50&type=TRANSACTION_TRANSFER")
-        groups = (page.get("newsList") or {}).get("groups") or {}
-        entries = [e for g in (groups.values() if isinstance(groups, dict) else groups) for e in g.get("entries", [])]
+        groups = D(page.get("newsList")).get("groups") or {}
+        entries = [e for g in (groups.values() if isinstance(groups, dict) else groups) for e in D(g).get("entries", []) if isinstance(e, dict)]
         for e in entries:
-            for kind, rows in (e.get("message") or {}).items():
+            for kind, rows in D(e.get("message")).items():
                 if not isinstance(rows, list):
                     continue
                 for r in rows:
+                    if not isinstance(r, dict):
+                        continue
                     transfers.append({
                         "newsId": e.get("id"), "date": e.get("date"), "kind": kind,
-                        "player": (r.get("tradable") or {}).get("name"),
-                        "playerId": (r.get("tradable") or {}).get("id"),
+                        "player": D(r.get("tradable")).get("name"),
+                        "playerId": D(r.get("tradable")).get("id"),
                         "price": r.get("price"),
-                        "fromId": (r.get("from") or {}).get("id"), "from": (r.get("from") or {}).get("name"),
-                        "toId": (r.get("to") or {}).get("id"), "to": (r.get("to") or {}).get("name"),
+                        "fromId": D(r.get("from")).get("id"), "from": D(r.get("from")).get("name"),
+                        "toId": D(r.get("to")).get("id"), "to": D(r.get("to")).get("name"),
                     })
-        if not (page.get("newsList") or {}).get("hasMore") or not entries:
+        if not D(page.get("newsList")).get("hasMore") or not entries:
             break
         start += 50
         time.sleep(0.3)
@@ -169,11 +176,11 @@ def main():
         "standings": [{
             "userId": i["_embedded"]["user"]["id"], "name": (i["_embedded"]["user"].get("name") or "").strip(),
             "points": i.get("totalPoints"), "lastPoints": i.get("lastPoints"),
-            "teamValue": (i["_embedded"].get("teamInfo") or {}).get("teamValue"),
+            "teamValue": D(i["_embedded"].get("teamInfo")).get("teamValue"),
         } for i in standings.get("items", [])],
         "perennial": [{
             "userId": i["_embedded"]["user"]["id"], "name": (i["_embedded"]["user"].get("name") or "").strip(),
-            "seasons": (i["_embedded"].get("teamInfo") or {}).get("seasons") or [],
+            "seasons": D(i["_embedded"].get("teamInfo")).get("seasons") or [],
         } for i in perennial.get("items", [])],
         "matchdays": matchdays,
         "squads": squads,
@@ -196,5 +203,7 @@ if __name__ == "__main__":
         print(f"::error title=Comunio-Abruf::{e}")  # als Annotation sichtbar, ohne Daten
         sys.exit(1)
     except Exception as e:
-        print(f"::error title=Comunio-Abruf::{type(e).__name__}: {str(e)[:200]}")
+        import traceback
+        tb = traceback.extract_tb(e.__traceback__)[-1]
+        print(f"::error title=Comunio-Abruf::{type(e).__name__} in Zeile {tb.lineno}: {str(e)[:200]}")
         raise
