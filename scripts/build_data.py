@@ -399,12 +399,13 @@ def analyze(raw, names, ids, me_id, squads, market, md_rows, pts_of, balance_of,
     lineup_now = M.lineup_total(own, cur_ids)
     best_form, best_total, best_ids, forms = M.best_lineup(own) if own else (None, 0, [], {})
     look = {s["id"]: s for s in own}
+    club_of = {str(p.get("id")): p.get("club") for p in raw["squads"].get(str(me_id), [])}
     pos_de = {"keeper": "Tor", "defender": "Abwehr", "midfielder": "Mittelfeld", "striker": "Sturm"}
 
     def xi_rows(id_list):
         rows = [look[i] for i in id_list if i in look]
         rows.sort(key=lambda s: M.POS_ORDER.index(s["position"]) if s["position"] in M.POS_ORDER else 9)
-        return [{"id": s["id"], "name": s["name"], "pos": pos_de.get(s["position"], s["position"]),
+        return [{"id": s["id"], "name": s["name"], "club": club_of.get(str(s["id"])), "pos": pos_de.get(s["position"], s["position"]),
                  "e": round(s["e_next"], 2)} for s in rows]
 
     formations = sorted([{"formation": k, "total": v["total"], "complete": v["complete"]} for k, v in forms.items()],
@@ -659,7 +660,7 @@ def analyze(raw, names, ids, me_id, squads, market, md_rows, pts_of, balance_of,
                   "fixtures": fx_out, "fixtureSource": (fx_out[0]["source"] if fx_out else None),
                   "oddsAvailable": bool(odds), "bookmaker": next((f["bookmaker"] for f in fx_out if f.get("bookmaker")), None),
                   "squad": nm_rows, "formation": nm_form, "total": round(nm_total, 2), "nowTotal": nm_now,
-                  "best": [{"name": r["name"], "pos": r["positionName"], "e": r["e_match"], "opponent": r["opponent"],
+                  "best": [{"name": r["name"], "club": r.get("club"), "pos": r["positionName"], "e": r["e_match"], "opponent": r["opponent"],
                             "venue": r["venue"]} for r in nm_rows if r["inBest"]],
                   "formations": sorted([{"formation": k, "total": v["total"], "complete": v["complete"]}
                                         for k, v in nm_forms.items()], key=lambda x: -x["total"])}

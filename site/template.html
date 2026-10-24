@@ -184,8 +184,19 @@ const CLUBS=[["bayern","FCB","#dc052d","#fff"],["dortmund","BVB","#fde100","#111
  ["heidenheim","FCH","#e2001a","#16337a"],["schalke","S04","#004d9d","#fff"],["paderborn","SCP","#0054a6","#111"],["elversberg","SVE","#111","#fff"],["hertha","BSC","#005ca9","#fff"],
  ["hannover","H96","#1d7a3a","#fff"],["darmstadt","D98","#004e9e","#fff"],["düsseldorf","F95","#e30613","#fff"],["kaiserslautern","FCK","#e30613","#fff"],["nürnberg","FCN","#a50034","#fff"],
  ["bochum","BOC","#005ca9","#fff"],["magdeburg","FCM","#005ca9","#fff"],["karlsruhe","KSC","#0f4a9b","#fff"],["braunschweig","EBS","#f8c300","#005ca9"],["kiel","KSV","#0a3a8a","#fff"]];
+const GENERIC=new Set(["fc","sv","sc","vfb","vfl","tsg","fsv","borussia","bayer","sport","club","rb","ev","spvgg","1","04","05","07","96","98","1899","1846","1848","1900","1909","1910","de","am","der","von"]);
+const clubTokens=n=>String(n||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/ß/g,"ss")
+  .replace(/munich/g,"munchen").replace(/cologne/g,"koln").replace(/m'gladbach|mgladbach/g,"monchengladbach")
+  .split(/[^a-z0-9]+/).filter(t=>t&&!GENERIC.has(t));
+function logoFor(name){
+  const L=D.clubLogos||{}; if(!name) return null; if(L[name]) return L[name];
+  const a=new Set(clubTokens(name)); if(!a.size) return null;
+  let best=null,score=0;
+  for(const k of Object.keys(L)){ const b=clubTokens(k); const hit=b.filter(t=>a.has(t)).length; if(hit>score){score=hit;best=k;} }
+  return best?L[best]:null;
+}
 function badge(name){
-  const url=(D.clubLogos||{})[name];
+  const url=logoFor(name);
   if(url){ const img=el("img",{class:"crestimg",src:url,alt:name||"",title:name||"",referrerpolicy:"no-referrer",loading:"lazy"});
     img.onerror=()=>{ img.replaceWith(plate(name)); }; return img; }
   return plate(name);
@@ -392,7 +403,7 @@ const signed=(v,fmt)=>v==null?"–":(v>0?"+":"")+fmt(v);
 })();
 
 // Aufstellung
-const luCols=[{h:"Position",v:r=>r.pos},{h:"Spieler",v:r=>r.name},{h:"Erwartet",v:r=>f2(r.e),s:r=>r.e,n:true}];
+const luCols=[{h:"Position",v:r=>r.pos},{h:"Spieler",v:r=>el("span",{class:"clubcell"},badge(r.club),r.name),s:r=>r.name},{h:"Erwartet",v:r=>f2(r.e),s:r=>r.e,n:true}];
 if(D.lineup){
   table("t-lu-now",D.lineup.now,luCols);
   document.getElementById("t-lu-now").append(el("p",{class:"note"},`${D.lineup.formationNow||""} · ${f1(S.lineupNow)} erwartete Punkte`));
@@ -405,7 +416,7 @@ table("t-formations",D.formations||[],[{h:"Formation",v:r=>r.formation},{h:"Erwa
   {h:"",v:r=>r.formation===S.formationBest?el("span",{class:"pill"},"beste"):(r.formation===S.formationNow?el("span",{class:"pill warn"},"aktuell"):(r.complete?"":"unvollständig"))}],{sort:1});
 const own=(D.ownSquad||[]);
 const maxL=Math.max(0.1,...own.map(r=>r.lineupLoss||0));
-table("t-loss",own.slice().sort((a,b)=>(b.lineupLoss||0)-(a.lineupLoss||0)),[{h:"Spieler",v:r=>r.name},{h:"Position",v:r=>r.positionName},
+table("t-loss",own.slice().sort((a,b)=>(b.lineupLoss||0)-(a.lineupLoss||0)),[{h:"Spieler",v:r=>el("span",{class:"clubcell"},badge(r.club),r.name),s:r=>r.name},{h:"Position",v:r=>r.positionName},
   {h:"Verlust",v:r=>f2(r.lineupLoss),s:r=>r.lineupLoss||0,n:true},{h:"",v:r=>el("div",{class:"bar",style:`width:${Math.round(220*(r.lineupLoss||0)/maxL)}px;background:var(--warn)`}),s:r=>r.lineupLoss||0}]);
 
 // Eigener Kader mit Prognosen
@@ -567,7 +578,7 @@ document.getElementById("opp-note").textContent=`Positiv = gegen diesen Gegner p
   document.getElementById("fx-note").textContent=`Paarungen: ${N.fixtureSource==="OpenLigaDB"?"OpenLigaDB (offizieller Spielplan)":"aus den Comunio-Daten abgeleitet"}. `+
     (N.oddsAvailable?`Quoten: ${N.bookmaker||"Tipico"} über The Odds API; Wahrscheinlichkeiten ohne Buchmacher-Marge.`:"Quoten: noch nicht verfügbar – dafür fehlt der kostenlose API-Schlüssel (Secret ODDS_API_KEY) oder der Wettanbieter hat noch keine Quoten.");
   const p2=v=>v==null?"–":Math.round(v*100)+" %";
-  table("t-nm-squad",N.squad||[],[{h:"Spieler",v:r=>el("span",{},r.name,r.inBest?el("span",{class:"pill",style:"margin-left:6px"},"Empfehlung"):"",r.inLineup?el("span",{class:"pill warn",style:"margin-left:6px"},"aufgestellt"):"")},
+  table("t-nm-squad",N.squad||[],[{h:"Spieler",v:r=>el("span",{class:"clubcell"},badge(r.club),r.name,r.inBest?el("span",{class:"pill",style:"margin-left:6px"},"Empfehlung"):"",r.inLineup?el("span",{class:"pill warn",style:"margin-left:6px"},"aufgestellt"):"")},
     {h:"Position",v:r=>r.positionName},{h:"Verein",v:r=>clubCell(r.club),s:r=>r.club||""},
     {h:"Gegner",v:r=>oppCell(r.opponent,r.venue),s:r=>r.opponent||""},{h:"Anstoß",v:r=>r.played?"gespielt":kick(r.kickoff),s:r=>r.kickoff||""},
     {h:"Status",v:r=>r.status&&r.status!=="ACTIVE"?el("span",{class:"pill bad",title:(r.statusInfo||"")+(r.injury?" – Rückkehr: "+r.injury.return:"")},r.statusName):"fit",s:r=>r.status},
@@ -575,7 +586,7 @@ document.getElementById("opp-note").textContent=`Positiv = gegen diesen Gegner p
     {h:"Siegchance Team",v:r=>p2(r.pWin),s:r=>r.pWin||0,n:true},
     {h:"Gegner-Effekt",v:r=>el("span",{title:"Quelle: "+r.adjSource},(r.adj>0?"+":"")+f1(r.adj)),s:r=>r.adj,n:true},
     {h:"Erwartete Punkte",v:r=>el("strong",{},f2(r.e_match)),s:r=>r.e_match,n:true}],{sort:10,me:r=>r.inBest});
-  table("t-nm-best",N.best||[],[{h:"Position",v:r=>r.pos},{h:"Spieler",v:r=>r.name},{h:"Gegner",v:r=>oppCell(r.opponent,r.venue),s:r=>r.opponent||""},{h:"Erwartet",v:r=>f2(r.e),s:r=>r.e,n:true}]);
+  table("t-nm-best",N.best||[],[{h:"Position",v:r=>r.pos},{h:"Spieler",v:r=>el("span",{class:"clubcell"},badge(r.club),r.name),s:r=>r.name},{h:"Gegner",v:r=>oppCell(r.opponent,r.venue),s:r=>r.opponent||""},{h:"Erwartet",v:r=>f2(r.e),s:r=>r.e,n:true}]);
   const sw=(N.squad||[]).filter(r=>r.inBest&&!r.inLineup).map(r=>r.name), out=(N.squad||[]).filter(r=>!r.inBest&&r.inLineup).map(r=>r.name);
   document.getElementById("nm-best-note").textContent=`${N.formation||""} · ${f1(N.total)} erwartete Punkte.`+(sw.length?` Rein: ${sw.join(", ")}. Raus: ${out.join(", ")}.`:" Entspricht deiner aktuellen Aufstellung.");
   const mxN=Math.max(1,...(N.formations||[]).map(f=>f.total));
