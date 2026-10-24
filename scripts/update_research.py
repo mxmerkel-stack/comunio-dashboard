@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Aktualisiert research/rumors.json und research/injuries.json per Claude-API mit Websuche.
 
-Benötigt das Secret GEMINI_API_KEY (kostenlos, hat Vorrang) oder ANTHROPIC_API_KEY. Die Spielerliste ist immer der aktuelle Kader aus data/raw.json. Fehlt es oder schlägt ein Aufruf fehl, bleiben die
+Backends (Vorrang): GROQ_API_KEY (kostenlos, Suche über TAVILY_API_KEY oder Google-News-RSS), GEMINI_API_KEY, ANTHROPIC_API_KEY. Die Spielerliste ist immer der aktuelle Kader aus data/raw.json. Fehlt es oder schlägt ein Aufruf fehl, bleiben die
 bisherigen Einträge unverändert (Exit-Code 0, Warnung als Annotation).
 """
 import datetime as dt
@@ -11,6 +11,8 @@ import re
 import sys
 import time
 import urllib.error
+import urllib.parse
+import xml.etree.ElementTree as ET
 import urllib.request
 from pathlib import Path
 
@@ -18,6 +20,9 @@ ROOT = Path(__file__).resolve().parent.parent
 MODEL = os.environ.get("RESEARCH_MODEL", "claude-sonnet-5-5")
 KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 GEMINI_KEY = os.environ.get("GEMINI_API_KEY", "")
+GROQ_KEY = os.environ.get("GROQ_API_KEY", "")
+MODEL_GROQ = os.environ.get("RESEARCH_MODEL_GROQ", "llama-3.3-70b-versatile")
+TAVILY_KEY = os.environ.get("TAVILY_API_KEY", "")
 MODEL_GEMINI = os.environ.get("RESEARCH_MODEL_GEMINI", "gemini-3.8-flash")
 BATCH = 5
 TODAY = dt.datetime.now(dt.timezone(dt.timedelta(hours=2))).strftime("%d.%m.%Y")
@@ -63,9 +68,38 @@ def _post(url, body, headers):
             raise
 
 
+def search(query):
+    """Aktuelle Meldungen: Tavily (wenn Schlüssel) sonst Google-News-RSS. Gibt Textblock für den Prompt zurück."""
+    items = []
+    try:
+        if TAVILY_KEY:
+            d = _post("https://api.tavily.com/search", {"query": query, "topic": "news", "days": 45, "max_results": 6},
+                      {"Authorization": f"Bearer {TAVILY_KEY}"})
+            items = [(r.get("title"), r.get("url"), (r.get("content") or "")[:350], (r.get("published_date") or "")) for r in d.get("results", [])]
+        else:
+            u = "https://news.google.com/rss/search?" + urllib.parse.urlencode({"q": query + " when:45d", "hl": "de", "gl": "DE", "ceid": "DE:de"})
+            req = urllib.request.Request(u, headers={"User-Agent": "Mozilla/5.0 (comunio-dashboard)"})
+            with urllib.request.urlopen(req, timeout=30) as r:
+                root = ET.fromstring(r.read())
+            for it in root.iter("item"):
+                items.append((it.findtext("title"), it.findtext("link"), "", it.findtext("pubDate") or ""))
+                if len(items) >= 8:
+                    break
+    except Exception as e:
+        print(f"::warning title=Suche::{type(e).__name__}: {e}")
+    return "\n".join(f"- [{d}] {t} | {c} | {u}" for t, u, c, d in items if t)
+
+
 def call(prompt):
     prompt = prompt + "\n\n" + OUT
-    if GEMINI_KEY:  # kostenloser Tarif, Websuche über Google Search Grounding
+    if GROQ_KEY:  # kostenloser Tarif, Suchtreffer stehen im Prompt
+        data = _post("https://api.groq.com/openai/v1/chat/completions",
+                     {"model": MODEL_GROQ, "temperature": 0.1, "response_format": {"type": "json_object"},
+                      "messages": [{"role": "user", "content": prompt}]},
+                     {"Authorization": f"Bearer {GROQ_KEY}", "User-Agent": "comunio-dashboard"})
+        text = data["choices"][0]["message"]["content"]
+        time.sleep(6)  # Gratis-Tarif: Anfragen und Tokens pro Minute begrenzt
+    elif GEMINI_KEY:  # kostenloser Tarif, Websuche über Google Search Grounding
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL_GEMINI}:generateContent"
         data = _post(url, {"contents": [{"parts": [{"text": prompt}]}], "tools": [{"google_search": {}}]},
                      {"x-goog-api-key": GEMINI_KEY})
@@ -138,12 +172,19 @@ def run(name, task, fields, squad):
     ids = list(players)
     changed = 0
     ok = 0
-    for i in range(0, len(ids), BATCH):
-        part = ids[i:i + BATCH]
+    batch = 1 if GROQ_KEY else BATCH
+    for i in range(0, len(ids), batch):
+        part = ids[i:i + batch]
         listing = "\n".join(f"{pid}: {players[pid].get('name')} – {json.dumps({k: players[pid].get(k) for k in fields}, ensure_ascii=False)}"
                             for pid in part)
+        extra = ""
+        if GROQ_KEY:
+            q = f"{players[part[0]].get('name')} Bundesliga " + ("Transfer Wechsel Gerücht" if name == "rumors" else "Verletzung Rückkehr Ausfall")
+            hits = search(q)
+            extra = ("\n\nSuchtreffer (Datum | Titel | Auszug | URL). Nutze ausschließlich diese Treffer; url nur aus dieser Liste; "
+                     "ohne relevante Treffer lass den Eintrag unverändert:\n" + (hits or "(keine Treffer)"))
         try:
-            res = call(task.format(today=TODAY, players=listing))
+            res = call(task.format(today=TODAY, players=listing) + extra)
         except Exception as e:  # Netz, Limit, Format
             print(f"::warning title=Recherche {name}::{type(e).__name__}: {e} – bei {','.join(part)} – alte Werte bleiben")
             if "HTTP 429" in str(e):  # Kontingent leer: weitere Versuche sind zwecklos
@@ -175,8 +216,8 @@ def run(name, task, fields, squad):
 
 
 def main():
-    if not (KEY or GEMINI_KEY):
-        print("::warning title=Recherche::GEMINI_API_KEY (oder ANTHROPIC_API_KEY) fehlt – nichts aktualisiert")
+    if not (KEY or GEMINI_KEY or GROQ_KEY):
+        print("::warning title=Recherche::GROQ_API_KEY, GEMINI_API_KEY oder ANTHROPIC_API_KEY fehlt – nichts aktualisiert")
         return 0
     squad = load_squad()
     run("rumors", RUMOR_TASK, RUMOR_FIELDS, squad)

@@ -28,6 +28,8 @@ Kontostände aller Manager, Transfers, Kader und Gebotsempfehlungen für den Tra
 | `MAIL_USERNAME` | optional: Gmail-Adresse für die Morgen-Mail am Spieltag |
 | `MAIL_APP_PASSWORD` | optional: App-Passwort dieses Gmail-Kontos (Google-Konto → Sicherheit → App-Passwörter) |
 | `MAIL_TO` | optional: Empfänger, falls nicht die Gmail-Adresse selbst |
+| `GROQ_API_KEY` | optional, kostenlos: Schlüssel von console.groq.com für die Auswertung der Gerüchte-Recherche |
+| `TAVILY_API_KEY` | optional, kostenlos: Schlüssel von tavily.com für bessere Suchtreffer (sonst Google-News-Feed) |
 | `GEMINI_API_KEY` | optional, kostenlos: Schlüssel von aistudio.google.com für die wöchentliche Aktualisierung von Gerüchten und Ausfällen |
 | `ANTHROPIC_API_KEY` | optional, Alternative zu Gemini: API-Schlüssel (console.anthropic.com) für die wöchentliche Aktualisierung von Gerüchten und Ausfällen (Workflow „Gerüchte und Ausfälle aktualisieren“) |
 | `ODDS_API_KEY` | optional: kostenloser Schlüssel von the-odds-api.com für die Tipico-Quoten im Reiter „Next Match“ |
