@@ -1,0 +1,28 @@
+name: TRMNL-Countdown auffrischen
+
+# TRMNL rendert eine Webhook-Anzeige nur neu, wenn sich ihre Daten ändern.
+# Dieser Lauf schickt alle 15 Minuten nur einen Zeitstempel (deep_merge), damit der
+# Countdown bis zum nächsten Spieltag aktuell bleibt. Keine Comunio-Abfrage, keine Daten.
+on:
+  schedule:
+    - cron: "7,22,37,52 * * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Zeitstempel an TRMNL senden
+        env:
+          TRMNL_WEBHOOK_URL: ${{ secrets.TRMNL_WEBHOOK_URL }}
+        run: |
+          if [ -z "$TRMNL_WEBHOOK_URL" ]; then echo "TRMNL_WEBHOOK_URL nicht gesetzt – übersprungen"; exit 0; fi
+          code=$(curl -s -o /dev/null -w "%{http_code}" -m 30 -X POST \
+            -H "Content-Type: application/json" -A "comunio-zentrale/1.0 (+github actions)" \
+            -d "{\"merge_variables\":{\"tick\":$(date +%s)},\"merge_strategy\":\"deep_merge\"}" \
+            "$TRMNL_WEBHOOK_URL")
+          echo "TRMNL: HTTP $code"
+          [ "$code" = "200" ] || [ "$code" = "429" ]

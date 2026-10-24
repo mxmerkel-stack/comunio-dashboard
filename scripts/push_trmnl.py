@@ -34,7 +34,50 @@ def short(text, n=48):
     return text if len(text) <= n else text[: n - 1] + "…"
 
 
-def build_payload(d):
+WEEKDAYS = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
+BERLIN = ZoneInfo("Europe/Berlin")
+
+
+def parse_ts(v):
+    """ISO-Zeitpunkt (auch +0200 ohne Doppelpunkt) als aware datetime, sonst None."""
+    if not v:
+        return None
+    v = str(v).replace("Z", "+00:00")
+    v = re.sub(r"([+-]\d{2})(\d{2})$", r"\1:\2", v)
+    try:
+        t = datetime.fromisoformat(v)
+    except ValueError:
+        return None
+    return t if t.tzinfo else t.replace(tzinfo=BERLIN)
+
+
+def next_kickoff(d, raw):
+    """Anstoß des ersten Spiels des nächsten noch nicht begonnenen Spieltags: (Spieltag, datetime)."""
+    nm = d.get("nextMatch") or {}
+    cal = sorted([c for c in (raw or {}).get("matchdayCalendar") or []
+                  if str(c.get("key", "")).isdigit() and not c.get("started") and not c.get("finished")],
+                 key=lambda c: int(c["key"]))
+    if cal:
+        md, ko = int(cal[0]["key"]), parse_ts(cal[0].get("date"))
+    elif not nm.get("started"):
+        md, ko = nm.get("md"), parse_ts(nm.get("date"))
+    else:
+        return None, None
+    # Genauer: frühester Anstoß aus den Paarungen, wenn sie zu diesem Spieltag gehören
+    if md is not None and str(nm.get("md")) == str(md):
+        kos = [parse_ts(f.get("kickoff")) for f in nm.get("fixtures") or []]
+        kos = [k for k in kos if k]
+        if kos:
+            ko = min(kos)
+    return md, ko
+
+
+def names(lst, n=3):
+    lst = [str(x) for x in (lst or [])]
+    return ", ".join(lst[:n]) + (f" +{len(lst) - n}" if len(lst) > n else "")
+
+
+def build_payload(d, raw=None):
     me = d["me"]
     standings = d["standings"]
     fc = {r["id"]: r for r in d.get("forecast") or []}
@@ -50,16 +93,16 @@ def build_payload(d):
 
     status = d.get("status") or {}
     checks = d.get("checks") or {}
+    issues = checks.get("issues") or []
+    started = bool(checks.get("started"))
     warn = []
-    if not checks.get("started"):  # nach Aufstellungsschluss wären Hinweise wertlos
-        for i in checks.get("issues") or []:
+    if not started:  # nach Aufstellungsschluss wären Hinweise wertlos
+        for i in issues:
             if i["level"] == "warn" or i["title"].startswith("Bessere Aufstellung"):
                 warn.append(short(i["title"]))
     warn = warn[:3]
 
     # Checkliste für den nächsten Spieltag: Konto, leere Positionen, beste Aufstellung
-    issues = checks.get("issues") or []
-    started = bool(checks.get("started"))
     check = []
     if not started and checks:
         balance = me["balance"]
@@ -73,23 +116,33 @@ def build_payload(d):
         best = checks.get("best")
         if best is None:
             check.append({"ok": False, "t": "Aufstellung nicht prüfbar"})
-        elif best.get("optimal"):
-            check.append({"ok": True, "t": "Beste Aufstellung gewählt"})
         else:
-            check.append({"ok": False, "t": "Bessere Aufstellung: +" + f"{best['gain']:.1f}".replace(".", ",") + " Pkt"})
+            fnow, fbest = best.get("formationNow") or "?", best.get("formation") or "?"
+            if best.get("optimal"):
+                check.append({"ok": True, "t": "Beste Aufstellung gewählt", "d": f"Formation {fnow}"})
+            else:
+                item = {"ok": False, "t": "Bessere Aufstellung: +" + f"{best['gain']:.1f}".replace(".", ",") + " Pkt",
+                        "d": f"Formation {fnow}" + (f" \u2192 {fbest}" if fbest != fnow else " (beste)")}
+                if best.get("in") or best.get("out"):
+                    item["s"] = f"rein: {names(best.get('in')) or '-'} \u00b7 raus: {names(best.get('out')) or '-'}"
+                check.append(item)
     next_md = status.get("nextMd")
     check_title = ("Spieltag " + str(next_md) + (" läuft" if started else ": bereit?")) if next_md else "Saison beendet"
 
-    generated = datetime.fromisoformat(d["generatedAt"].replace("Z", "+00:00")).astimezone(ZoneInfo("Europe/Berlin"))
+    ko_md, ko = next_kickoff(d, raw)
+    ko_b = ko.astimezone(BERLIN) if ko else None
+
+    generated = datetime.fromisoformat(d["generatedAt"].replace("Z", "+00:00")).astimezone(BERLIN)
     leader = clean_name(standings[0]["name"]) if standings else ""
     payload = {
         "stand": generated.strftime("%d.%m. %H:%M"),
-        "next": f"Spieltag {status['nextMd']}" if status.get("nextMd") else "Saison beendet",
+        "next": f"Spieltag {ko_md}" if ko_md else ("Saison beendet" if not next_md else f"Spieltag {next_md}"),
         "leader": leader,
         "me": {"rank": me["rank"], "pts": int(me["points"]), "gap": int(me["gap"]),
-               "balance": mio(me["balance"]) + " Mio",
                "top3": f"{(me_fc.get('p_top3') or 0) * 100:.1f}".replace(".", ",") + " %",
                "title": f"{(me_fc.get('p_title') or 0) * 100:.1f}".replace(".", ",") + " %"},
+        "ko": {"md": ko_md, "ts": int(ko.timestamp()) if ko else None,
+               "text": f"{WEEKDAYS[ko_b.weekday()]} {ko_b:%d.%m.}, {ko_b:%H:%M} Uhr" if ko_b else None},
         "rows": rows,
         "check": check,
         "check_title": check_title,
@@ -105,11 +158,15 @@ def main():
         print("TRMNL_WEBHOOK_URL nicht gesetzt – übersprungen")
         return 0
     d = json.loads((DATA / "dashboard.json").read_text())
-    payload = build_payload(d)
+    raw_p = DATA / "raw.json"
+    raw = json.loads(raw_p.read_text()) if raw_p.exists() else None
+    payload = build_payload(d, raw)
     body = json.dumps({"merge_variables": payload}, ensure_ascii=False, separators=(",", ":")).encode()
     if len(body) > MAX_BYTES:  # zuerst die Teamwert-Spalte weglassen
         for r in payload["rows"]:
             r.pop("tv", None)
+        for c in payload["check"]:
+            c.pop("s", None)
         body = json.dumps({"merge_variables": payload}, ensure_ascii=False, separators=(",", ":")).encode()
     print(f"TRMNL: {len(body)} Bytes, {len(payload['warn'])} Hinweis(e)")
     if os.environ.get("DRY_RUN"):
