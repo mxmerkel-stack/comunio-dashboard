@@ -1,72 +1,72 @@
 {
- "asOf": "23.10.2026",
+ "asOf": "24.10.2026",
  "_hinweis": "pWinter/pSummer = geschätzte Wahrscheinlichkeit eines Vereinswechsels im Winter 2027 bzw. Sommer 2027 (eigene Einschätzung aus den Quellen). Schlüssel = Comunio-Spieler-ID.",
  "players": {
   "32206": {
    "name": "Waldschmidt",
    "target": "Hertha BSC / Hannover 96",
-   "probability": 0.5,
-   "note": "Vertrag bis 30.06.2027, keine Stammplatzgarantie. Hannover 96 (Juni) und Hertha BSC (Bild, Aug. 2026) wurden genannt. Ein Wechsel in die 2. Liga würde ihn aus Comunio nehmen.",
-   "source": "ms-aktuell / Bild",
-   "url": "https://ms-aktuell.de/?p=151275",
-   "status": "Vertrag läuft aus",
-   "pWinter": 0.08,
-   "pSummer": 0.5
+   "probability": 0.1,
+   "note": "Am 02.07.2026 berichtete Bild, dass Luca Waldschmidt sämtliche Wechselgerüchte zurückweist und betont, bei 1. FC Köln bleiben zu wollen. Damit sinkt die Wahrscheinlichkeit eines Vereinswechsels im Winter und Sommer deutlich.",
+   "source": "Bild / 02 Jul 2026",
+   "url": "https://www.bild.de/sport/fussball/1-fc-koeln-spielmacher-will-in-koeln-bleiben-luca-waldschmidt-wischt-wechsel-geruechte-weg-6a44ecc0f027d323739639f2",
+   "status": "Kein Gerücht",
+   "pWinter": 0.05,
+   "pSummer": 0.1
   },
   "32654": {
    "name": "Nicolas",
-   "target": null,
-   "probability": 0.15,
-   "note": "Ausstiegsklausel (10–15 Mio. €) galt nur im Sommer 2026, Aston Villa soll Interesse gezeigt haben. Seitdem keine heißen Spuren.",
-   "source": "ligainsider (16.06.)",
-   "url": "https://ligainsider.de/moritz-nicolas_6295/gladbach-keeper-nicolas-und-die-ausstiegsklausel-414268/",
+   "target": "FC Bayern München",
+   "probability": 0.22,
+   "note": "17.04.2026: Schröder lobt Nicolas und spricht von möglichem Sommerinteresse, gibt jedoch keine konkrete Transferprognose. 06.07.2026: 90min berichtet, dass der Gladbach‑Keeper bei Top‑Klubs, u. a. Bayern München, heiß begehrt ist.",
+   "source": "90min (06.07.2026)",
+   "url": "https://www.90min.de/fussball-transfergeruchte-heute-06-07-2026",
    "status": "Gerücht",
-   "pWinter": 0.04,
-   "pSummer": 0.15
+   "pWinter": 0.08,
+   "pSummer": 0.22
   },
   "33236": {
    "name": "Musiala",
    "target": null,
-   "probability": 0.04,
-   "note": "Vertrag bis 2030; derzeit verletzt, keine Wechselgerüchte.",
-   "source": "eigene Recherche",
-   "url": null,
-   "status": "Keine Meldung",
+   "probability": 0.02,
+   "note": "27.07.2026 – Der FC Bayern klärt, dass Gerüchte über einen Wechsel von Jamal Musiala zu Galatasaray unbegründet sind; Galatasaray bestätigt ebenfalls keine Transferpläne.",
+   "source": "Sport.de 27 Jul 2026",
+   "url": "https://www.sport.de/news/ne17012446/fc-bayern--klub-stellt-klar-musiala-geruechte-entsprechen-nicht-der-wahrheit",
+   "status": "Altes Gerücht",
    "pWinter": 0.01,
-   "pSummer": 0.04
+   "pSummer": 0.02
   },
   "33837": {
    "name": "Lukeba",
-   "target": "FC Bayern",
-   "probability": 0.15,
-   "note": "Bayern beobachtet ihn als möglichen Upamecano-Ersatz (Sky, Dez. 2025). Ausstiegsklausel sinkt 2027 auf 65 Mio. €. Neuere Meldungen gibt es nicht. Ein Wechsel nach München würde ihn in der Bundesliga halten.",
-   "source": "Sky / 90min",
-   "url": "https://www.90min.de/leipzig-star-als-upamecano-ersatz-lukeba-will-zum-fc-bayern",
-   "status": "Altes Gerücht",
-   "pWinter": 0.03,
-   "pSummer": 0.15
+   "target": "Arsenal",
+   "probability": 0.25,
+   "note": "12.03.2026 – Transfermarkt berichtet, dass Arsenal Gespräche mit Castello Lukeba aufgenommen hat. Ein möglicher Wechsel im Sommer 2026 wird diskutiert, die Winterchance bleibt gering.",
+   "source": "Transfermarkt / 12 Mar 2026",
+   "url": "https://www.transfermarkt.de/arsenal-nimmt-gesprache-mit-lukeba-auf-zwei-der-vier-wertvollsten-innenverteidiger-im-kader/view/news/476542",
+   "status": "Gerücht",
+   "pWinter": 0.05,
+   "pSummer": 0.25
   },
   "33858": {
    "name": "Deman",
    "target": null,
-   "probability": 0.08,
-   "note": "Werder plant laut Clemens Fritz fest mit ihm, Wechsel kein Thema mehr.",
-   "source": "ligainsider / DeichStube",
-   "url": "https://ligainsider.de/olivier-deman_36310/werder-plant-naechste-saison-fest-mit-deman-413887/",
-   "status": "Keine Meldung",
+   "probability": 0.02,
+   "note": "27.01.2026: Transfermarkt berichtet, dass ein Angebot für Olivier Deman von Werder Bremen abgelehnt wurde, sodass ein Wechsel aktuell unwahrscheinlich ist.",
+   "source": "transfermarkt.de 27. Jan 2026",
+   "url": "https://www.transfermarkt.de/werder-verhandelt-mit-nec-nijmegen-wegen-hansen-aaroen-deman-angebot-abgelehnt/view/news/474345",
+   "status": "Kein Gerücht",
    "pWinter": 0.02,
-   "pSummer": 0.08
+   "pSummer": 0.02
   },
   "34014": {
    "name": "Olise",
-   "target": "Real Madrid / Liverpool",
-   "probability": 0.15,
-   "note": "Real Madrid gilt laut Bild-Reporter Falk (beIN, 17.10.) als Wunschziel, Liverpool und Arsenal werden genannt. Vertragsgespräche stocken, Olise fordert eine Ausstiegsklausel (Sport Bild, 05.10.). Bayern sieht ihn als unverkäuflich, Vertrag bis 2029.",
-   "source": "beIN Sports 17.10. / Sport Bild 05.10.",
-   "url": "https://www.beinsports.com/en-us/soccer/bundesliga/articles/michael-olise-reportedly-favors-real-madrid-as-his-next-destination-2026-10-17",
+   "target": "Real Madrid",
+   "probability": 0.14,
+   "note": "Mehrere Sommergerüchte im Juli 2026 deuten auf ein mögliches Interesse von Real Madrid an Michael Olise hin (joyn, 18.07.2026). Der FC Bayern betont jedoch, dass der Spieler nicht verkäuflich sei (sport1, 07.06.2026). Bisher gibt es keine konkreten Wintergerüchte.",
+   "source": "joyn 18.07.2026; sport1 07.06.2026",
+   "url": "https://ran.joyn.de/sports/fussball/bundesliga/fc-bayern-muenchen-transfers-von-michael-olise-und-harry-kane-so-ist-der-stand-bei-den-superstars-wirklich-156714",
    "status": "Gerücht",
-   "pWinter": 0.03,
-   "pSummer": 0.15
+   "pWinter": 0.02,
+   "pSummer": 0.14
   },
   "34236": {
    "name": "Massengo",
@@ -92,14 +92,14 @@
   },
   "34294": {
    "name": "Daghim",
-   "target": null,
-   "probability": 0.08,
-   "note": "Erst im Sommer für ca. 14,5 Mio. € aus Salzburg gekommen. Keine aktuellen Wechselgerüchte gefunden (kicker, transfermarkt.de, Bild, ligainsider, Vereinsseite).",
-   "source": "eigene Recherche",
-   "url": null,
-   "status": "Keine Meldung",
-   "pWinter": 0.02,
-   "pSummer": 0.08
+   "target": "TSG Hoffenheim",
+   "probability": 0.0,
+   "note": "02.08.2026: TSG Hoffenheim verpflichtet Adam Daghim von RB Salzburg (Sky Sport). 30.07.2026: LAOLA1 berichtet, dass Salzburg und Hoffenheim sich im Transferpoker geeinigt haben.",
+   "source": "Sky Sport, 02 Aug 2026; LAOLA1, 30 Jul 2026",
+   "url": "https://sport.sky.de/fussball/artikel/tsg-hoffenheim-verpflichtet-adam-daghim-von-rb-salzburg/13568993/34089",
+   "status": "Konkret",
+   "pWinter": 0.0,
+   "pSummer": 0.0
   },
   "34405": {
    "name": "Zobel",
@@ -114,14 +114,14 @@
   },
   "34438": {
    "name": "Brackelmann",
-   "target": null,
-   "probability": 0.08,
-   "note": "Neuzugang des FCA. Keine aktuellen Wechselgerüchte gefunden (kicker, transfermarkt.de, Bild, ligainsider, Vereinsseite).",
-   "source": "eigene Recherche",
-   "url": null,
-   "status": "Keine Meldung",
-   "pWinter": 0.02,
-   "pSummer": 0.08
+   "target": "FC Augsburg",
+   "probability": 0.35,
+   "note": "Am 28.05.2026 berichtete Transfermarkt, dass Brackelmann kurz vor einem Wechsel zum FC Augsburg steht. Der Innenverteidiger soll nach Vertragsende ablösen und wird für die kommende Saison als Neuzugang gehandelt. Frühere Gerüchte aus dem Dezember 2025 über ein Interesse des 1. FC Köln bestehen weiterhin, jedoch ist Augsburg aktuell das favorisierte Ziel.",
+   "source": "Transfermarkt, 28.05.2026",
+   "url": "https://www.transfermarkt.de/brackelmann-vor-wechsel-nach-augsburg-schlotterbeck-plant-offenbar-abschied/view/news/480173",
+   "status": "Gerücht",
+   "pWinter": 0.2,
+   "pSummer": 0.35
   },
   "34527": {
    "name": "Gagzow",
