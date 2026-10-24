@@ -1,20 +1,34 @@
 {
- "asOf": "24.10.2026",
+ "asOf": "23.10.2026",
  "_hinweis": "Rückkehrprognosen aus öffentlichen Quellen, Schlüssel = Comunio-Spieler-ID.",
  "players": {
+  "33236": {
+   "name": "Musiala",
+   "return": "ca. 28.–31.10.",
+   "note": "Muskelfaserriss rechter Oberschenkel (24.09.), Aufbautraining. Fehlt in Freiburg (25.10.), Comeback im Pokal gegen Magdeburg (28.10.) oder gegen Dortmund (31.10.) möglich.",
+   "source": "ms-aktuell / Sky",
+   "url": "https://ms-aktuell.de/welt/musiala-arsenal-19-10-2026/"
+  },
+  "34285": {
+   "name": "Ben Seghir",
+   "return": "ca. 08.11.",
+   "note": "Erneute Muskelverletzung (gemeldet 11./20.10.), 2–3 Wochen Pause, Aufbautraining.",
+   "source": "RotoWire / ligainsider",
+   "url": "https://www.rotowire.com/soccer/headlines/eliesse-ben-seghir-injury-out-two-to-three-weeks-523969"
+  },
   "34393": {
    "name": "Seifert",
    "return": "ca. Anfang November",
-   "note": "Syndesmoseverletzung seit Anfang Juni, befindet sich auf dem Weg der Besserung und macht Sprint‑ und Abstopp‑Übungen; voraussichtliche Rückkehr Anfang November.",
-   "source": "Absolutfussball / 20.10.2026",
-   "url": "https://www.absolutfussball.com/deutschland/sv-elversberg/sv-elversberg-personal-sorgen-francis-onyeka-cole-campbell-fehlen-weiter-ausfaelle-verletzungen-diagnose-94549783.html"
+   "note": "Syndesmoseverletzung (Juli), rund drei Monate Pause, inzwischen Aufbautraining; fehlt noch am 7. Spieltag.",
+   "source": "RotoWire / bundesliga.com",
+   "url": "https://www.rotowire.com/soccer/headlines/luis-seifert-injury-out-around-three-months-523268"
   },
   "34074": {
    "name": "Malanga",
-   "return": "unbekannt",
-   "note": "Bauchmuskelverletzung seit Mitte September, keine offizielle Prognose zum Rückkehrdatum.",
-   "source": "LigaInsider (26 Sep 2026)",
-   "url": "https://www.ligainsider.de/ligainsider_1381/ligainsider-visite-im-lazarett-der-bundesliga-klubs-414463"
+   "return": "unklar, frühestens November",
+   "note": "Bauchmuskelverletzung, fehlt seit gut fünf Wochen; keine offizielle Prognose.",
+   "source": "ligainsider",
+   "url": "https://www.ligainsider.de/bundesliga/verletzte-und-gesperrte-spieler/"
   },
   "32190": {
    "name": "Karaman",
@@ -26,9 +40,9 @@
   "34447": {
    "name": "Lidberg",
    "return": "offen – evtl. 8. Spieltag",
-   "note": "Muskuläre Beschwerden am Oberschenkel, seit dem 22.10.2026, aktuell ausfallend nach Auswechslung im 51. Minute gegen Hoffenheim.",
-   "source": "ms-aktuell.de (22.10.2026)",
-   "url": "https://ms-aktuell.de/welt/gladbach-ausfaelle-lidberg-22-10-2026"
+   "note": "Muskuläre Probleme nach Auswechslung, fällt am 7. Spieltag aus.",
+   "source": "bundesliga.com (23.10.)",
+   "url": "https://www.bundesliga.com/de/bundesliga/news/voraussichtliche-aufstellungen-7-spieltag-ausfalle-verletzungen-sperren-39669"
   },
   "34465": {
    "name": "Pimpong",
@@ -37,26 +51,33 @@
    "source": "bundesliga.com (23.10.)",
    "url": "https://www.bundesliga.com/de/bundesliga/news/voraussichtliche-aufstellungen-7-spieltag-ausfalle-verletzungen-sperren-39669"
   },
+  "34187": {
+   "name": "Diks",
+   "return": "offen",
+   "note": "Aus privaten Gründen freigestellt, fehlt am 7. Spieltag; kein Termin bekannt.",
+   "source": "bundesliga.com (23.10.)",
+   "url": "https://www.bundesliga.com/de/bundesliga/news/voraussichtliche-aufstellungen-7-spieltag-ausfalle-verletzungen-sperren-39669"
+  },
   "33603": {
    "name": "Y. Engelhardt",
-   "return": "unbekannt",
-   "note": "Langzeit-Ausfall wegen Knieverletzung mit Schwellung, mögliche Operation; Verletzung seit August 2026.",
-   "source": "rbb24 (14. Aug 2026)",
-   "url": "https://www.rbb24.de/sport/beitrag/2026/08/fussball-2-liga-fc-energie-cottbus-arminia-bielefeld-erik-engelhardt-verletzung.html"
+   "return": "einsatzbereit",
+   "note": "Trotz Hüftbeschwerden in der voraussichtlichen Startelf für den 7. Spieltag.",
+   "source": "bundesliga.com (23.10.)",
+   "url": "https://www.bundesliga.com/de/bundesliga/news/voraussichtliche-aufstellungen-7-spieltag-ausfalle-verletzungen-sperren-39669"
   },
   "34233": {
    "name": "Capaldo",
-   "return": "unbekannt",
-   "note": "Capaldo musste am 01.08.2026 verletzungsbedingt ausgewechselt werden; weitere Details zur Art der Verletzung fehlen.",
-   "source": "fussballdaten.de (01.08.2026)",
-   "url": "https://www.fussballdaten.de/news/live-hsv-gegen-fc-everton"
+   "return": "einsatzbereit",
+   "note": "Trotz muskulärer Probleme in der voraussichtlichen Startelf für den 7. Spieltag.",
+   "source": "bundesliga.com (23.10.)",
+   "url": "https://www.bundesliga.com/de/bundesliga/news/voraussichtliche-aufstellungen-7-spieltag-ausfalle-verletzungen-sperren-39669"
   },
   "34215": {
    "name": "Darvich",
-   "return": "ca. 01.11.",
-   "note": "Muskelverletzung, seit dem Spiel gegen Augsburg am 20.10.2026 muskulär angeschlagen, noch nicht einsatzbereit.",
-   "source": "sportbuzzer.de (24.10.2026)",
-   "url": "https://www.sportbuzzer.de/fussball/rb-leipzig-gegen-elversberg-heute-live-wer-zeigt-das-bundesliga-spiel-im-tv-und-stream-ON5QEP2Z6VD3BCPGDMOQKMZKZQ.html"
+   "return": "einsatzbereit",
+   "note": "Trotz muskulärer Probleme in der voraussichtlichen Startelf für den 7. Spieltag.",
+   "source": "bundesliga.com (23.10.)",
+   "url": "https://www.bundesliga.com/de/bundesliga/news/voraussichtliche-aufstellungen-7-spieltag-ausfalle-verletzungen-sperren-39669"
   },
   "34311": {
    "name": "Culbreath",
@@ -67,17 +88,24 @@
   },
   "34427": {
    "name": "Onyeka",
-   "return": "unbekannt",
-   "note": "Bänderverletzung am Fuß seit der Länderspielpause, weiterhin im Labor, voraussichtliche Rückkehr noch nicht festgelegt.",
-   "source": "absolutfussball.com (20.10.2026)",
-   "url": "https://www.absolutfussball.com/deutschland/sv-elversberg/sv-elversberg-personal-sorgen-francis-onyeka-cole-campbell-fehlen-weiter-ausfaelle-verletzungen-diagnose-94549783.html"
+   "return": "vermutlich einsatzbereit",
+   "note": "Aufbautraining nach Bänderverletzung am Fuß; in der Elversberger Ausfallliste für den 7. Spieltag nicht mehr geführt.",
+   "source": "bundesliga.com (23.10.)",
+   "url": "https://www.bundesliga.com/de/bundesliga/news/voraussichtliche-aufstellungen-7-spieltag-ausfalle-verletzungen-sperren-39669"
   },
   "34395": {
    "name": "Gyamerah",
    "return": "",
-   "note": "Muskuläre Probleme im Adduktorenbereich seit der Länderspielpause Anfang Oktober, aktuell ausfällig.",
-   "source": "absolutfussball.com, 17.10.2026",
-   "url": "https://www.absolutfussball.com/deutschland/sv-elversberg/sv-elversberg-verletzte-jan-gyamerah-ausfall-schlag-sve-francis-onyeka-verletzung-wann-comeback-94538889.html"
+   "note": "Probleme mit dem Oberschenkel",
+   "source": "",
+   "url": ""
+  },
+  "34438": {
+   "name": "Brackelmann",
+   "return": "",
+   "note": "Kopfverletzung",
+   "source": "",
+   "url": ""
   },
   "34486": {
    "name": "Nadir",

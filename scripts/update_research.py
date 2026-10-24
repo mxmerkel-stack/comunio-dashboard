@@ -138,7 +138,8 @@ def search(query):
                     break
     except Exception as e:
         print(f"::warning title=Suche::{type(e).__name__}: {e}")
-    return "\n".join(f"- [{d}] {t} | {c} | {u}" for t, u, c, d in items if t)
+    items = [x for x in items if x[0]]
+    return "\n".join(f"- [{d}] {t} | {c} | {u}" for t, u, c, d in items), {x[1] for x in items if x[1]}
 
 
 def call(prompt):
@@ -227,9 +228,11 @@ def run(name, task, fields, squad):
         extra = ""
         if GROQ_KEY:
             q = f"{players[part[0]].get('name')} Bundesliga " + ("Transfer Wechsel Gerücht" if name == "rumors" else "Verletzung Rückkehr Ausfall")
-            hits = search(q)
+            hits, urls = search(q)
+            if not hits:
+                continue  # ohne Suchtreffer keine Aussage
             extra = ("\n\nSuchtreffer (Datum | Titel | Auszug | URL). Nutze ausschließlich diese Treffer; url nur aus dieser Liste; "
-                     "ohne relevante Treffer lass den Eintrag unverändert:\n" + (hits or "(keine Treffer)"))
+                     "Meldungen älter als 60 Tage zählen nicht als aktuelles Gerücht. Ohne relevante Treffer gib {} zurück:\n" + hits)
         try:
             res = call(task.format(today=TODAY, players=listing) + extra)
         except Exception as e:  # Netz, Limit, Format
@@ -241,9 +244,11 @@ def run(name, task, fields, squad):
         ok += 1
         for pid in part:
             new = res.get(pid)
-            if not isinstance(new, dict):
+            if not isinstance(new, dict) or not new:
                 continue
-            if name == "injuries" and new.get("fit"):
+            if GROQ_KEY and new.get("url") not in urls:
+                continue  # Belegpflicht: ohne URL aus den Suchtreffern wird nichts übernommen
+            if name == "injuries" and new.get("fit") and not GROQ_KEY:
                 del players[pid]
                 changed += 1
                 continue
