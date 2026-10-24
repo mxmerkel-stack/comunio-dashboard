@@ -33,6 +33,7 @@ jobs:
       - name: Recherche (Websuche über die Claude-API)
         env:
           DATA_DIR: data
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: python scripts/update_research.py
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Aktualisiert research/rumors.json und research/injuries.json per Claude-API mit Websuche.
 
-Benötigt das Secret ANTHROPIC_API_KEY. Die Spielerliste ist immer der aktuelle Kader aus data/raw.json. Fehlt es oder schlägt ein Aufruf fehl, bleiben die
+Benötigt das Secret GEMINI_API_KEY (kostenlos, hat Vorrang) oder ANTHROPIC_API_KEY. Die Spielerliste ist immer der aktuelle Kader aus data/raw.json. Fehlt es oder schlägt ein Aufruf fehl, bleiben die
 bisherigen Einträge unverändert (Exit-Code 0, Warnung als Annotation).
 """
 import datetime as dt
@@ -9,12 +9,16 @@ import json
 import os
 import re
 import sys
+import time
+import urllib.error
 import urllib.request
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 MODEL = os.environ.get("RESEARCH_MODEL", "claude-sonnet-5-5")
 KEY = os.environ.get("ANTHROPIC_API_KEY", "")
+GEMINI_KEY = os.environ.get("GEMINI_API_KEY", "")
+MODEL_GEMINI = os.environ.get("RESEARCH_MODEL_GEMINI", "gemini-2.5-flash")
 BATCH = 5
 TODAY = dt.datetime.now(dt.timezone(dt.timedelta(hours=2))).strftime("%d.%m.%Y")
 
@@ -40,16 +44,35 @@ Spieler (ID: Name, bisheriger Eintrag):
 OUT = 'Antworte ausschließlich mit einem JSON-Objekt {"<ID>": {...Felder...}, ...} ohne Erklärtext und ohne Markdown-Zaun.'
 
 
+def _post(url, body, headers):
+    req = urllib.request.Request(url, data=json.dumps(body).encode(), headers={"content-type": "application/json", **headers})
+    for attempt in range(4):
+        try:
+            with urllib.request.urlopen(req, timeout=240) as r:
+                return json.loads(r.read().decode())
+        except urllib.error.HTTPError as e:
+            if e.code in (429, 500, 503) and attempt < 3:
+                time.sleep(30 * (attempt + 1))  # Rate-Limit des Gratis-Tarifs
+                continue
+            raise
+
+
 def call(prompt):
-    body = {"model": MODEL, "max_tokens": 6000,
-            "tools": [{"type": "web_search_20250305", "name": "web_search", "max_uses": 12}],
-            "messages": [{"role": "user", "content": prompt + "\n\n" + OUT}]}
-    req = urllib.request.Request("https://api.anthropic.com/v1/messages", data=json.dumps(body).encode(),
-                                 headers={"x-api-key": KEY, "anthropic-version": "2023-06-01",
-                                          "content-type": "application/json"})
-    with urllib.request.urlopen(req, timeout=240) as r:
-        data = json.loads(r.read().decode())
-    text = "".join(b.get("text", "") for b in data.get("content", []) if b.get("type") == "text")
+    prompt = prompt + "\n\n" + OUT
+    if GEMINI_KEY:  # kostenloser Tarif, Websuche über Google Search Grounding
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL_GEMINI}:generateContent"
+        data = _post(url, {"contents": [{"parts": [{"text": prompt}]}], "tools": [{"google_search": {}}]},
+                     {"x-goog-api-key": GEMINI_KEY})
+        cand = (data.get("candidates") or [{}])[0]
+        text = "".join(p.get("text", "") for p in (cand.get("content") or {}).get("parts", []))
+        time.sleep(8)  # Gratis-Tarif: Anfragen pro Minute begrenzt
+    else:
+        body = {"model": MODEL, "max_tokens": 6000,
+                "tools": [{"type": "web_search_20250305", "name": "web_search", "max_uses": 12}],
+                "messages": [{"role": "user", "content": prompt}]}
+        data = _post("https://api.anthropic.com/v1/messages", body,
+                     {"x-api-key": KEY, "anthropic-version": "2023-06-01"})
+        text = "".join(b.get("text", "") for b in data.get("content", []) if b.get("type") == "text")
     m = re.search(r"\{.*\}", text, re.S)
     if not m:
         raise ValueError("keine JSON-Antwort")
@@ -132,8 +155,8 @@ def run(name, task, fields, squad):
 
 
 def main():
-    if not KEY:
-        print("::warning title=Recherche::ANTHROPIC_API_KEY fehlt – nichts aktualisiert")
+    if not (KEY or GEMINI_KEY):
+        print("::warning title=Recherche::GEMINI_API_KEY (oder ANTHROPIC_API_KEY) fehlt – nichts aktualisiert")
         return 0
     squad = load_squad()
     run("rumors", RUMOR_TASK, RUMOR_FIELDS, squad)
