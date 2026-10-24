@@ -18,11 +18,11 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 MODEL = os.environ.get("RESEARCH_MODEL", "claude-sonnet-5-5")
-KEY = os.environ.get("ANTHROPIC_API_KEY", "")
-GEMINI_KEY = os.environ.get("GEMINI_API_KEY", "")
-GROQ_KEY = os.environ.get("GROQ_API_KEY", "")
+KEY = os.environ.get("ANTHROPIC_API_KEY", "").strip()
+GEMINI_KEY = os.environ.get("GEMINI_API_KEY", "").strip()
+GROQ_KEY = os.environ.get("GROQ_API_KEY", "").strip()
 MODEL_GROQ = os.environ.get("RESEARCH_MODEL_GROQ", "llama-3.3-70b-versatile")
-TAVILY_KEY = os.environ.get("TAVILY_API_KEY", "")
+TAVILY_KEY = os.environ.get("TAVILY_API_KEY", "").strip()
 MODEL_GEMINI = os.environ.get("RESEARCH_MODEL_GEMINI", "gemini-3.8-flash")
 BATCH = 5
 TODAY = dt.datetime.now(dt.timezone(dt.timedelta(hours=2))).strftime("%d.%m.%Y")
@@ -187,8 +187,8 @@ def run(name, task, fields, squad):
             res = call(task.format(today=TODAY, players=listing) + extra)
         except Exception as e:  # Netz, Limit, Format
             print(f"::warning title=Recherche {name}::{type(e).__name__}: {e} – bei {','.join(part)} – alte Werte bleiben")
-            if "HTTP 429" in str(e):  # Kontingent leer: weitere Versuche sind zwecklos
-                print("::error title=Recherche::Kontingent des API-Schlüssels erschöpft oder für Websuche nicht freigeschaltet – Abbruch")
+            if "HTTP 429" in str(e) or "HTTP 401" in str(e) or "HTTP 403" in str(e):  # Kontingent leer: weitere Versuche sind zwecklos
+                print("::error title=Recherche::API-Schlüssel ungültig oder Kontingent erschöpft – Abbruch (Secret prüfen)")
                 break
             continue
         ok += 1
