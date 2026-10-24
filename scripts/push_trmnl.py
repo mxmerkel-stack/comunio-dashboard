@@ -63,12 +63,24 @@ def next_kickoff(d, raw):
         md, ko = nm.get("md"), parse_ts(nm.get("date"))
     else:
         return None, None
-    # Genauer: frühester Anstoß aus den Paarungen, wenn sie zu diesem Spieltag gehören
+    # Genauer: frühester Anstoß aus den Paarungen. Der Comunio-Kalender liefert für spätere
+    # Spieltage nur einen Platzhalter, deshalb sonst den Spielplan bei OpenLigaDB abfragen.
+    fixtures = None
     if md is not None and str(nm.get("md")) == str(md):
-        kos = [parse_ts(f.get("kickoff")) for f in nm.get("fixtures") or []]
-        kos = [k for k in kos if k]
-        if kos:
-            ko = min(kos)
+        fixtures = nm.get("fixtures")
+    elif md is not None and cal:
+        season = str(cal[0].get("season") or "")
+        year = 2000 + int(season.split("/")[0]) if re.match(r"^\d{2}/\d{2}$", season) else (ko or datetime.now()).year
+        try:
+            sys.path.insert(0, str(Path(__file__).resolve().parent))
+            import next_match as NM
+            fixtures = NM.fetch_fixtures(year, md)
+        except Exception as e:  # Netz/Import: dann bleibt der Kalenderwert
+            print(f"TRMNL: Spielplan nicht abrufbar ({type(e).__name__})")
+    kos = [parse_ts(f.get("kickoff")) for f in fixtures or []]
+    kos = [k for k in kos if k]
+    if kos:
+        ko = min(kos)
     return md, ko
 
 
