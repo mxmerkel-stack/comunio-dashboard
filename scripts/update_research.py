@@ -74,24 +74,49 @@ def _get_json(url, headers):
         return json.loads(r.read().decode())
 
 
-def groq_model():
-    """Verfügbares Chat-Modell bei Groq wählen (Modellnamen ändern sich dort regelmäßig)."""
-    global MODEL_GROQ
+GROQ_CANDIDATES = ["openai/gpt-oss-120b", "openai/gpt-oss-20b", "moonshotai/kimi-k2-instruct",
+                   "meta-llama/llama-4-maverick-17b-128e-instruct", "meta-llama/llama-4-scout-17b-16e-instruct",
+                   "qwen/qwen3-32b", "deepseek-r1-distill-llama-70b", "llama-3.3-70b-versatile", "llama-3.1-8b-instant"]
+
+
+def groq_models():
+    """Kandidatenliste: erst die bei Groq gemeldeten Modelle (falls der Schlüssel sie lesen darf), sonst bekannte Namen."""
     if MODEL_GROQ:
-        return MODEL_GROQ
-    skip = ("whisper", "tts", "guard", "embed", "vision", "ocr", "compound", "prompt")
-    prefer = ("versatile", "70b", "120b", "gpt-oss", "qwen", "llama-3.3", "maverick", "instant")
+        return [MODEL_GROQ]
+    skip = ("whisper", "tts", "guard", "embed", "vision", "ocr", "compound", "prompt", "safety")
+    prefer = ("gpt-oss-120b", "versatile", "120b", "70b", "kimi", "maverick", "qwen", "scout", "instant")
     try:
         ids = [m.get("id", "") for m in _get_json("https://api.groq.com/openai/v1/models",
                                                   {"Authorization": f"Bearer {GROQ_KEY}"}).get("data", [])]
+        live = [i for i in ids if i and not any(w in i.lower() for w in skip)]
+        live.sort(key=lambda i: min([prefer.index(w) for w in prefer if w in i.lower()] or [99]))
+        if live:
+            return live
     except Exception as e:
-        print(f"::warning title=Groq-Modelle::{type(e).__name__}: {e}")
-        ids = []
-    cand = [i for i in ids if i and not any(w in i.lower() for w in skip)]
-    cand.sort(key=lambda i: min([prefer.index(w) for w in prefer if w in i.lower()] or [99]))
-    MODEL_GROQ = cand[0] if cand else "llama-3.1-8b-instant"
-    print(f"Groq-Modell: {MODEL_GROQ}")
-    return MODEL_GROQ
+        print(f"::warning title=Groq-Modelle::{type(e).__name__}: {e} – Modellname wird ausprobiert")
+    return list(GROQ_CANDIDATES)
+
+
+def groq_chat(prompt):
+    """Chat-Anfrage; nicht (mehr) verfügbare Modellnamen werden übersprungen."""
+    global MODEL_GROQ
+    last = None
+    for m in groq_models():
+        try:
+            data = _post("https://api.groq.com/openai/v1/chat/completions",
+                         {"model": m, "temperature": 0.1, "response_format": {"type": "json_object"},
+                          "messages": [{"role": "user", "content": prompt}]},
+                         {"Authorization": f"Bearer {GROQ_KEY}", "User-Agent": "comunio-dashboard"})
+        except RuntimeError as e:
+            last = e
+            if "does not exist" in str(e) or "decommissioned" in str(e):
+                continue  # nächster Modellname
+            raise
+        if not MODEL_GROQ:
+            MODEL_GROQ = m
+            print(f"Groq-Modell: {m}")
+        return data["choices"][0]["message"]["content"]
+    raise last or RuntimeError("kein nutzbares Groq-Modell gefunden")
 
 
 def search(query):
@@ -119,11 +144,7 @@ def search(query):
 def call(prompt):
     prompt = prompt + "\n\n" + OUT
     if GROQ_KEY:  # kostenloser Tarif, Suchtreffer stehen im Prompt
-        data = _post("https://api.groq.com/openai/v1/chat/completions",
-                     {"model": groq_model(), "temperature": 0.1, "response_format": {"type": "json_object"},
-                      "messages": [{"role": "user", "content": prompt}]},
-                     {"Authorization": f"Bearer {GROQ_KEY}", "User-Agent": "comunio-dashboard"})
-        text = data["choices"][0]["message"]["content"]
+        text = groq_chat(prompt)
         time.sleep(6)  # Gratis-Tarif: Anfragen und Tokens pro Minute begrenzt
     elif GEMINI_KEY:  # kostenloser Tarif, Websuche über Google Search Grounding
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL_GEMINI}:generateContent"
