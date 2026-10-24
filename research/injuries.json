@@ -1,5 +1,5 @@
 {
- "asOf": "24.10.2026",
+ "asOf": "23.10.2026",
  "_hinweis": "Rückkehrprognosen aus öffentlichen Quellen, Schlüssel = Comunio-Spieler-ID.",
  "players": {
   "33236": {
@@ -92,27 +92,6 @@
    "note": "Aufbautraining nach Bänderverletzung am Fuß; in der Elversberger Ausfallliste für den 7. Spieltag nicht mehr geführt.",
    "source": "bundesliga.com (23.10.)",
    "url": "https://www.bundesliga.com/de/bundesliga/news/voraussichtliche-aufstellungen-7-spieltag-ausfalle-verletzungen-sperren-39669"
-  },
-  "30002": {
-   "name": "Wirtz",
-   "return": "",
-   "note": "",
-   "source": "",
-   "url": ""
-  },
-  "30007": {
-   "name": "Schlotterbeck",
-   "return": "",
-   "note": "",
-   "source": "",
-   "url": ""
-  },
-  "569541508": {
-   "name": "Tah",
-   "return": "",
-   "note": "Reha nach Muskelverletzung",
-   "source": "",
-   "url": ""
   }
  }
 }
