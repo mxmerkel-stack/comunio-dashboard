@@ -56,6 +56,29 @@ def build_payload(d):
                 warn.append(short(i["title"]))
     warn = warn[:3]
 
+    # Checkliste für den nächsten Spieltag: Konto, leere Positionen, beste Aufstellung
+    issues = checks.get("issues") or []
+    started = bool(checks.get("started"))
+    check = []
+    if not started and checks:
+        balance = me["balance"]
+        check.append({"ok": balance >= 0,
+                      "t": "Konto nicht im Minus" if balance >= 0 else f"Konto im Minus: {mio(balance)} Mio"})
+        empty = next((i for i in issues if "unbesetzte Position" in i["title"] or i["title"].startswith("Keine Aufstellung")), None)
+        m = re.match(r"(\d+) unbesetzte", empty["title"]) if empty else None
+        check.append({"ok": empty is None,
+                      "t": "Keine leere Position" if empty is None
+                      else (f"{m.group(1)} Position(en) leer" if m else "Aufstellung fehlt")})
+        best = checks.get("best")
+        if best is None:
+            check.append({"ok": False, "t": "Aufstellung nicht prüfbar"})
+        elif best.get("optimal"):
+            check.append({"ok": True, "t": "Beste Aufstellung gewählt"})
+        else:
+            check.append({"ok": False, "t": "Bessere Aufstellung: +" + f"{best['gain']:.1f}".replace(".", ",") + " Pkt"})
+    next_md = status.get("nextMd")
+    check_title = ("Spieltag " + str(next_md) + (" läuft" if started else ": bereit?")) if next_md else "Saison beendet"
+
     generated = datetime.fromisoformat(d["generatedAt"].replace("Z", "+00:00")).astimezone(ZoneInfo("Europe/Berlin"))
     leader = clean_name(standings[0]["name"]) if standings else ""
     payload = {
@@ -67,6 +90,8 @@ def build_payload(d):
                "top3": f"{(me_fc.get('p_top3') or 0) * 100:.1f}".replace(".", ",") + " %",
                "title": f"{(me_fc.get('p_title') or 0) * 100:.1f}".replace(".", ",") + " %"},
         "rows": rows,
+        "check": check,
+        "check_title": check_title,
         "warn": warn,
         "warn_short": "Punkte in Gefahr" if any(w for w in warn if not w.startswith("Bessere")) else "Aufstellung prüfen",
     }
