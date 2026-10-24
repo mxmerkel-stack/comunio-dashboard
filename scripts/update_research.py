@@ -51,14 +51,14 @@ def _post(url, body, headers):
             with urllib.request.urlopen(req, timeout=240) as r:
                 return json.loads(r.read().decode())
         except urllib.error.HTTPError as e:
-            if e.code not in (429, 500, 503) or attempt == 3:
+            if e.code not in (429, 500, 503) or attempt >= 1:
                 try:
-                    msg = json.loads(e.read().decode()).get("error", {}).get("message", "")[:200]
+                    msg = json.loads(e.read().decode()).get("error", {}).get("message", "")[:700]
                 except Exception:
                     msg = ""
                 raise RuntimeError(f"HTTP {e.code} {msg}") from None
             if True:
-                time.sleep(30 * (attempt + 1))  # Rate-Limit des Gratis-Tarifs
+                time.sleep(20)  # Rate-Limit des Gratis-Tarifs
                 continue
             raise
 
@@ -137,6 +137,7 @@ def run(name, task, fields, squad):
     doc["players"] = players
     ids = list(players)
     changed = 0
+    ok = 0
     for i in range(0, len(ids), BATCH):
         part = ids[i:i + BATCH]
         listing = "\n".join(f"{pid}: {players[pid].get('name')} – {json.dumps({k: players[pid].get(k) for k in fields}, ensure_ascii=False)}"
@@ -145,7 +146,11 @@ def run(name, task, fields, squad):
             res = call(task.format(today=TODAY, players=listing))
         except Exception as e:  # Netz, Limit, Format
             print(f"::warning title=Recherche {name}::{type(e).__name__}: {e} – bei {','.join(part)} – alte Werte bleiben")
+            if "HTTP 429" in str(e):  # Kontingent leer: weitere Versuche sind zwecklos
+                print("::error title=Recherche::Kontingent des API-Schlüssels erschöpft oder für Websuche nicht freigeschaltet – Abbruch")
+                break
             continue
+        ok += 1
         for pid in part:
             new = res.get(pid)
             if not isinstance(new, dict):
@@ -163,7 +168,8 @@ def run(name, task, fields, squad):
             if upd and any(players[pid].get(k) != v for k, v in upd.items()):
                 players[pid].update(upd)
                 changed += 1
-    doc["asOf"] = TODAY
+    if ok:
+        doc["asOf"] = TODAY
     path.write_text(json.dumps(doc, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
     print(f"{name}: {changed} Einträge geändert")
 
