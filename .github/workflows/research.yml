@@ -30,7 +30,7 @@ jobs:
           COMUNIO_PASS: ${{ secrets.COMUNIO_PASS }}
         run: python scripts/fetch_comunio.py
 
-      - name: Recherche (Websuche über die Claude-API)
+      - name: Recherche (Websuche über Gemini oder Claude)
         env:
           DATA_DIR: data
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}

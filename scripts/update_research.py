@@ -51,7 +51,13 @@ def _post(url, body, headers):
             with urllib.request.urlopen(req, timeout=240) as r:
                 return json.loads(r.read().decode())
         except urllib.error.HTTPError as e:
-            if e.code in (429, 500, 503) and attempt < 3:
+            if e.code not in (429, 500, 503) or attempt == 3:
+                try:
+                    msg = json.loads(e.read().decode()).get("error", {}).get("message", "")[:200]
+                except Exception:
+                    msg = ""
+                raise RuntimeError(f"HTTP {e.code} {msg}") from None
+            if True:
                 time.sleep(30 * (attempt + 1))  # Rate-Limit des Gratis-Tarifs
                 continue
             raise
@@ -130,7 +136,7 @@ def run(name, task, fields, squad):
         try:
             res = call(task.format(today=TODAY, players=listing))
         except Exception as e:  # Netz, Limit, Format
-            print(f"::warning title=Recherche {name}::{type(e).__name__} bei {','.join(part)} – alte Werte bleiben")
+            print(f"::warning title=Recherche {name}::{type(e).__name__}: {e} – bei {','.join(part)} – alte Werte bleiben")
             continue
         for pid in part:
             new = res.get(pid)
