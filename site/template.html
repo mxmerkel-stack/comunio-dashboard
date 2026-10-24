@@ -61,6 +61,9 @@ svg text{fill:var(--muted);font-size:11px}
 .legend{display:flex;flex-wrap:wrap;gap:10px;font-size:11.5px;color:var(--muted);margin-top:6px}
 .legend i{display:inline-block;width:10px;height:10px;margin-right:4px;vertical-align:-1px}
 a{color:#1d5c12}
+.clubcell{display:inline-flex;align-items:center;gap:6px}
+.crest{display:inline-flex;align-items:center;justify-content:center;width:30px;height:22px;border-radius:3px 3px 11px 11px;
+  font:700 9.5px/1 Verdana,sans-serif;letter-spacing:.02em;box-shadow:0 0 0 1px rgba(0,0,0,.35) inset;flex:none}
 select{font:inherit;font-size:12.5px;padding:3px 5px;background:#fff;color:var(--fg);border:1px solid #6d9b5c}
 </style>
 </head>
@@ -171,6 +174,23 @@ function el(tag, attrs, ...kids){
   for(const k of kids.flat()){ if(k==null) continue; e.append(k instanceof Node ? k : document.createTextNode(String(k))); }
   return e;
 }
+
+// Vereinswappen: eigene Kürzel-Plaketten in Vereinsfarben (keine Original-Logos)
+const CLUBS=[["bayern","FCB","#dc052d","#fff"],["dortmund","BVB","#fde100","#111"],["leipzig","RBL","#dd0741","#fff"],["leverkusen","B04","#111","#e32221"],
+ ["frankfurt","SGE","#111","#e1000f"],["stuttgart","VFB","#fff","#e32219"],["freiburg","SCF","#fff","#111"],["gladbach","BMG","#fff","#0c9a3d"],["mönchengladbach","BMG","#fff","#0c9a3d"],
+ ["bremen","SVW","#1d9053","#fff"],["wolfsburg","WOB","#65b32e","#fff"],["mainz","M05","#c3141e","#fff"],["hoffenheim","TSG","#1961b5","#fff"],["augsburg","FCA","#ba3733","#fff"],
+ ["union","FCU","#eb1923","#fff"],["köln","KOE","#fff","#e30613"],["koln","KOE","#fff","#e30613"],["hamburg","HSV","#0a3a8a","#fff"],["pauli","STP","#5b3a29","#fff"],
+ ["heidenheim","FCH","#e2001a","#16337a"],["schalke","S04","#004d9d","#fff"],["paderborn","SCP","#0054a6","#111"],["elversberg","SVE","#111","#fff"],["hertha","BSC","#005ca9","#fff"],
+ ["hannover","H96","#1d7a3a","#fff"],["darmstadt","D98","#004e9e","#fff"],["düsseldorf","F95","#e30613","#fff"],["kaiserslautern","FCK","#e30613","#fff"],["nürnberg","FCN","#a50034","#fff"],
+ ["bochum","BOC","#005ca9","#fff"],["magdeburg","FCM","#005ca9","#fff"],["karlsruhe","KSC","#0f4a9b","#fff"],["braunschweig","EBS","#f8c300","#005ca9"],["kiel","KSV","#0a3a8a","#fff"]];
+function badge(name){
+  const n=String(name||"").toLowerCase(); const c=CLUBS.find(x=>n.includes(x[0]));
+  const ab=c?c[1]:String(name||"?").replace(/^(\d+\.\s*)?(FC|SV|SC|VfB|VfL|TSG|1\.)\s+/i,"").slice(0,3).toUpperCase();
+  const e=el("span",{class:"crest",title:name||""},ab); e.style.background=c?c[2]:"#cfe3c4"; e.style.color=c?c[3]:"#16300f"; if(c&&c[2]==="#fff") e.style.border="1px solid "+c[3]; return e;
+}
+const clubCell=name=>name?el("span",{class:"clubcell"},badge(name),name):"–";
+const oppCell=(name,venue)=>name?el("span",{class:"clubcell"},badge(name),`${name} (${venue==="Heim"?"H":"A"})`):"–";
+
 // Sortierbare Tabelle: cols = [{h, v:(row)=>display, s:(row)=>sortValue, n:true(numeric), cls:(row)=>""}]
 function table(target, rows, cols, opts={}){
   const box=document.getElementById(target); box.textContent="";
@@ -302,7 +322,7 @@ const recPill=r=>el("span",{class:"pill"+(r.recommendation==="ja"?"":r.recommend
 const injCell=r=>{ if(r.injury) return el("span",{title:(r.injury.note||"")+(r.injury.source?" – "+r.injury.source:"")},r.injury.return||"unklar"); return r.status&&r.status!=="ACTIVE"? "unklar":""; };
 const statusCell=r=>r.status&&r.status!=="ACTIVE"?el("span",{class:"pill bad",title:r.statusInfo||""},r.statusName):"";
 const recOrder={ja:2,vielleicht:1,nein:0};
-const mkCols=[{h:"Spieler",v:r=>r.name},{h:"Verein",v:r=>r.club||"–"},{h:"Position",v:r=>r.positionName},
+const mkCols=[{h:"Spieler",v:r=>r.name},{h:"Verein",v:r=>clubCell(r.club),s:r=>r.club||""},{h:"Position",v:r=>r.positionName},
   {h:"Besitzer",v:r=>r.owner||"Computer"},{h:"Punkte",v:r=>r.points,n:true},{h:"Vorsaison",v:r=>r.prevPoints??"–",s:r=>r.prevPoints??-999,n:true},
   {h:"Marktwert",v:r=>mio(r.marketValue),s:r=>r.marketValue,n:true},
   {h:"Kaufempfehlung",v:recPill,s:r=>-(recOrder[r.recommendation]*10+r.rank)},
@@ -335,7 +355,7 @@ tf.onchange=drawTf; drawTf();
 const rumorCell=r=>{ if(!r.rumor) return "–"; const x=r.rumor; const w=el("span",{title:x.note||""},`${x.target? x.target+" · ":""}${x.pWinter!=null? "W "+Math.round(x.pWinter*100)+" % / S "+Math.round(x.pSummer*100)+" %" : (x.probability!=null? Math.round(x.probability*100)+" %":"")}`);
   if(x.url){ const a=el("a",{href:x.url,target:"_blank",rel:"noopener"}," ("+(x.source||"Quelle")+")"); w.append(a);} else if(x.source){ w.append(" ("+x.source+")"); } return w; };
 const sf=document.getElementById("sq-filter"); D.managers.forEach(m=>sf.append(el("option",{value:m.id},m.name))); sf.value=D.me.id;
-const drawSq=()=>table("t-squad",D.squads[sf.value]||[],[{h:"Spieler",v:r=>r.name},{h:"Verein",v:r=>r.club},{h:"Position",v:r=>r.positionName},
+const drawSq=()=>table("t-squad",D.squads[sf.value]||[],[{h:"Spieler",v:r=>r.name},{h:"Verein",v:r=>clubCell(r.club),s:r=>r.club||""},{h:"Position",v:r=>r.positionName},
   {h:"Alter",v:r=>r.age==null?"–":f1(r.age),s:r=>r.age||0,n:true},
   {h:"Punkte",v:r=>r.points,s:r=>Number(r.points),n:true},{h:"Ø",v:r=>r.avg,s:r=>Number(r.avg),n:true},{h:"Marktwert",v:r=>mio(r.marketValue),s:r=>r.marketValue,n:true},
   {h:"Kaufpreis",v:r=>mio(r.purchasePrice),s:r=>r.purchasePrice||0,n:true},
@@ -383,9 +403,9 @@ table("t-loss",own.slice().sort((a,b)=>(b.lineupLoss||0)-(a.lineupLoss||0)),[{h:
 
 // Eigener Kader mit Prognosen
 const stPill=r=>r.status&&r.status!=="ACTIVE"?el("span",{class:"pill bad",title:r.statusInfo||""},r.statusName):"fit";
-table("t-own",own,[{h:"Spieler",v:r=>el("span",{},r.name,r.inLineup?el("span",{class:"pill",style:"margin-left:6px"},"Elf"):"")},
+table("t-own",own,[{h:"Spieler",v:r=>el("span",{class:"clubcell"},badge(r.club),r.name,r.inLineup?el("span",{class:"pill",style:"margin-left:6px"},"Elf"):"")},
   {h:"Position",v:r=>r.positionName},{h:"Alter",v:r=>f1(r.age),s:r=>r.age||0,n:true},{h:"Status",v:stPill,s:r=>r.status},
-  {h:"Nächster Gegner",v:r=>r.next_opp?`${r.next_opp} (${r.next_venue==="Heim"?"H":"A"})`:"–"},
+  {h:"Nächster Gegner",v:r=>oppCell(r.next_opp,r.next_venue),s:r=>r.next_opp||""},
   {h:"E nächster Sp.",v:r=>el("strong",{},f2(r.e_next)),s:r=>r.e_next||0,n:true},{h:"Gegner-Effekt",v:r=>signed(r.adj,f1),s:r=>r.adj||0,n:true},
   {h:"Start",v:r=>pct(r.p_start),s:r=>r.p_start,n:true},{h:"Joker",v:r=>pct(r.p_sub),s:r=>r.p_sub,n:true},{h:"Ausfall",v:r=>pct(r.p_unav),s:r=>r.p_unav,n:true},
   {h:"Punkte",v:r=>int(r.season_pts),s:r=>r.season_pts,n:true},{h:"Prognose",v:r=>int(Math.round(r.proj||0)),s:r=>r.proj||0,n:true},
@@ -512,7 +532,7 @@ const METHOD=[
  ["Kontostände","Basis 15 Mio. € am 27.05. plus Verkäufe, minus Käufe, plus 10.000 € je Punkt, plus spätere Strafen/Gutschriften. Dein eigener Wert ist der echte Kontostand."],
  ["Grenzen","Es wird nichts gekauft, verkauft oder geboten – das Dashboard liest nur. Kadergrenzen und Regeln zu negativem Konto sind nicht geprüft."]];
 table("t-method",METHOD.map(([a,b])=>({a,b})),[{h:"Thema",v:r=>el("strong",{},r.a)},{h:"Erklärung",v:r=>el("span",{style:"white-space:normal;display:inline-block;min-width:300px"},r.b)}]);
-table("t-opp",D.opponents||[],[{h:"Gegner",v:r=>r.club},{h:"Effekt (Punkte je Spieler)",v:r=>signed(r.adj,f2),s:r=>r.adj,n:true,cls:r=>r.adj>=0?"pos":"neg"}],{sort:1});
+table("t-opp",D.opponents||[],[{h:"Gegner",v:r=>clubCell(r.club),s:r=>r.club||""},{h:"Effekt (Punkte je Spieler)",v:r=>signed(r.adj,f2),s:r=>r.adj,n:true,cls:r=>r.adj>=0?"pos":"neg"}],{sort:1});
 document.getElementById("opp-note").textContent=`Positiv = gegen diesen Gegner punkten Spieler eher mehr. Heimvorteil ${signed(S.venueHome,f2)}, auswärts ${signed(S.venueAway,f2)} Punkte.`;
 (function(){
   const src=[]; const seen=new Set();
@@ -533,7 +553,7 @@ document.getElementById("opp-note").textContent=`Positiv = gegen diesen Gegner p
   ].forEach(([l,v,h])=>kk.append(el("div",{class:"kpi"},el("div",{class:"l"},l),el("div",{class:"v"},v),el("div",{class:"h"},h))));
   document.getElementById("nm-title").textContent=`Paarungen ${N.md||""}. Spieltag`;
   const odd=v=>v==null?"–":Number(v).toLocaleString("de-DE",{minimumFractionDigits:2,maximumFractionDigits:2});
-  table("t-fixtures",N.fixtures||[],[{h:"Anstoß",v:r=>kick(r.kickoff),s:r=>r.kickoff},{h:"Heim",v:r=>el("strong",{},r.home||"–")},{h:"Gast",v:r=>el("strong",{},r.away||"–")},
+  table("t-fixtures",N.fixtures||[],[{h:"Anstoß",v:r=>kick(r.kickoff),s:r=>r.kickoff},{h:"Heim",v:r=>el("strong",{class:"clubcell"},badge(r.home),r.home||"–"),s:r=>r.home||""},{h:"Gast",v:r=>el("strong",{class:"clubcell"},badge(r.away),r.away||"–"),s:r=>r.away||""},
     {h:"Ergebnis",v:r=>r.goalsHome!=null?`${r.goalsHome}:${r.goalsAway}`+(r.finished?"":" (läuft)"):"–"},
     {h:"1",v:r=>odd(r.odd1),s:r=>r.odd1||99,n:true},{h:"X",v:r=>odd(r.oddX),s:r=>r.oddX||99,n:true},{h:"2",v:r=>odd(r.odd2),s:r=>r.odd2||99,n:true},
     {h:"Heimsieg",v:r=>pct(r.p1),s:r=>r.p1||0,n:true},{h:"Remis",v:r=>pct(r.pX),s:r=>r.pX||0,n:true},{h:"Auswärtssieg",v:r=>pct(r.p2),s:r=>r.p2||0,n:true}]);
@@ -541,14 +561,14 @@ document.getElementById("opp-note").textContent=`Positiv = gegen diesen Gegner p
     (N.oddsAvailable?`Quoten: ${N.bookmaker||"Tipico"} über The Odds API; Wahrscheinlichkeiten ohne Buchmacher-Marge.`:"Quoten: noch nicht verfügbar – dafür fehlt der kostenlose API-Schlüssel (Secret ODDS_API_KEY) oder der Wettanbieter hat noch keine Quoten.");
   const p2=v=>v==null?"–":Math.round(v*100)+" %";
   table("t-nm-squad",N.squad||[],[{h:"Spieler",v:r=>el("span",{},r.name,r.inBest?el("span",{class:"pill",style:"margin-left:6px"},"Empfehlung"):"",r.inLineup?el("span",{class:"pill warn",style:"margin-left:6px"},"aufgestellt"):"")},
-    {h:"Position",v:r=>r.positionName},{h:"Verein",v:r=>r.club||"–"},
-    {h:"Gegner",v:r=>r.opponent?`${r.opponent} (${r.venue==="Heim"?"H":"A"})`:"–"},{h:"Anstoß",v:r=>r.played?"gespielt":kick(r.kickoff),s:r=>r.kickoff||""},
+    {h:"Position",v:r=>r.positionName},{h:"Verein",v:r=>clubCell(r.club),s:r=>r.club||""},
+    {h:"Gegner",v:r=>oppCell(r.opponent,r.venue),s:r=>r.opponent||""},{h:"Anstoß",v:r=>r.played?"gespielt":kick(r.kickoff),s:r=>r.kickoff||""},
     {h:"Status",v:r=>r.status&&r.status!=="ACTIVE"?el("span",{class:"pill bad",title:(r.statusInfo||"")+(r.injury?" – Rückkehr: "+r.injury.return:"")},r.statusName):"fit",s:r=>r.status},
     {h:"Startelf",v:r=>p2(r.p_start),s:r=>r.p_start,n:true},{h:"Einsatz",v:r=>el("strong",{},p2(r.p_play)),s:r=>r.p_play,n:true},
     {h:"Siegchance Team",v:r=>p2(r.pWin),s:r=>r.pWin||0,n:true},
     {h:"Gegner-Effekt",v:r=>el("span",{title:"Quelle: "+r.adjSource},(r.adj>0?"+":"")+f1(r.adj)),s:r=>r.adj,n:true},
     {h:"Erwartete Punkte",v:r=>el("strong",{},f2(r.e_match)),s:r=>r.e_match,n:true}],{sort:10,me:r=>r.inBest});
-  table("t-nm-best",N.best||[],[{h:"Position",v:r=>r.pos},{h:"Spieler",v:r=>r.name},{h:"Gegner",v:r=>r.opponent?`${r.opponent} (${r.venue==="Heim"?"H":"A"})`:"–"},{h:"Erwartet",v:r=>f2(r.e),s:r=>r.e,n:true}]);
+  table("t-nm-best",N.best||[],[{h:"Position",v:r=>r.pos},{h:"Spieler",v:r=>r.name},{h:"Gegner",v:r=>oppCell(r.opponent,r.venue),s:r=>r.opponent||""},{h:"Erwartet",v:r=>f2(r.e),s:r=>r.e,n:true}]);
   const sw=(N.squad||[]).filter(r=>r.inBest&&!r.inLineup).map(r=>r.name), out=(N.squad||[]).filter(r=>!r.inBest&&r.inLineup).map(r=>r.name);
   document.getElementById("nm-best-note").textContent=`${N.formation||""} · ${f1(N.total)} erwartete Punkte.`+(sw.length?` Rein: ${sw.join(", ")}. Raus: ${out.join(", ")}.`:" Entspricht deiner aktuellen Aufstellung.");
   const mxN=Math.max(1,...(N.formations||[]).map(f=>f.total));
