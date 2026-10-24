@@ -67,6 +67,12 @@ jobs:
           FORCE_MAIL: ${{ inputs.force_mail }}
         run: python scripts/send_mail.py
 
+      - name: TRMNL-Anzeige aktualisieren
+        continue-on-error: true
+        env:
+          TRMNL_WEBHOOK_URL: ${{ secrets.TRMNL_WEBHOOK_URL }}
+        run: python scripts/push_trmnl.py
+
       - name: Verlauf speichern (verschlüsselt)
         uses: actions/cache/save@v4
         with:
