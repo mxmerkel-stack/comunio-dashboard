@@ -21,7 +21,7 @@ MODEL = os.environ.get("RESEARCH_MODEL", "claude-sonnet-5-5")
 KEY = os.environ.get("ANTHROPIC_API_KEY", "").strip()
 GEMINI_KEY = os.environ.get("GEMINI_API_KEY", "").strip()
 GROQ_KEY = os.environ.get("GROQ_API_KEY", "").strip()
-MODEL_GROQ = os.environ.get("RESEARCH_MODEL_GROQ", "llama-3.3-70b-versatile")
+MODEL_GROQ = os.environ.get("RESEARCH_MODEL_GROQ", "")
 TAVILY_KEY = os.environ.get("TAVILY_API_KEY", "").strip()
 MODEL_GEMINI = os.environ.get("RESEARCH_MODEL_GEMINI", "gemini-3.8-flash")
 BATCH = 5
@@ -68,6 +68,32 @@ def _post(url, body, headers):
             raise
 
 
+def _get_json(url, headers):
+    req = urllib.request.Request(url, headers=headers)
+    with urllib.request.urlopen(req, timeout=60) as r:
+        return json.loads(r.read().decode())
+
+
+def groq_model():
+    """Verfügbares Chat-Modell bei Groq wählen (Modellnamen ändern sich dort regelmäßig)."""
+    global MODEL_GROQ
+    if MODEL_GROQ:
+        return MODEL_GROQ
+    skip = ("whisper", "tts", "guard", "embed", "vision", "ocr", "compound", "prompt")
+    prefer = ("versatile", "70b", "120b", "gpt-oss", "qwen", "llama-3.3", "maverick", "instant")
+    try:
+        ids = [m.get("id", "") for m in _get_json("https://api.groq.com/openai/v1/models",
+                                                  {"Authorization": f"Bearer {GROQ_KEY}"}).get("data", [])]
+    except Exception as e:
+        print(f"::warning title=Groq-Modelle::{type(e).__name__}: {e}")
+        ids = []
+    cand = [i for i in ids if i and not any(w in i.lower() for w in skip)]
+    cand.sort(key=lambda i: min([prefer.index(w) for w in prefer if w in i.lower()] or [99]))
+    MODEL_GROQ = cand[0] if cand else "llama-3.1-8b-instant"
+    print(f"Groq-Modell: {MODEL_GROQ}")
+    return MODEL_GROQ
+
+
 def search(query):
     """Aktuelle Meldungen: Tavily (wenn Schlüssel) sonst Google-News-RSS. Gibt Textblock für den Prompt zurück."""
     items = []
@@ -94,7 +120,7 @@ def call(prompt):
     prompt = prompt + "\n\n" + OUT
     if GROQ_KEY:  # kostenloser Tarif, Suchtreffer stehen im Prompt
         data = _post("https://api.groq.com/openai/v1/chat/completions",
-                     {"model": MODEL_GROQ, "temperature": 0.1, "response_format": {"type": "json_object"},
+                     {"model": groq_model(), "temperature": 0.1, "response_format": {"type": "json_object"},
                       "messages": [{"role": "user", "content": prompt}]},
                      {"Authorization": f"Bearer {GROQ_KEY}", "User-Agent": "comunio-dashboard"})
         text = data["choices"][0]["message"]["content"]
