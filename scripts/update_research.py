@@ -18,7 +18,7 @@ ROOT = Path(__file__).resolve().parent.parent
 MODEL = os.environ.get("RESEARCH_MODEL", "claude-sonnet-5-5")
 KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 GEMINI_KEY = os.environ.get("GEMINI_API_KEY", "")
-MODEL_GEMINI = os.environ.get("RESEARCH_MODEL_GEMINI", "gemini-2.5-flash")
+MODEL_GEMINI = os.environ.get("RESEARCH_MODEL_GEMINI", "gemini-3.8-flash")
 BATCH = 5
 TODAY = dt.datetime.now(dt.timezone(dt.timedelta(hours=2))).strftime("%d.%m.%Y")
 
@@ -100,8 +100,11 @@ def load_squad():
     raw = json.loads(p.read_text(encoding="utf-8"))
     me = str((raw.get("me") or {}).get("id", ""))
     sq = (raw.get("squads") or {}).get(me) or []
-    return {str(x["id"]): {"name": x.get("name"), "club": x.get("club"), "status": x.get("status"),
-                           "statusInfo": x.get("statusInfo")} for x in sq if isinstance(x, dict) and x.get("id")} or None
+    def row(x):
+        return {"name": x.get("name"), "club": x.get("club"), "status": x.get("status"), "statusInfo": x.get("statusInfo")}
+    squad = {str(x["id"]): row(x) for x in sq if isinstance(x, dict) and x.get("id")}
+    market = {str(x["id"]): row(x) for x in (raw.get("market") or []) if isinstance(x, dict) and x.get("id")}
+    return {"squad": squad, "market": market} if squad else None
 
 
 DEFAULT = {"rumors": {"target": "", "probability": 0.0, "pWinter": 0.0, "pSummer": 0.0, "note": "Noch nicht recherchiert.",
@@ -115,14 +118,19 @@ def run(name, task, fields, squad):
     old = doc.get("players", {})
     if squad:
         # Gerüchte: alle Spieler des aktuellen Kaders. Ausfälle: Kaderspieler, die schon gelistet oder bei Comunio nicht ACTIVE sind.
-        keep = [pid for pid, v in squad.items() if name == "rumors" or pid in old or (v.get("status") or "ACTIVE") != "ACTIVE"]
+        own, mkt = squad["squad"], squad["market"]
+        if name == "rumors":
+            keep = list(own)
+        else:  # Ausfälle: bereits gelistete (auch Transfermarkt-Spieler) + Kader/Markt-Spieler, die bei Comunio nicht aktiv sind
+            keep = list(old) + [pid for pid, v in {**mkt, **own}.items() if pid not in old and (v.get("status") or "ACTIVE") != "ACTIVE"]
         players = {}
         for pid in keep:
-            base = old.get(pid) or {"name": squad[pid]["name"], **DEFAULT[name]}
-            if name == "injuries" and pid not in old and squad[pid].get("statusInfo"):
-                base["note"] = str(squad[pid]["statusInfo"])
+            v = own.get(pid) or mkt.get(pid) or {}
+            base = old.get(pid) or {"name": v.get("name"), **DEFAULT[name]}
+            if name == "injuries" and pid not in old and v.get("statusInfo"):
+                base["note"] = str(v["statusInfo"])
             players[pid] = base
-        print(f"{name}: {len(players)} Spieler aus dem aktuellen Kader ({len(old.keys() - players.keys())} entfernt)")
+        print(f"{name}: {len(players)} Spieler ({len(old.keys() - players.keys())} entfernt)")
     else:
         players = old
         print(f"::warning title=Recherche::data/raw.json fehlt – nur bereits gelistete Spieler")
