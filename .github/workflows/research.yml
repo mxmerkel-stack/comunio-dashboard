@@ -23,8 +23,16 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Aktuellen Kader bei Comunio abrufen
+        env:
+          DATA_DIR: data
+          COMUNIO_USER: ${{ secrets.COMUNIO_USER }}
+          COMUNIO_PASS: ${{ secrets.COMUNIO_PASS }}
+        run: python scripts/fetch_comunio.py
+
       - name: Recherche (Websuche über die Claude-API)
         env:
+          DATA_DIR: data
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: python scripts/update_research.py
 

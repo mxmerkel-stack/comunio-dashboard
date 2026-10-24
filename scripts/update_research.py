@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Aktualisiert research/rumors.json und research/injuries.json per Claude-API mit Websuche.
 
-Benötigt das Secret ANTHROPIC_API_KEY. Fehlt es oder schlägt ein Aufruf fehl, bleiben die
+Benötigt das Secret ANTHROPIC_API_KEY. Die Spielerliste ist immer der aktuelle Kader aus data/raw.json. Fehlt es oder schlägt ein Aufruf fehl, bleiben die
 bisherigen Einträge unverändert (Exit-Code 0, Warnung als Annotation).
 """
 import datetime as dt
@@ -63,10 +63,41 @@ def clamp(x, default=None):
         return default
 
 
-def run(name, task, fields):
+def load_squad():
+    """Aktueller Kader des Nutzers aus data/raw.json (von fetch_comunio.py): {id: {name, club, status}}."""
+    p = Path(os.environ.get("DATA_DIR", ROOT / "data")) / "raw.json"
+    if not p.exists():
+        return None
+    raw = json.loads(p.read_text(encoding="utf-8"))
+    me = str((raw.get("me") or {}).get("id", ""))
+    sq = (raw.get("squads") or {}).get(me) or []
+    return {str(x["id"]): {"name": x.get("name"), "club": x.get("club"), "status": x.get("status"),
+                           "statusInfo": x.get("statusInfo")} for x in sq if isinstance(x, dict) and x.get("id")} or None
+
+
+DEFAULT = {"rumors": {"target": "", "probability": 0.0, "pWinter": 0.0, "pSummer": 0.0, "note": "Noch nicht recherchiert.",
+                      "source": "", "url": "", "status": "Keine Angabe"},
+           "injuries": {"return": "", "note": "", "source": "", "url": ""}}
+
+
+def run(name, task, fields, squad):
     path = ROOT / "research" / f"{name}.json"
     doc = json.loads(path.read_text(encoding="utf-8"))
-    players = doc.get("players", {})
+    old = doc.get("players", {})
+    if squad:
+        # Gerüchte: alle Spieler des aktuellen Kaders. Ausfälle: Kaderspieler, die schon gelistet oder bei Comunio nicht ACTIVE sind.
+        keep = [pid for pid, v in squad.items() if name == "rumors" or pid in old or (v.get("status") or "ACTIVE") != "ACTIVE"]
+        players = {}
+        for pid in keep:
+            base = old.get(pid) or {"name": squad[pid]["name"], **DEFAULT[name]}
+            if name == "injuries" and pid not in old and squad[pid].get("statusInfo"):
+                base["note"] = str(squad[pid]["statusInfo"])
+            players[pid] = base
+        print(f"{name}: {len(players)} Spieler aus dem aktuellen Kader ({len(old.keys() - players.keys())} entfernt)")
+    else:
+        players = old
+        print(f"::warning title=Recherche::data/raw.json fehlt – nur bereits gelistete Spieler")
+    doc["players"] = players
     ids = list(players)
     changed = 0
     for i in range(0, len(ids), BATCH):
@@ -104,8 +135,9 @@ def main():
     if not KEY:
         print("::warning title=Recherche::ANTHROPIC_API_KEY fehlt – nichts aktualisiert")
         return 0
-    run("rumors", RUMOR_TASK, RUMOR_FIELDS)
-    run("injuries", INJURY_TASK, INJURY_FIELDS)
+    squad = load_squad()
+    run("rumors", RUMOR_TASK, RUMOR_FIELDS, squad)
+    run("injuries", INJURY_TASK, INJURY_FIELDS, squad)
     return 0
 
 
