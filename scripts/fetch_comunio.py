@@ -102,9 +102,39 @@ def main():
         })
         time.sleep(0.3)
 
+    club_logos = {}
+
+    def logo_scan(club, base="https://www.comunio.de"):
+        """Sucht in einem Vereinsobjekt nach einer Bildadresse (Wappen) und merkt sie je Vereins-ID."""
+        if not isinstance(club, dict) or not club.get("id"):
+            return
+        def walk(o, depth=0):
+            if depth > 4:
+                return
+            if isinstance(o, dict):
+                for k, v in o.items():
+                    yield from walk(v, depth + 1) if isinstance(v, (dict, list)) else ([(k, v)] if isinstance(v, str) else [])
+            elif isinstance(o, list):
+                for v in o[:5]:
+                    yield from walk(v, depth + 1)
+        for k, v in walk(club):
+            kl, vl = str(k).lower(), v.lower()
+            if (vl.startswith(("http", "/")) and any(w in kl + vl for w in ("logo", "badge", "crest", "emblem", "image", "icon", ".png", ".svg"))):
+                club_logos.setdefault(str(club["id"]), v if v.startswith("http") else base + v)
+                return
+
+    probe = {"done": False}
     squads = {}
     for m in members.get("members", []):
         sq = get(f"/api/users/{m['id']}/squad")
+        for p in sq.get("items", []):
+            if isinstance(p, dict):
+                logo_scan(p.get("club"))
+                if not probe["done"] and isinstance(p.get("club"), dict):
+                    probe["done"] = True
+                    def shape(o):
+                        return {k: (shape(v) if isinstance(v, dict) else type(v).__name__ + (":" + v[:70] if isinstance(v, str) and v.startswith(("http", "/")) else "")) for k, v in o.items()}
+                    print("::notice title=Vereinsobjekt (Struktur)::" + json.dumps(shape(p["club"]), ensure_ascii=False)[:900])
         squads[str(m["id"])] = [{
             "id": p.get("id"), "name": p.get("name"), "club": D(p.get("club")).get("name"),
             "position": p.get("position"), "points": p.get("points"), "avg": p.get("averagePoints"),
@@ -333,6 +363,7 @@ def main():
         "transfers": transfers,
         "bonuses": bonuses,
         "ownDetails": own_details,
+        "clubLogos": club_logos,
         "dobs": dobs,
         "stats": stats,
         "quotes": quotes,

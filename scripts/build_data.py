@@ -338,6 +338,9 @@ def build(raw, history):
         "statement": raw["statement"][:100],
         "squads": squads,
         "research": {"rumorsAsOf": rumors_asof, "injuriesAsOf": injuries_asof},
+        "clubLogos": {p.get("club"): (raw.get("clubLogos") or {}).get(str(p.get("clubId")))
+                      for ps in list(raw["squads"].values()) + [raw["market"]] for p in ps
+                      if p.get("club") and (raw.get("clubLogos") or {}).get(str(p.get("clubId")))},
         "history": history,
         **an,
     }, history
