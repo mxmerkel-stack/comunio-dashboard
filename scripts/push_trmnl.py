@@ -27,6 +27,9 @@ def mio(v, digits=2):
 def clean_name(name):
     """ePaper-Schriften haben keine Emojis: Namen ohne Buchstaben/Ziffern werden ersetzt."""
     name = (name or "").strip()
+    known = {"\U0001F985": "Eagle"}  # Adler-Emoji eines Managers
+    if name in known:
+        return known[name]
     return name if re.search(r"\w", name) else "Manager"
 
 
@@ -164,42 +167,80 @@ def build_payload(d, raw=None):
     return payload
 
 
-def main():
-    url = os.environ.get("TRMNL_WEBHOOK_URL", "").strip()
-    if not url:
-        print("TRMNL_WEBHOOK_URL nicht gesetzt – übersprungen")
-        return 0
-    d = json.loads((DATA / "dashboard.json").read_text())
-    raw_p = DATA / "raw.json"
-    raw = json.loads(raw_p.read_text()) if raw_p.exists() else None
-    payload = build_payload(d, raw)
+POS = {"keeper": "TW", "defender": "AB", "midfielder": "MF", "striker": "ST"}
+
+
+def build_market(d):
+    """Transfermarkt-Tipps: beste Kaufkandidaten mit empfohlenem Gebot."""
+    me = d["me"]
+    rows = []
+    cand = [m for m in d.get("market") or [] if not m.get("mine") and str(m.get("ownerId") or "") != str(me["id"])
+            and m.get("recommendation") in ("ja", "vielleicht")]
+    cand.sort(key=lambda m: (m.get("recommendation") != "ja", -(m.get("rank") or 0)))
+    for m in cand[:5]:
+        rest = m.get("remainingDays")
+        rows.append({"n": short(m.get("name") or "?", 20), "pos": POS.get(m.get("position"), ""),
+                     "club": short(m.get("club") or "", 14), "pts": int(m.get("points") or 0),
+                     "mw": mio(m.get("marketValue") or 0), "bid": mio(m.get("bid") or 0),
+                     "rec": m.get("recommendation"), "ok": bool(m.get("affordable")),
+                     "rest": f"{rest} T" if rest not in (None, "") else "-",
+                     "von": "PC" if m.get("fromComputer") else short(clean_name(m.get("owner")), 10)})
+    generated = datetime.fromisoformat(d["generatedAt"].replace("Z", "+00:00")).astimezone(BERLIN)
+    return {"stand": generated.strftime("%d.%m. %H:%M"), "cash": mio(me["balance"]) + " Mio",
+            "n_market": len(d.get("market") or []), "n_ja": sum(1 for m in cand if m.get("recommendation") == "ja"),
+            "rows": rows}
+
+
+def send(url, payload, label="TRMNL"):
+    """Schickt merge_variables an einen TRMNL-Webhook. Die URL wird nie ausgegeben."""
     body = json.dumps({"merge_variables": payload}, ensure_ascii=False, separators=(",", ":")).encode()
-    if len(body) > MAX_BYTES:  # zuerst die Teamwert-Spalte weglassen
-        for r in payload["rows"]:
-            r.pop("tv", None)
-        for c in payload["check"]:
-            c.pop("s", None)
-        body = json.dumps({"merge_variables": payload}, ensure_ascii=False, separators=(",", ":")).encode()
-    print(f"TRMNL: {len(body)} Bytes, {len(payload['warn'])} Hinweis(e)")
+    print(f"{label}: {len(body)} Bytes")
     if os.environ.get("DRY_RUN"):
         print(body.decode())
         return 0
-    # Form der URL prüfen, ohne sie auszugeben (sie ist ein Zugangsschlüssel)
     from urllib.parse import urlparse
     u = urlparse(url)
     path_ok = u.path.startswith("/api/custom_plugins/") and len(u.path) > len("/api/custom_plugins/") + 8
-    print(f"TRMNL: Ziel {u.scheme}://{u.netloc}, Pfad {'ok' if path_ok else 'UNERWARTET (erwartet /api/custom_plugins/<id>)'}")
+    print(f"{label}: Ziel {u.scheme}://{u.netloc}, Pfad {'ok' if path_ok else 'UNERWARTET (erwartet /api/custom_plugins/<id>)'}")
     headers = {"Content-Type": "application/json", "Accept": "application/json",
                "User-Agent": "comunio-zentrale/1.0 (+github actions)"}
     req = urllib.request.Request(url, data=body, headers=headers, method="POST")
     try:
         with urllib.request.urlopen(req, timeout=30) as resp:
-            print(f"TRMNL: HTTP {resp.status}")
+            print(f"{label}: HTTP {resp.status}")
     except urllib.error.HTTPError as e:
         detail = e.read(300).decode("utf-8", "replace").replace(url, "<url>")
-        print(f"TRMNL: HTTP {e.code} – {detail}")
+        print(f"{label}: HTTP {e.code} – {detail}")
         return 1
     return 0
+
+
+def main():
+    d = json.loads((DATA / "dashboard.json").read_text())
+    raw_p = DATA / "raw.json"
+    raw = json.loads(raw_p.read_text()) if raw_p.exists() else None
+    rc = 0
+
+    url = os.environ.get("TRMNL_WEBHOOK_URL", "").strip()
+    if url:
+        payload = build_payload(d, raw)
+        body = json.dumps({"merge_variables": payload}, ensure_ascii=False).encode()
+        if len(body) > MAX_BYTES:  # zuerst die Teamwert-Spalte weglassen
+            for r in payload["rows"]:
+                r.pop("tv", None)
+            for c in payload["check"]:
+                c.pop("s", None)
+        print(f"TRMNL: {len(payload['warn'])} Hinweis(e)")
+        rc |= send(url, payload, "TRMNL")
+    else:
+        print("TRMNL_WEBHOOK_URL nicht gesetzt – übersprungen")
+
+    murl = os.environ.get("TRMNL_MARKET_WEBHOOK_URL", "").strip()
+    if murl:
+        rc |= send(murl, build_market(d), "TRMNL-Markt")
+    else:
+        print("TRMNL_MARKET_WEBHOOK_URL nicht gesetzt – übersprungen")
+    return rc
 
 
 if __name__ == "__main__":

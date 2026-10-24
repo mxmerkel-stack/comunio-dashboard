@@ -1,0 +1,38 @@
+name: TRMNL Live-Spieltag
+
+# Alle 15 Minuten nachmittags und abends. Das Skript prüft zuerst bei OpenLigaDB,
+# ob gerade ein Bundesliga-Spiel läuft; nur dann meldet es sich bei Comunio an (nur lesen)
+# und schickt Spieltagspunkte und deine Elf an TRMNL.
+on:
+  schedule:
+    - cron: "4,19,34,49 12-22 * * *"
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "Auch ohne laufendes Spiel abrufen (Test)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: trmnl-live
+  cancel-in-progress: true
+
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Live-Stand an TRMNL senden
+        env:
+          COMUNIO_USER: ${{ secrets.COMUNIO_USER }}
+          COMUNIO_PASS: ${{ secrets.COMUNIO_PASS }}
+          TRMNL_LIVE_WEBHOOK_URL: ${{ secrets.TRMNL_LIVE_WEBHOOK_URL }}
+          FORCE_LIVE: ${{ inputs.force && '1' || '' }}
+        run: python scripts/live_trmnl.py

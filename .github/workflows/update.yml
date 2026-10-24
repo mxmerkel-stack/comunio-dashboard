@@ -71,6 +71,7 @@ jobs:
         continue-on-error: true
         env:
           TRMNL_WEBHOOK_URL: ${{ secrets.TRMNL_WEBHOOK_URL }}
+          TRMNL_MARKET_WEBHOOK_URL: ${{ secrets.TRMNL_MARKET_WEBHOOK_URL }}
         run: python scripts/push_trmnl.py
 
       - name: Verlauf speichern (verschlüsselt)
