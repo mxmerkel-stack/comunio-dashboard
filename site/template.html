@@ -61,6 +61,10 @@ svg text{fill:var(--muted);font-size:11px}
 .legend{display:flex;flex-wrap:wrap;gap:10px;font-size:11.5px;color:var(--muted);margin-top:6px}
 .legend i{display:inline-block;width:10px;height:10px;margin-right:4px;vertical-align:-1px}
 a{color:#1d5c12}
+.toolbar{display:flex;align-items:center;gap:12px;margin-bottom:8px;flex-wrap:wrap}
+button.toggle{font:inherit;font-size:12px;font-weight:700;padding:5px 12px;cursor:pointer;color:#16300f;
+  background:linear-gradient(180deg,#f4f9ef,#d5e8ca);border:1px solid #6d9b5c}
+button.toggle.on{color:#fff;background:linear-gradient(180deg,#d99a3a,#b8761f);border-color:#8a5a12}
 .clubcell{display:inline-flex;align-items:center;gap:6px}
 .crestimg{width:22px;height:22px;object-fit:contain;flex:none}
 .crest{display:inline-flex;align-items:center;justify-content:center;width:30px;height:22px;border-radius:3px 3px 11px 11px;
@@ -109,7 +113,7 @@ select{font:inherit;font-size:12.5px;padding:3px 5px;background:#fff;color:var(-
   </section>
   <section id="s-markt">
     <div class="card"><h2>Deine Angebote</h2><div id="t-offers"></div><p class="note" id="of-note"></p></div>
-    <div class="card"><h2>Transfermarkt</h2><div id="t-market"></div>
+    <div class="card"><h2>Transfermarkt</h2><div id="mk-bar" class="toolbar"><span id="mk-count" class="note" style="margin:0"></span></div><div id="t-market"></div>
       <p class="note" id="mk-note"></p></div>
     <div class="card"><h2>Preis und Leistung</h2><div id="chart-pp"></div><p class="note">Marktwert gegen prognostizierte Saisonpunkte. Je weiter oben links, desto mehr Punkte pro Euro.</p></div>
     <div class="card"><h2>Mögliche Käufer</h2><div style="margin-bottom:8px"><select id="by-filter"></select></div><div id="t-buyers"></div>
@@ -341,7 +345,10 @@ const injCell=r=>{ if(r.injury) return el("span",{title:(r.injury.note||"")+(r.i
 const statusCell=r=>r.status&&r.status!=="ACTIVE"?el("span",{class:"pill bad",title:r.statusInfo||""},r.statusName):"";
 const recOrder={ja:2,vielleicht:1,nein:0};
 const mkCols=[{h:"Spieler",v:r=>r.name},{h:"Verein",v:r=>clubCell(r.club),s:r=>r.club||""},{h:"Position",v:r=>r.positionName},
-  {h:"Besitzer",v:r=>r.owner||"Computer"},{h:"Punkte",v:r=>r.points,n:true},{h:"Vorsaison",v:r=>r.prevPoints??"–",s:r=>r.prevPoints??-999,n:true},
+  {h:"Besitzer",v:r=>r.owner||"Computer"},
+  {h:"Seit",v:r=>dt(r.listedAt),s:r=>r.listedAt||""},
+  {h:"Noch",v:r=>el("span",{title:r.endsAt?"bis "+dt(r.endsAt):""},r.remainingText||"–"),s:r=>r.remainingDays??1e9,n:true},
+  {h:"Punkte",v:r=>r.points,n:true},{h:"Vorsaison",v:r=>r.prevPoints??"–",s:r=>r.prevPoints??-999,n:true},
   {h:"Marktwert",v:r=>mio(r.marketValue),s:r=>r.marketValue,n:true},
   {h:"Kaufempfehlung",v:recPill,s:r=>-(recOrder[r.recommendation]*10+r.rank)},
   {h:"E nächster Sp.",v:r=>r.e_next==null?"–":r.e_next.toLocaleString("de-DE",{minimumFractionDigits:2,maximumFractionDigits:2}),s:r=>r.e_next||0,n:true},
@@ -353,11 +360,18 @@ const mkCols=[{h:"Spieler",v:r=>r.name},{h:"Verein",v:r=>clubCell(r.club),s:r=>r
   {h:"Bezahlbar",v:r=>r.affordable?"ja":el("span",{class:"neg"},"nein"),s:r=>r.affordable?1:0},
   {h:"Können sich leisten",v:r=>r.rivals.length?r.rivals.join(", "):"niemand",s:r=>r.rivals.length},
   {h:"Wahrsch. Mitbieter",v:r=>(r.likelyBuyers||[]).join(", ")||"–"},
-  {h:"Restzeit",v:r=>r.remainingText||"–",s:r=>r.remainingDays,n:true}];
-table("t-market",D.market,mkCols,{sort:7});
+  {h:"Endet",v:r=>dt(r.endsAt),s:r=>r.endsAt||""}];
+const isComp=r=>String(r.ownerId)==="1"||!r.owner||String(r.owner).toLowerCase()==="computer";
+let onlyComp=false; try{ onlyComp=localStorage.getItem("mk-only-comp")==="1"; }catch(e){}
+const mkBtn=el("button",{class:"toggle",type:"button"});
+const drawMk=()=>{ mkBtn.textContent=onlyComp?"✓ Nur Computer":"Nur Computer"; mkBtn.classList.toggle("on",onlyComp);
+  const rows=onlyComp?D.market.filter(isComp):D.market; table("t-market",rows,mkCols,{sort:9});
+  document.getElementById("mk-count").textContent=`${rows.length} von ${D.market.length} Spielern`; };
+mkBtn.onclick=()=>{ onlyComp=!onlyComp; try{ localStorage.setItem("mk-only-comp",onlyComp?"1":"0"); }catch(e){} drawMk(); };
+document.getElementById("mk-bar").prepend(mkBtn); drawMk();
 document.getElementById("mk-note").textContent = `Kaufempfehlung: Punkte dieser Saison doppelt gewichtet plus Vorsaison${D.prevSeason?" ("+D.prevSeason+")":""} anteilig, im Verhältnis zum Marktwert. Oberes Drittel = ja, mittleres = vielleicht, unteres oder verletzt/Reha/gesperrt = nein. Übersteigt das Gebot dein Guthaben, wird aus „ja“ ein „vielleicht“. Empfohlenes Gebot = Marktwert + 2–12 % Aufschlag. „Können sich leisten“ = Manager, deren (berechneter) Kontostand das Gebot deckt. Fahre über die Empfehlung für die Begründung.`;
 const mini=D.market.filter(m=>m.fromComputer && m.recommendation!=="nein").sort((a,b)=>recOrder[b.recommendation]-recOrder[a.recommendation]||b.rank-a.rank).slice(0,6);
-table("mini-market",mini,[mkCols[0],mkCols[2],mkCols[4],mkCols[6],mkCols[7],mkCols[12]]);
+table("mini-market",mini,[mkCols[0],mkCols[2],mkCols[6],mkCols[8],mkCols[9],mkCols[14]]);
 if(!mini.length) document.getElementById("mini-market").append(el("p",{class:"note"},"Aktuell keine empfehlenswerten Computer-Spieler."));
 
 // Transfers

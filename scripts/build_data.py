@@ -485,6 +485,27 @@ def analyze(raw, names, ids, me_id, squads, market, md_rows, pts_of, balance_of,
             buys30[str(t.get("toId"))] += 1
     max30 = max(buys30.values()) if buys30 else 1
     buyers = []
+    from datetime import datetime as _dt, timedelta as _td
+
+    def iso(x):
+        """Comunio-Zeitstempel (z. B. +0200 ohne Doppelpunkt) in ISO 8601, das jeder Browser versteht."""
+        if not x:
+            return None
+        try:
+            return _dt.strptime(x, "%Y-%m-%dT%H:%M:%S%z").isoformat()
+        except ValueError:
+            try:
+                return _dt.fromisoformat(x).isoformat()
+            except ValueError:
+                return None
+
+    def ends_at(hours):
+        try:
+            base = _dt.fromisoformat(raw.get("fetchedAt"))
+            return (base + _td(hours=float(hours))).isoformat()
+        except (TypeError, ValueError):
+            return None
+
     for m in market:
         pid = str(m["id"])
         mm = model.get(pid, {})
@@ -499,7 +520,8 @@ def analyze(raw, names, ids, me_id, squads, market, md_rows, pts_of, balance_of,
                   "minBid": min_bid, "discPct": round((min_bid / mv - 1) * 100, 1) if mv else None,
                   "mine": mine, "remainingText": M.hours_text(m.get("remainingDays")),
                   "projPerMio": round((mm.get("proj") or 0) / max(mv, 1) * 1e6, 1),
-                  "age": M.age(m.get("dob"))})
+                  "age": M.age(m.get("dob")),
+                  "listedAt": iso(m.get("date")), "endsAt": ends_at(m.get("remainingDays"))})
         if not mine:
             m["flipEv"] = round(mv * r_mean - min_bid)
             m["flipWorst"] = round(mv * r_min - min_bid)
