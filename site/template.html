@@ -158,6 +158,7 @@ window.DATA = __DATA__;
 const D = window.DATA;
 const eur = v => v==null ? "–" : new Intl.NumberFormat("de-DE",{maximumFractionDigits:0}).format(v) + " €";
 const mio = v => v==null ? "–" : (v/1e6).toLocaleString("de-DE",{minimumFractionDigits:2,maximumFractionDigits:2}) + " Mio.";
+const f1=v=>v==null?"–":Number(v).toLocaleString("de-DE",{minimumFractionDigits:1,maximumFractionDigits:1});
 const int = v => v==null ? "–" : Number(v).toLocaleString("de-DE");
 const dt = s => s ? new Date(s).toLocaleString("de-DE",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}) : "–";
 const nameOf = id => (D.managers.find(m=>m.id===String(id))||{}).name || "?";
@@ -335,6 +336,7 @@ const rumorCell=r=>{ if(!r.rumor) return "–"; const x=r.rumor; const w=el("spa
   if(x.url){ const a=el("a",{href:x.url,target:"_blank",rel:"noopener"}," ("+(x.source||"Quelle")+")"); w.append(a);} else if(x.source){ w.append(" ("+x.source+")"); } return w; };
 const sf=document.getElementById("sq-filter"); D.managers.forEach(m=>sf.append(el("option",{value:m.id},m.name))); sf.value=D.me.id;
 const drawSq=()=>table("t-squad",D.squads[sf.value]||[],[{h:"Spieler",v:r=>r.name},{h:"Verein",v:r=>r.club},{h:"Position",v:r=>r.positionName},
+  {h:"Alter",v:r=>r.age==null?"–":f1(r.age),s:r=>r.age||0,n:true},
   {h:"Punkte",v:r=>r.points,s:r=>Number(r.points),n:true},{h:"Ø",v:r=>r.avg,s:r=>Number(r.avg),n:true},{h:"Marktwert",v:r=>mio(r.marketValue),s:r=>r.marketValue,n:true},
   {h:"Kaufpreis",v:r=>mio(r.purchasePrice),s:r=>r.purchasePrice||0,n:true},
   {h:"+/−",v:r=>r.purchasePrice? mio(r.marketValue-r.purchasePrice):"–",s:r=>(r.marketValue||0)-(r.purchasePrice||0),n:true,cls:r=>r.purchasePrice?(r.marketValue>=r.purchasePrice?"pos":"neg"):""},
@@ -348,7 +350,6 @@ document.getElementById("sq-note").textContent = `Gerüchte mit geschätzter Wec
 // ===================== Bereiche aus der Comunio Zentrale =====================
 const S=D.status||{};
 const pct=v=>v==null?"–":Math.round(v*100)+" %";
-const f1=v=>v==null?"–":Number(v).toLocaleString("de-DE",{minimumFractionDigits:1,maximumFractionDigits:1});
 const f2=v=>v==null?"–":Number(v).toLocaleString("de-DE",{minimumFractionDigits:2,maximumFractionDigits:2});
 const signed=(v,fmt)=>v==null?"–":(v>0?"+":"")+fmt(v);
 

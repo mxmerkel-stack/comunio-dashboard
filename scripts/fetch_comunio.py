@@ -167,6 +167,23 @@ def main():
             pass
         time.sleep(0.2)
 
+    # Geburtsdaten der übrigen Kaderspieler (für die Altersanzeige im Kader aller Manager)
+    dobs = {pid: d.get("dob") for pid, d in own_details.items() if d.get("dob")}
+    dobs.update({str(m["id"]): m["dob"] for m in market_items if m.get("dob")})
+    for uid, ps in squads.items():
+        for p in ps:
+            pid = str(p["id"])
+            if pid in dobs:
+                continue
+            try:
+                det = get(f"/api/communities/{cid}/users/{me.get('id')}/players/{pid}")
+                dob = D(det.get("extendedInfo")).get("dob")
+                if dob:
+                    dobs[pid] = dob
+            except SystemExit:
+                pass
+            time.sleep(0.2)
+
     # Spielstatistik je Spieltag (alle Kader- und Marktspieler) – Grundlage der Prognosen
     player_ids = {str(p["id"]) for ps in squads.values() for p in ps} | {str(m["id"]) for m in market_items}
     stats = {}
@@ -316,6 +333,7 @@ def main():
         "transfers": transfers,
         "bonuses": bonuses,
         "ownDetails": own_details,
+        "dobs": dobs,
         "stats": stats,
         "quotes": quotes,
         "lineup": lineup,

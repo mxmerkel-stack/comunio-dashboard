@@ -102,6 +102,7 @@ raw = {
                 {"newsId": 2, "date": "2026-09-02T10:00:00+02:00", "amount": -500000, "name": "Adler", "reason": "Aufstellung vergessen"},
                 {"newsId": 3, "date": "2026-09-03T10:00:00+02:00", "amount": 250000, "name": "Bauer", "reason": "Tippspiel"}],
     "ownDetails": {str(p["id"]): {"dob": "1999-05-01T00:00:00+02:00", "seasonPoints": {}} for p in squads["5695415"]},
+    "dobs": {str(p["id"]): f"{1990 + (p["id"] % 14)}-0{1 + p["id"] % 9}-15T00:00:00+02:00" for sq in squads.values() for p in sq},
     "stats": stats, "quotes": quotes, "lineup": {"tactic": "433", "ids": own_ids}, "offers": offers,
     "credit": 15881499, "matchdayCalendar": calendar,
     "nextMatch": {"md": 7, "date": "2026-10-23T20:30:00+02:00", "started": True,

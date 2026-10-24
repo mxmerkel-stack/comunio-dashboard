@@ -227,6 +227,9 @@ def build(raw, history):
         pid = str(p.get("id"))
         out = {"positionName": POSITIONS.get(p.get("position"), p.get("position") or "–"),
                "statusName": STATUS.get(p.get("status") or "ACTIVE", p.get("status"))}
+        dob = (raw.get("dobs") or {}).get(pid) or p.get("dob") or ((raw.get("ownDetails") or {}).get(pid) or {}).get("dob")
+        if dob:
+            out["age"] = M.age(dob)
         if pid in rumors:
             out["rumor"] = rumors[pid]
         if pid in injuries:
