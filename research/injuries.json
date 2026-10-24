@@ -1,5 +1,5 @@
 {
- "asOf": "23.10.2026",
+ "asOf": "24.10.2026",
  "_hinweis": "Rückkehrprognosen aus öffentlichen Quellen, Schlüssel = Comunio-Spieler-ID.",
  "players": {
   "33236": {
@@ -8,90 +8,6 @@
    "note": "Muskelfaserriss rechter Oberschenkel (24.09.), Aufbautraining. Fehlt in Freiburg (25.10.), Comeback im Pokal gegen Magdeburg (28.10.) oder gegen Dortmund (31.10.) möglich.",
    "source": "ms-aktuell / Sky",
    "url": "https://ms-aktuell.de/welt/musiala-arsenal-19-10-2026/"
-  },
-  "34285": {
-   "name": "Ben Seghir",
-   "return": "ca. 08.11.",
-   "note": "Erneute Muskelverletzung (gemeldet 11./20.10.), 2–3 Wochen Pause, Aufbautraining.",
-   "source": "RotoWire / ligainsider",
-   "url": "https://www.rotowire.com/soccer/headlines/eliesse-ben-seghir-injury-out-two-to-three-weeks-523969"
-  },
-  "34393": {
-   "name": "Seifert",
-   "return": "ca. Anfang November",
-   "note": "Syndesmoseverletzung (Juli), rund drei Monate Pause, inzwischen Aufbautraining; fehlt noch am 7. Spieltag.",
-   "source": "RotoWire / bundesliga.com",
-   "url": "https://www.rotowire.com/soccer/headlines/luis-seifert-injury-out-around-three-months-523268"
-  },
-  "34074": {
-   "name": "Malanga",
-   "return": "unklar, frühestens November",
-   "note": "Bauchmuskelverletzung, fehlt seit gut fünf Wochen; keine offizielle Prognose.",
-   "source": "ligainsider",
-   "url": "https://www.ligainsider.de/bundesliga/verletzte-und-gesperrte-spieler/"
-  },
-  "32190": {
-   "name": "Karaman",
-   "return": "offen – evtl. 8. Spieltag",
-   "note": "Muskuläre Probleme, schwer angeschlagen, fällt am 7. Spieltag aus.",
-   "source": "bundesliga.com (23.10.)",
-   "url": "https://www.bundesliga.com/de/bundesliga/news/voraussichtliche-aufstellungen-7-spieltag-ausfalle-verletzungen-sperren-39669"
-  },
-  "34447": {
-   "name": "Lidberg",
-   "return": "offen – evtl. 8. Spieltag",
-   "note": "Muskuläre Probleme nach Auswechslung, fällt am 7. Spieltag aus.",
-   "source": "bundesliga.com (23.10.)",
-   "url": "https://www.bundesliga.com/de/bundesliga/news/voraussichtliche-aufstellungen-7-spieltag-ausfalle-verletzungen-sperren-39669"
-  },
-  "34465": {
-   "name": "Pimpong",
-   "return": "offen – fehlt am 7. Spieltag",
-   "note": "Oberschenkelprobleme.",
-   "source": "bundesliga.com (23.10.)",
-   "url": "https://www.bundesliga.com/de/bundesliga/news/voraussichtliche-aufstellungen-7-spieltag-ausfalle-verletzungen-sperren-39669"
-  },
-  "34187": {
-   "name": "Diks",
-   "return": "offen",
-   "note": "Aus privaten Gründen freigestellt, fehlt am 7. Spieltag; kein Termin bekannt.",
-   "source": "bundesliga.com (23.10.)",
-   "url": "https://www.bundesliga.com/de/bundesliga/news/voraussichtliche-aufstellungen-7-spieltag-ausfalle-verletzungen-sperren-39669"
-  },
-  "33603": {
-   "name": "Y. Engelhardt",
-   "return": "einsatzbereit",
-   "note": "Trotz Hüftbeschwerden in der voraussichtlichen Startelf für den 7. Spieltag.",
-   "source": "bundesliga.com (23.10.)",
-   "url": "https://www.bundesliga.com/de/bundesliga/news/voraussichtliche-aufstellungen-7-spieltag-ausfalle-verletzungen-sperren-39669"
-  },
-  "34233": {
-   "name": "Capaldo",
-   "return": "einsatzbereit",
-   "note": "Trotz muskulärer Probleme in der voraussichtlichen Startelf für den 7. Spieltag.",
-   "source": "bundesliga.com (23.10.)",
-   "url": "https://www.bundesliga.com/de/bundesliga/news/voraussichtliche-aufstellungen-7-spieltag-ausfalle-verletzungen-sperren-39669"
-  },
-  "34215": {
-   "name": "Darvich",
-   "return": "einsatzbereit",
-   "note": "Trotz muskulärer Probleme in der voraussichtlichen Startelf für den 7. Spieltag.",
-   "source": "bundesliga.com (23.10.)",
-   "url": "https://www.bundesliga.com/de/bundesliga/news/voraussichtliche-aufstellungen-7-spieltag-ausfalle-verletzungen-sperren-39669"
-  },
-  "34311": {
-   "name": "Culbreath",
-   "return": "vermutlich einsatzbereit",
-   "note": "Team- und Aufbautraining nach Fußverletzung; in der Leverkusener Ausfallliste für den 7. Spieltag nicht mehr geführt.",
-   "source": "bundesliga.com (23.10.)",
-   "url": "https://www.bundesliga.com/de/bundesliga/news/voraussichtliche-aufstellungen-7-spieltag-ausfalle-verletzungen-sperren-39669"
-  },
-  "34427": {
-   "name": "Onyeka",
-   "return": "vermutlich einsatzbereit",
-   "note": "Aufbautraining nach Bänderverletzung am Fuß; in der Elversberger Ausfallliste für den 7. Spieltag nicht mehr geführt.",
-   "source": "bundesliga.com (23.10.)",
-   "url": "https://www.bundesliga.com/de/bundesliga/news/voraussichtliche-aufstellungen-7-spieltag-ausfalle-verletzungen-sperren-39669"
   }
  }
 }

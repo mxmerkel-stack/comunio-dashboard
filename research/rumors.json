@@ -1,29 +1,7 @@
 {
- "asOf": "23.10.2026",
+ "asOf": "24.10.2026",
  "_hinweis": "pWinter/pSummer = geschätzte Wahrscheinlichkeit eines Vereinswechsels im Winter 2027 bzw. Sommer 2027 (eigene Einschätzung aus den Quellen). Schlüssel = Comunio-Spieler-ID.",
  "players": {
-  "34014": {
-   "name": "Olise",
-   "target": "Real Madrid / Liverpool",
-   "probability": 0.15,
-   "note": "Real Madrid gilt laut Bild-Reporter Falk (beIN, 17.10.) als Wunschziel, Liverpool und Arsenal werden genannt. Vertragsgespräche stocken, Olise fordert eine Ausstiegsklausel (Sport Bild, 05.10.). Bayern sieht ihn als unverkäuflich, Vertrag bis 2029.",
-   "source": "beIN Sports 17.10. / Sport Bild 05.10.",
-   "url": "https://www.beinsports.com/en-us/soccer/bundesliga/articles/michael-olise-reportedly-favors-real-madrid-as-his-next-destination-2026-10-17",
-   "status": "Gerücht",
-   "pWinter": 0.03,
-   "pSummer": 0.15
-  },
-  "33837": {
-   "name": "Lukeba",
-   "target": "FC Bayern",
-   "probability": 0.15,
-   "note": "Bayern beobachtet ihn als möglichen Upamecano-Ersatz (Sky, Dez. 2025). Ausstiegsklausel sinkt 2027 auf 65 Mio. €. Neuere Meldungen gibt es nicht. Ein Wechsel nach München würde ihn in der Bundesliga halten.",
-   "source": "Sky / 90min",
-   "url": "https://www.90min.de/leipzig-star-als-upamecano-ersatz-lukeba-will-zum-fc-bayern",
-   "status": "Altes Gerücht",
-   "pWinter": 0.03,
-   "pSummer": 0.15
-  },
   "32206": {
    "name": "Waldschmidt",
    "target": "Hertha BSC / Hannover 96",
@@ -46,6 +24,28 @@
    "pWinter": 0.04,
    "pSummer": 0.15
   },
+  "33236": {
+   "name": "Musiala",
+   "target": null,
+   "probability": 0.04,
+   "note": "Vertrag bis 2030; derzeit verletzt, keine Wechselgerüchte.",
+   "source": "eigene Recherche",
+   "url": null,
+   "status": "Keine Meldung",
+   "pWinter": 0.01,
+   "pSummer": 0.04
+  },
+  "33837": {
+   "name": "Lukeba",
+   "target": "FC Bayern",
+   "probability": 0.15,
+   "note": "Bayern beobachtet ihn als möglichen Upamecano-Ersatz (Sky, Dez. 2025). Ausstiegsklausel sinkt 2027 auf 65 Mio. €. Neuere Meldungen gibt es nicht. Ein Wechsel nach München würde ihn in der Bundesliga halten.",
+   "source": "Sky / 90min",
+   "url": "https://www.90min.de/leipzig-star-als-upamecano-ersatz-lukeba-will-zum-fc-bayern",
+   "status": "Altes Gerücht",
+   "pWinter": 0.03,
+   "pSummer": 0.15
+  },
   "33858": {
    "name": "Deman",
    "target": null,
@@ -57,16 +57,16 @@
    "pWinter": 0.02,
    "pSummer": 0.08
   },
-  "33236": {
-   "name": "Musiala",
-   "target": null,
-   "probability": 0.04,
-   "note": "Vertrag bis 2030; derzeit verletzt, keine Wechselgerüchte.",
-   "source": "eigene Recherche",
-   "url": null,
-   "status": "Keine Meldung",
-   "pWinter": 0.01,
-   "pSummer": 0.04
+  "34014": {
+   "name": "Olise",
+   "target": "Real Madrid / Liverpool",
+   "probability": 0.15,
+   "note": "Real Madrid gilt laut Bild-Reporter Falk (beIN, 17.10.) als Wunschziel, Liverpool und Arsenal werden genannt. Vertragsgespräche stocken, Olise fordert eine Ausstiegsklausel (Sport Bild, 05.10.). Bayern sieht ihn als unverkäuflich, Vertrag bis 2029.",
+   "source": "beIN Sports 17.10. / Sport Bild 05.10.",
+   "url": "https://www.beinsports.com/en-us/soccer/bundesliga/articles/michael-olise-reportedly-favors-real-madrid-as-his-next-destination-2026-10-17",
+   "status": "Gerücht",
+   "pWinter": 0.03,
+   "pSummer": 0.15
   },
   "34236": {
    "name": "Massengo",
