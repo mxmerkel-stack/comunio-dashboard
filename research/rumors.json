@@ -1,5 +1,5 @@
 {
- "asOf": "23.10.2026",
+ "asOf": "24.10.2026",
  "_hinweis": "pWinter/pSummer = geschätzte Wahrscheinlichkeit eines Vereinswechsels im Winter 2027 bzw. Sommer 2027 (eigene Einschätzung aus den Quellen). Schlüssel = Comunio-Spieler-ID.",
  "players": {
   "32206": {
@@ -92,25 +92,25 @@
   },
   "34294": {
    "name": "Daghim",
-   "target": null,
-   "probability": 0.08,
-   "note": "Erst im Sommer für ca. 14,5 Mio. € aus Salzburg gekommen. Keine aktuellen Wechselgerüchte gefunden (kicker, transfermarkt.de, Bild, ligainsider, Vereinsseite).",
-   "source": "eigene Recherche",
-   "url": null,
-   "status": "Keine Meldung",
-   "pWinter": 0.02,
-   "pSummer": 0.08
+   "target": "TSG Hoffenheim",
+   "probability": 0.05,
+   "note": "Am 18. Sep 2026 bestätigte 90minuten.at den Wechsel von Adam Daghim zum TSG Hoffenheim. Der Transfer ist bereits abgeschlossen, weitere Gerüchte fehlen.",
+   "source": "90minuten.at – 18 Sep 2026",
+   "url": "https://www.90minuten.at/de/red/magazin/transferliste/bundesliga--alle-fixen-transfers-und-geruechte-im-sommer-2026",
+   "status": "Konkret",
+   "pWinter": 0.05,
+   "pSummer": 0.03
   },
   "34405": {
    "name": "Zobel",
-   "target": null,
-   "probability": 0.08,
-   "note": "Keine aktuellen Wechselgerüchte gefunden (kicker, transfermarkt.de, Bild, ligainsider, Vereinsseite).",
-   "source": "eigene Recherche",
-   "url": null,
-   "status": "Keine Meldung",
-   "pWinter": 0.02,
-   "pSummer": 0.08
+   "target": "Erzgebirge Aue",
+   "probability": 0.9,
+   "note": "Am 03.09.2026 berichtete Sky Sport in einer Transferübersicht, dass Tristan Zobel nach seiner Leihe bei Erzgebirge Aue nun dauerhaft zu diesem Verein wechselt. Der Bericht gilt als bestätigte Transfermeldung für den Sommer 2026.",
+   "source": "Sky Sport, 03.09.2026",
+   "url": "https://sport.sky.de/fussball/artikel/transfer-uebersicht-alle-wechsel-wer-kommt-wer-geht/12525683/35313",
+   "status": "Konkret",
+   "pWinter": 0.05,
+   "pSummer": 0.9
   },
   "34438": {
    "name": "Brackelmann",
