@@ -9,6 +9,7 @@ import json
 import os
 import re
 import sys
+import urllib.error
 import urllib.request
 from datetime import datetime
 from pathlib import Path
@@ -114,9 +115,21 @@ def main():
     if os.environ.get("DRY_RUN"):
         print(body.decode())
         return 0
-    req = urllib.request.Request(url, data=body, headers={"Content-Type": "application/json"}, method="POST")
-    with urllib.request.urlopen(req, timeout=30) as resp:
-        print(f"TRMNL: HTTP {resp.status}")
+    # Form der URL prüfen, ohne sie auszugeben (sie ist ein Zugangsschlüssel)
+    from urllib.parse import urlparse
+    u = urlparse(url)
+    path_ok = u.path.startswith("/api/custom_plugins/") and len(u.path) > len("/api/custom_plugins/") + 8
+    print(f"TRMNL: Ziel {u.scheme}://{u.netloc}, Pfad {'ok' if path_ok else 'UNERWARTET (erwartet /api/custom_plugins/<id>)'}")
+    headers = {"Content-Type": "application/json", "Accept": "application/json",
+               "User-Agent": "comunio-zentrale/1.0 (+github actions)"}
+    req = urllib.request.Request(url, data=body, headers=headers, method="POST")
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            print(f"TRMNL: HTTP {resp.status}")
+    except urllib.error.HTTPError as e:
+        detail = e.read(300).decode("utf-8", "replace").replace(url, "<url>")
+        print(f"TRMNL: HTTP {e.code} – {detail}")
+        return 1
     return 0
 
 
