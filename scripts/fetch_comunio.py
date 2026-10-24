@@ -57,6 +57,22 @@ def _request(url, data=None, token=None, retries=3):
     raise SystemExit(f"Abruf fehlgeschlagen: {url.split('?')[0]} ({type(last).__name__})")
 
 
+def download_image(url, token):
+    """Wappen als data:-URI laden (mit Anmeldung). Gibt None zurück, wenn es kein kleines Bild ist."""
+    import base64
+    req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept": "image/*", "Authorization": "Bearer " + token})
+    try:
+        with urllib.request.urlopen(req, timeout=30) as r:
+            ctype = (r.headers.get("Content-Type") or "").split(";")[0].strip().lower()
+            raw = r.read(150_001)
+    except Exception as e:
+        print(f"::warning title=Vereinswappen::{type(e).__name__}: {str(e)[:100]}")
+        return None
+    if not ctype.startswith("image/") or len(raw) > 150_000 or not raw:
+        return None
+    return f"data:{ctype};base64," + base64.b64encode(raw).decode()
+
+
 def login():
     user = os.environ.get("COMUNIO_USER")
     pw = os.environ.get("COMUNIO_PASS")
@@ -152,6 +168,9 @@ def main():
         time.sleep(0.3)
 
     market = get(links["game:exchangemarket"])
+    for it in market.get("items", []):
+        if isinstance(it, dict):
+            logo_scan(D(D(it.get("_embedded")).get("player")).get("club"))
     market_items = [{
         "id": it["_embedded"]["player"].get("id"),
         "name": it["_embedded"]["player"].get("name"),
@@ -196,6 +215,16 @@ def main():
         except SystemExit:
             pass
         time.sleep(0.2)
+
+    # Wappen herunterladen (nur kleine Bilder) und direkt in die Daten einbetten
+    for cid_, url in list(club_logos.items()):
+        img = download_image(url, tok)
+        if img:
+            club_logos[cid_] = img
+        else:
+            del club_logos[cid_]
+        time.sleep(0.2)
+    print(f"::notice title=Vereinswappen::{len(club_logos)} Wappen geladen")
 
     # Geburtsdaten der übrigen Kaderspieler (für die Altersanzeige im Kader aller Manager)
     dobs = {pid: d.get("dob") for pid, d in own_details.items() if d.get("dob")}
