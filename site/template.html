@@ -62,8 +62,8 @@ tr.me:hover td{background:#f6e9a8}
 .pill.warn{background:#fdf0cf;color:var(--warn);border-color:var(--warn)}
 .pill.bad{background:#f8dcd9;color:var(--bad);border-color:var(--bad)}
 .pos{color:var(--good);font-weight:700}.neg{color:var(--bad);font-weight:700}
-.trend{display:inline-block;min-width:1.2em;text-align:center;font-weight:700;cursor:help}
-.trend.up{color:var(--good)}.trend.down{color:var(--bad)}.trend.flat{color:var(--warn)}.trend.unk{color:#8a8f87}
+.trend{display:inline-block;line-height:0;vertical-align:middle;cursor:help}
+.trend.unk{display:inline-block;min-width:1.2em;text-align:center;font-weight:700;line-height:1;color:#c9b800;-webkit-text-stroke:.6px #000}
 .bar{height:8px;background:var(--accent);min-width:2px}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 @media (max-width:760px){.grid2{grid-template-columns:1fr}h1{font-size:19px}}
@@ -273,11 +273,15 @@ const LIGHT_TXT={green:"fit",yellow:"fraglich / angeschlagen",red:"fällt voraus
 const dot=(l,tip)=>l?el("span",{class:"dot "+l,title:(LIGHT_TXT[l]||"")+(tip&&l!=="green"?" – "+tip:"")}):"";
 const OUT_ST=new Set(["INJURED","REHABILITATION","SUSPENDED","REDBANNED","YELLOWREDBANNED","YELLOWBANNED","AWAY","RETIRED"]);
 const lightOf=p=>{ const st=p.status||"ACTIVE", pu=p.p_unav||0; return (OUT_ST.has(st)||pu>=.5)?"red":(st==="WEAKENED"||pu>=.15||p.injury)?"yellow":"green"; };
-const TREND={UP:["▲","up","steigend"],FLAT:["▶","flat","stabil"],DOWN:["▼","down","fallend"]};
-const trendCell=r=>{ const t=TREND[r.trend];
-  if(!t) return el("span",{class:"trend unk",title:"Trend unbekannt"},"?");
-  return el("span",{class:"trend "+t[1],title:"Trend: "+t[2]+(r.trendSrc==="mw"?" (aus dem Marktwertverlauf der letzten 7 Tage)":" (laut Comunio)")},t[0]); };
-const trendCol={h:"Trend",v:trendCell,s:r=>({UP:2,FLAT:1,DOWN:0})[r.trend]??-1,n:true};
+const TREND_COL={"-5":"#ff0000","-4":"#ff4e00","-3":"#ff8c00","-2":"#ffb800","-1":"#ffd400","0":"#e2e000","1":"#a8e600","2":"#8ae600","3":"#5ee000","4":"#2fe000","5":"#00e000"};
+const TREND_ROT={"-5":90,"-4":72,"-3":50,"-2":35,"-1":18,"0":0,"1":-18,"2":-35,"3":-50,"4":-68,"5":-90};
+const TREND_TXT={"-5":"stark fallend","-4":"deutlich fallend","-3":"fallend","-2":"leicht fallend","-1":"minimal fallend","0":"stabil","1":"minimal steigend","2":"leicht steigend","3":"steigend","4":"deutlich steigend","5":"stark steigend"};
+const trendCell=r=>{ const k=r.trend==null?null:String(r.trend);
+  if(k==null||!(k in TREND_COL)) return el("span",{class:"trend unk",title:"Trend unbekannt"},"?");
+  const w=el("span",{class:"trend",title:"Trend: "+TREND_TXT[k]+(r.trendSrc==="mw"?" (berechnet aus dem Marktwertverlauf der letzten 7 Tage)":" (laut Comunio)")});
+  w.innerHTML=`<svg width="20" height="20" viewBox="-12 -12 24 24" aria-hidden="true"><g transform="rotate(${TREND_ROT[k]})"><path d="M-9 -3H2V-8L10 0L2 8V3H-9Z" fill="${TREND_COL[k]}" stroke="#000" stroke-width="1.2" stroke-linejoin="round"/></g></svg>`;
+  return w; };
+const trendCol={h:"Trend",v:trendCell,s:r=>r.trend==null?-9:Number(r.trend),n:true};
 const clubCell=name=>name?el("span",{class:"clubcell"},badge(name),name):"–";
 const oppCell=(name,venue)=>name?el("span",{class:"clubcell"},badge(name),`${name} (${venue==="Heim"?"H":"A"})`):"–";
 
@@ -474,7 +478,7 @@ const drawMk=()=>{ mkBtn.textContent=onlyComp?"✓ Nur Computer":"Nur Computer";
   document.getElementById("mk-count").textContent=`${rows.length} von ${D.market.length} Spielern`; };
 mkBtn.onclick=()=>{ onlyComp=!onlyComp; try{ localStorage.setItem("mk-only-comp",onlyComp?"1":"0"); }catch(e){} drawMk(); };
 document.getElementById("mk-bar").prepend(mkBtn); drawMk();
-document.getElementById("mk-note").textContent = `Kaufempfehlung: Punkte dieser Saison doppelt gewichtet plus Vorsaison${D.prevSeason?" ("+D.prevSeason+")":""} anteilig, im Verhältnis zum Marktwert. Oberes Drittel = ja, mittleres = vielleicht, unteres oder verletzt/Reha/gesperrt = nein. Übersteigt das Gebot dein Guthaben, wird aus „ja“ ein „vielleicht“. Empfohlenes Gebot = Marktwert + 2–12 % Aufschlag. „Können sich leisten“ = Manager, deren (berechneter) Kontostand das Gebot deckt. Fahre über die Empfehlung für die Begründung. Trend: ▲ steigend, ▶ stabil, ▼ fallend, ? unbekannt (Wert von Comunio, sonst aus dem Marktwertverlauf der letzten 7 Tage).`;
+document.getElementById("mk-note").textContent = `Kaufempfehlung: Punkte dieser Saison doppelt gewichtet plus Vorsaison${D.prevSeason?" ("+D.prevSeason+")":""} anteilig, im Verhältnis zum Marktwert. Oberes Drittel = ja, mittleres = vielleicht, unteres oder verletzt/Reha/gesperrt = nein. Übersteigt das Gebot dein Guthaben, wird aus „ja“ ein „vielleicht“. Empfohlenes Gebot = Marktwert + 2–12 % Aufschlag. „Können sich leisten“ = Manager, deren (berechneter) Kontostand das Gebot deckt. Fahre über die Empfehlung für die Begründung. Trend: die Comunio-Pfeile von steil fallend (rot, nach unten) über stabil (gelb, waagerecht) bis steil steigend (grün, nach oben); ? = unbekannt. Fehlt Comunios Wert, wird er aus dem Marktwertverlauf der letzten 7 Tage angenähert.`;
 const mini=D.market.filter(m=>m.fromComputer && m.recommendation!=="nein").sort((a,b)=>recOrder[b.recommendation]-recOrder[a.recommendation]||b.rank-a.rank).slice(0,6);
 table("mini-market",mini,[mkCols[0],mkCols[2],mkCols[6],mkCols[8],mkCols[9],mkCols[10],mkCols[15]]);
 if(!mini.length) document.getElementById("mini-market").append(el("p",{class:"note"},"Aktuell keine empfehlenswerten Computer-Spieler."));
@@ -502,7 +506,7 @@ const drawSq=()=>table("t-squad",D.squads[sf.value]||[],[{h:"Spieler",v:r=>r.nam
   {h:"Beste Elf",v:r=>r.inXI?el("span",{class:"pill"},"ja"):"–",s:r=>r.inXI?1:0},
   {h:"Transfergerücht",v:rumorCell,s:r=>r.rumor?r.rumor.probability||0:-1}],{sort:5});
 sf.onchange=drawSq; drawSq();
-document.getElementById("sq-note").textContent = `Gerüchte mit geschätzter Wechselwahrscheinlichkeit${D.research.rumorsAsOf?" (Stand "+D.research.rumorsAsOf+")":""}, Rückkehrtermine${D.research.injuriesAsOf?" (Stand "+D.research.injuriesAsOf+")":""} aus Online-Quellen (kicker, transfermarkt.de, Bild, Vereinsseiten). Fahre über einen Eintrag für Details. Trend: ▲ steigend, ▶ stabil, ▼ fallend, ? unbekannt.`;
+document.getElementById("sq-note").textContent = `Gerüchte mit geschätzter Wechselwahrscheinlichkeit${D.research.rumorsAsOf?" (Stand "+D.research.rumorsAsOf+")":""}, Rückkehrtermine${D.research.injuriesAsOf?" (Stand "+D.research.injuriesAsOf+")":""} aus Online-Quellen (kicker, transfermarkt.de, Bild, Vereinsseiten). Fahre über einen Eintrag für Details. Trend: Comunio-Pfeile von steil fallend (rot) bis steil steigend (grün), ? = unbekannt.`;
 
 // ===================== Bereiche aus der Comunio Zentrale =====================
 const S=D.status||{};

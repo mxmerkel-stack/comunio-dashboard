@@ -338,27 +338,28 @@ def trend(quotes, days):
     return round((a / b - 1) * 100, 1)
 
 
-TREND_UP = {"UP", "RISING", "RISE", "POSITIVE", "PLUS", "INCREASING", "1", "+1"}
-TREND_DOWN = {"DOWN", "FALLING", "FALL", "NEGATIVE", "MINUS", "DECREASING", "-1"}
-TREND_FLAT = {"STABLE", "EQUAL", "NEUTRAL", "FLAT", "SAME", "STEADY", "NONE", "0"}
+TREND_TEXT = {"UP": 3, "RISING": 3, "POSITIVE": 3, "DOWN": -3, "FALLING": -3, "NEGATIVE": -3,
+              "STABLE": 0, "EQUAL": 0, "NEUTRAL": 0, "FLAT": 0, "SAME": 0}
 
 
 def player_trend(api_value, quotes):
-    """Trend-Pfeil wie bei Comstats: UP / FLAT / DOWN oder None (= Fragezeichen).
+    """Trend-Stufe wie bei Comunio (comunio.de-Statistiken): -5 (steil fallend) bis +5 (steil steigend), None = „?“.
 
-    Vorrang hat der Trend, den Comunio selbst liefert. Fehlt er, wird er aus dem Marktwertverlauf
-    der letzten 7 Tage abgeleitet (Quelle "mw"). Ohne beides bleibt er unbekannt."""
-    key = str(api_value).strip().upper() if api_value is not None else ""
-    if key in TREND_UP:
-        return "UP", "api"
-    if key in TREND_DOWN:
-        return "DOWN", "api"
-    if key in TREND_FLAT:
-        return "FLAT", "api"
+    Vorrang hat der Wert, den Comunio selbst liefert (Zahl oder Text). Fehlt er, wird die Stufe aus der
+    Marktwertentwicklung der letzten 7 Tage abgeleitet (Quelle "mw", nur eine Näherung)."""
+    if api_value is not None and str(api_value).strip() != "":
+        txt = str(api_value).strip().upper()
+        if txt in TREND_TEXT:
+            return TREND_TEXT[txt], "api"
+        v = num(api_value)
+        if v is not None:
+            return max(-5, min(5, int(round(v)))), "api"
     t7 = trend(quotes, 7)
     if t7 is None:
         return None, None
-    return ("UP" if t7 > 0 else "DOWN" if t7 < 0 else "FLAT"), "mw"
+    a = abs(t7)
+    lvl = 5 if a >= 12 else 4 if a >= 8 else 3 if a >= 5 else 2 if a >= 2.5 else 1 if a > 0 else 0
+    return (lvl if t7 >= 0 else -lvl), "mw"
 
 
 def age(dob, today=None):
