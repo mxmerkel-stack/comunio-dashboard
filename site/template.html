@@ -663,7 +663,7 @@ table("t-forecast",D.forecast||[],[{h:"#",v:r=>r.rank_final,n:true},{h:"Manager"
   add("Streuung je Manager-Spieltag",`Modell ${f1(mg.sd_pred)} · echt ${f1(mg.rmse)}`,`Zusatzstreuung ${f1(P.sig_extra)} Punkte je Spieltag`);
   add("Mannschaftseffekt je Tor Differenz",Object.entries(P.beta||{}).map(([k,v])=>({keeper:"TW",defender:"AB",midfielder:"MF",striker:"ST"}[k]+" "+f3(v))).join(" · "),`Joker ${f3(P.beta_sub)} – Punkte mehr je Tor, das der eigene Verein besser abschneidet als üblich`);
   add("Gemeinsame Schwankung",`Verein ${f3(P.sig_c)} · Spielerniveau ${f3(P.sig_lvl)}`,"Vereins-Schock je Spiel (trifft alle Startelfspieler) und bleibender Fehler im geschätzten Spielerniveau");
-  add("Kaderwechsel je Spieltag",C.drift?`± ${f3(C.drift.sd)} Pkt.`:"–","Wie stark sich die beste Elf durch Transfers von Spieltag zu Spieltag verändert hat (gleicht sich in der Simulation teilweise aus)");
+  add("Kaderwechsel je Spieltag",C.drift?`± ${f3(C.drift.sd)} Pkt. · Ausgleich ${pct(1-(C.drift.rho??0.9))}`:"–","Wie stark sich die beste Elf durch Transfers von Spieltag zu Spieltag verändert hat, und welcher Anteil einer Abweichung je Spieltag wieder verschwindet (aus aufeinanderfolgenden Änderungen geschätzt)");
   add("Heimvorteil / Streuung Tordifferenz",`${f3(C.hfa)} / ${f3(C.sdGd)} Tore`);
   box.append(kv);
   const rec=C.managerRecords||[];

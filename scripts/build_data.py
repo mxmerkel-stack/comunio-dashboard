@@ -802,11 +802,12 @@ def analyze(raw, names, ids, me_id, squads, market, md_rows, pts_of, balance_of,
         e_any = {pid: M.player_base(h_, pos_all[pid], means, "ACTIVE")["e_play"]
                  for pid, h_ in histories.items() if pos_all.get(pid) in M.POS_ORDER}
         e_any.update({pid: mm_["e_play"] for pid, mm_ in model.items() if mm_ and "e_play" in mm_})
-        mu_d, sd_d = S.squad_drift(owners, {uid: [str(x["id"]) for x in sq] for uid, sq in squads.items()},
-                                   e_any, pos_all) if owners else (None, None)
-        if sd_d is not None:
-            prm["sig_drift"] = round(min(3.0, sd_d), 2)
-            calib["drift"] = {"mean": round(mu_d, 2), "sd": round(sd_d, 2)}
+        dr = S.squad_drift(owners, {uid: [str(x["id"]) for x in sq] for uid, sq in squads.items()},
+                           e_any, pos_all) if owners else None
+        if dr:
+            prm["sig_drift"] = round(min(4.0, dr["sig"]), 2)
+            prm["rho_drift"] = dr["rho"]
+            calib["drift"] = dr
         rt, hfa, sd_gd = S.team_ratings(matches)
         club_names = {str(k): v for k, v in (raw.get("clubs") or {}).items()}
         for p_ in players.values():

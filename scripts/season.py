@@ -413,16 +413,29 @@ def squad_drift(owners, squads_now, model_e, positions):
         return tot - M.EMPTY_SLOT_PENALTY * (11 - len(ids))
 
     seq = sorted(owners, key=lambda k: int(k))
-    steps = []
+    steps, pairs = [], []
     for uid in squads_now:
         vals = [strength(owners[md].get(uid, set())) for md in seq] + [strength(set(squads_now[uid]))]
         vals = [v for v in vals if v is not None]
-        steps += [b - a for a, b in zip(vals, vals[1:])]
+        d = [b - a for a, b in zip(vals, vals[1:])]
+        steps += d
+        pairs += list(zip(d, d[1:]))
     if len(steps) < 5:
-        return None, None
+        return None
     mu = statistics.fmean(steps)
-    sd = math.sqrt(statistics.fmean([(s - mu) ** 2 for s in steps]))
-    return mu, sd
+    var = statistics.fmean([(x - mu) ** 2 for x in steps])
+    sd = math.sqrt(var)
+    # Ausgleich: Bei einer Stärke, die um ein eigenes Niveau schwankt (AR(1) mit rho), korrelieren
+    # aufeinanderfolgende Änderungen mit −(1−rho)/2. Daraus rho und die Stärke der einzelnen Stöße.
+    corr = None
+    if len(pairs) >= 10 and var > 0:
+        corr = statistics.fmean([(a - mu) * (b - mu) for a, b in pairs]) / var
+        rho = max(0.0, min(0.95, 1 + 2 * corr))
+    else:
+        rho = DRIFT_RHO
+    sig = sd * math.sqrt((1 + rho) / 2)
+    return {"mean": round(mu, 2), "sd": round(sd, 2), "corr": None if corr is None else round(corr, 3),
+            "rho": round(rho, 3), "sig": round(sig, 2), "n": len(steps)}
 
 
 # ---------------------------------------------------------------- Spielplan
