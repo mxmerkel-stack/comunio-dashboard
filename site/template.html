@@ -132,7 +132,7 @@ select{font:inherit;font-size:12.5px;padding:3px 5px;background:#fff;color:var(-
     <div class="kpis" id="lv-kpis"></div>
     <div class="card"><h2 id="lv-title">Livepunkte</h2><div id="lv-bars"></div></div>
     <div class="card"><h2>Tore, Karten und gezählte Spieler</h2><div id="t-lv"></div>
-      <p class="note">Tore, Gelbe und Rote Karten der aufgestellten Spieler am laufenden Spieltag (Gelb-Rot zählt als Rot). Gezählt = Spieler mit Punktwertung, von allen aufgestellten. Die Daten werden während der Spiele etwa alle 10 Minuten bei Comunio abgerufen; der Knopf lädt den neuesten Abruf.</p></div>
+      <p class="note">Tore, Gelbe und Rote Karten der aufgestellten Spieler am laufenden Spieltag (Gelb-Rot zählt als Rot). Gezählt = Spieler mit Punktwertung, von allen aufgestellten. „Aktualisieren“ holt die Punkte sofort bei Comunio (Live-Dienst). Ist der Dienst nicht erreichbar, zeigt die Seite den letzten automatischen Abruf (während der Spiele etwa alle 10 Minuten).</p></div>
     <div class="card"><h2>Aufstellungen live</h2><div style="margin-bottom:8px"><select id="lv-filter"></select></div><div id="t-lv-players"></div></div>
     <div class="card"><h2>Spiele</h2><div id="t-lv-fx"></div></div>
   </section>
@@ -596,8 +596,26 @@ document.getElementById("opp-note").textContent=`Positiv = gegen diesen Gegner p
   const stand=document.getElementById("lv-stand"), btn=document.getElementById("lv-refresh");
   function keyB64(){ try{ const k=sessionStorage.getItem("cz-live-key"); if(k) return k; }catch(e){}
     try{ for(let i=0;i<localStorage.length;i++){ const n=localStorage.key(i); if(n&&n.startsWith("cz-key-")) return localStorage.getItem(n); } }catch(e){} return null; }
+  async function decryptP(P,k){ const key=await crypto.subtle.importKey("raw",b64(k),"AES-GCM",false,["decrypt"]);
+    return JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({name:"AES-GCM",iv:b64(P.iv)},key,b64(P.data)))); }
+  async function loadWorker(k){
+    const acc=[...new Uint8Array(await crypto.subtle.digest("SHA-256",new TextEncoder().encode("comunio-live:"+k)))].map(b=>b.toString(16).padStart(2,"0")).join("");
+    const call=async q=>{ const r=await fetch(D.liveWorker+"/?"+q,{headers:{"X-Access":acc},cache:"no-store"}); const j=await r.json(); if(!r.ok||j.error) throw new Error(j.error||("HTTP "+r.status)); return decryptP(j,k); };
+    const L=await call("part=points");
+    const ids=[...new Set(L.managers.flatMap(m=>(m.players||[]).map(p=>p.id)))];
+    const chunks=[]; for(let i=0;i<ids.length;i+=40) chunks.push(ids.slice(i,i+40));
+    const parts=await Promise.all(chunks.map(c=>call(`part=stats&md=${L.matchday}&ids=${c.join(",")}`).catch(()=>({stats:{}}))));
+    const S=Object.assign({},...parts.map(p=>p.stats||{}));
+    L.managers.forEach(m=>{ (m.players||[]).forEach(p=>Object.assign(p,{goals:0,yellow:0,red:0,yellowRed:0},S[p.id]||{}));
+      const ps=m.players||[]; m.goals=ps.reduce((a,p)=>a+p.goals,0); m.red=ps.reduce((a,p)=>a+p.red+p.yellowRed,0);
+      m.yellow=ps.reduce((a,p)=>a+p.yellow,0); m.counted=ps.filter(p=>p.livePoints!=null).length; m.lineupSize=ps.length; });
+    L.managers.sort((a,b)=>(b.livePoints||0)-(a.livePoints||0));
+    return L;
+  }
   async function loadLive(){
     const t=Date.now();
+    const kw=keyB64();
+    if(D.liveWorker&&kw){ try{ return await loadWorker(kw); }catch(e){ console.warn("Live-Dienst:",e); } }
     try{ const r=await fetch("live.enc.json?t="+t,{cache:"no-store"});
       if(r.ok){ const P=await r.json(); const k=keyB64(); if(!k) throw new Error("Kein Schlüssel – bitte einmal neu anmelden.");
         const key=await crypto.subtle.importKey("raw",b64(k),"AES-GCM",false,["decrypt"]);
@@ -608,7 +626,7 @@ document.getElementById("opp-note").textContent=`Positiv = gegen diesen Gegner p
   }
   function render(L){
     const when=new Date(L.fetchedAt);
-    stand.textContent=`Stand ${when.toLocaleString("de-DE",{weekday:"short",day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})} · ${L.finished?"Spieltag beendet":L.started?"Spieltag läuft":"Spieltag noch nicht gestartet"}`;
+    stand.textContent=`Stand ${when.toLocaleString("de-DE",{weekday:"short",day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit",second:L.source==="worker"?"2-digit":undefined})}${L.source==="worker"?" (Echtzeit)":" (letzter automatischer Abruf)"} · ${L.finished?"Spieltag beendet":L.started?"Spieltag läuft":"Spieltag noch nicht gestartet"}`;
     document.getElementById("lv-title").textContent=`Livepunkte ${L.matchday||""}. Spieltag`;
     const M=L.managers||[]; const meM=M.find(m=>m.id===String(L.me))||{}; const rank=M.findIndex(m=>m.id===String(L.me))+1;
     const kk=document.getElementById("lv-kpis"); kk.textContent="";
