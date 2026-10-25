@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Push-Nachrichten aufs iPhone über ntfy (https://ntfy.sh). Secret NTFY_TOPIC = dein geheimer Themenname.
 
-  --mode lineup   Erinnerung vor dem Aufstellungsschluss: Warnungen und Tausch-Vorschläge
+  --mode eve      Abend vor dem Spieltag (20 Uhr): alle Warnungen und Tausch-Vorschläge, sonst "alles in Ordnung"
+  --mode alarm    3 Std. vor Anpfiff: nur wenn das Konto im Minus ist oder eine Position unbesetzt/falsch besetzt ist
   --mode auctions Abend-Hinweis: welche empfohlenen Angebote in den nächsten ~12 Stunden enden
 Doppelte Meldungen werden über data/notified.json verhindert. Keine Beträge in den Nachrichten.
 """
@@ -42,25 +43,38 @@ def once(key, text):
     return True
 
 
-def lineup(d):
+def eve(d):
     chk, nm = d.get("checks") or {}, d.get("nextMatch") or {}
     md = nm.get("md") or chk.get("md")
     warn = [i for i in chk.get("issues", []) if i["level"] == "warn"]
     swaps = [s for s in (nm.get("swaps") or []) if s.get("gain", 0) >= 1.0 and s.get("in")]
-    if not warn and not swaps:
-        print("Alles in Ordnung, keine Nachricht.")
-        return
-    lines = []
-    for w in warn:
-        t = w["title"]
-        lines.append("• " + (t.split(":")[0] if t.startswith("Kontostand") else t))
+    lines = ["• " + (w["title"].split(":")[0] if w["title"].startswith("Kontostand") else w["title"]) for w in warn]
     for s in swaps[:3]:
-        lines.append(f"• {s.get('out') or 'freie Position'} → {s['in']} ({f1(s['gain'])} Pkt.)")
+        lines.append(f"• Tausch: {s.get('out') or 'freie Position'} → {s['in']} ({f1(s['gain'])} Pkt.)")
+    if not lines:
+        lines = ["✓ Keine Warnungen, Aufstellung und Konto in Ordnung."]
     text = "\n".join(lines)
-    if not once(f"lineup-{md}", text):
+    if not once(f"eve-{md}", text):
         return
-    title = f"Comunio {md}. Spieltag: " + (f"{len(warn)} Warnung{'en' if len(warn) != 1 else ''}" if warn else "Aufstellung verbessern")
-    ok = ntfy(title, text, priority=5 if warn else 3, click=SITE + "#nextmatch", tags=["warning" if warn else "soccer"])
+    title = f"Comunio {md}. Spieltag morgen: " + (f"{len(warn)} Warnung{'en' if len(warn) != 1 else ''}" if warn else
+                                                  "Aufstellung verbessern" if swaps else "alles in Ordnung")
+    ok = ntfy(title, text, priority=4 if warn else 3, click=SITE + "#nextmatch", tags=["warning" if warn else "soccer"])
+    print("Push gesendet." if ok else "Kein Push (NTFY_TOPIC fehlt oder Fehler).")
+
+
+def alarm(d):
+    chk, nm = d.get("checks") or {}, d.get("nextMatch") or {}
+    md = nm.get("md") or chk.get("md")
+    keys = ("Kontostand im Minus", "unbesetzte Position", "falschen Position", "Keine Aufstellung")
+    hot = [i for i in chk.get("issues", []) if i["level"] == "warn" and any(k in i["title"] for k in keys)]
+    if not hot:
+        print("Kein Minus, keine leere Position – keine Nachricht.")
+        return
+    text = "\n".join("• " + (w["title"].split(":")[0] if w["title"].startswith("Kontostand") else w["title"]) for w in hot)
+    text += "\nAufstellungsschluss ist in ca. 3 Stunden."
+    if not once(f"alarm-{md}", text):
+        return
+    ok = ntfy(f"⚠️ Comunio {md}. Spieltag: jetzt handeln", text, priority=5, click=SITE + "#nextmatch", tags=["rotating_light"])
     print("Push gesendet." if ok else "Kein Push (NTFY_TOPIC fehlt oder Fehler).")
 
 
@@ -87,9 +101,9 @@ def auctions(d):
 
 
 def main():
-    mode = sys.argv[sys.argv.index("--mode") + 1] if "--mode" in sys.argv else "lineup"
+    mode = sys.argv[sys.argv.index("--mode") + 1] if "--mode" in sys.argv else "eve"
     d = json.loads((DATA / "dashboard.json").read_text())
-    {"lineup": lineup, "auctions": auctions}[mode](d)
+    {"eve": eve, "alarm": alarm, "auctions": auctions}[mode](d)
 
 
 if __name__ == "__main__":

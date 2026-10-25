@@ -1,19 +1,21 @@
 name: Push-Erinnerungen
 
 # Schickt Nachrichten aufs iPhone (über ntfy.sh, Secret NTFY_TOPIC):
-#  - vor dem Aufstellungsschluss: Warnungen und Tausch-Vorschläge (stündlich geprüft, Abruf nur kurz vor Anpfiff)
+#  - Abend vor dem Spieltag (20 Uhr): Warnungen und Tausch-Vorschläge
+#  - 3 Std. vor Anpfiff: nur bei negativem Konto oder unbesetzter Position
 #  - abends: empfohlene Angebote, die bald ablaufen
 on:
   schedule:
-    - cron: "11 5-19 * * *"   # Prüfung ohne Comunio-Zugang, ob der erste Anpfiff in den nächsten 2,5 Std. liegt
+    - cron: "7 17-20 * * *"   # Abend vor dem Spieltag: gesendet wird nur um 20 Uhr (Berlin)
+    - cron: "11,41 6-19 * * *" # 3 Std. vor Anpfiff: nur bei Minus oder leerer Position
     - cron: "17 16 * * *"     # Abendhinweis zu auslaufenden Angeboten
   workflow_dispatch:
     inputs:
       mode:
-        description: "Test: lineup oder auctions (sendet sofort, ohne Zeitprüfung)"
+        description: "Test (sendet sofort, ohne Zeitprüfung): eve, alarm oder auctions"
         type: choice
-        options: [lineup, auctions]
-        default: lineup
+        options: [eve, alarm, auctions]
+        default: eve
 
 permissions:
   contents: read
@@ -38,20 +40,24 @@ jobs:
             echo "mode=${{ inputs.mode }}" >> "$GITHUB_OUTPUT"; echo "force=true" >> "$GITHUB_OUTPUT"
           elif [ "${{ github.event.schedule }}" = "17 16 * * *" ]; then
             echo "mode=auctions" >> "$GITHUB_OUTPUT"; echo "force=false" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event.schedule }}" = "11,41 6-19 * * *" ]; then
+            echo "mode=alarm" >> "$GITHUB_OUTPUT"; echo "force=false" >> "$GITHUB_OUTPUT"
           else
-            echo "mode=lineup" >> "$GITHUB_OUTPUT"; echo "force=false" >> "$GITHUB_OUTPUT"
+            echo "mode=eve" >> "$GITHUB_OUTPUT"; echo "force=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Anpfiff in Sicht?
+      - name: Zeitpunkt prüfen
         id: gate
-        if: steps.mode.outputs.mode == 'lineup' && steps.mode.outputs.force != 'true'
+        if: steps.mode.outputs.mode != 'auctions' && steps.mode.outputs.force != 'true'
+        env:
+          MODE: ${{ steps.mode.outputs.mode }}
         run: python scripts/notify_gate.py
 
       - name: Entscheiden
         id: go
         run: |
           if [ -z "$NTFY_TOPIC" ]; then echo "run=false" >> "$GITHUB_OUTPUT"; echo "NTFY_TOPIC nicht gesetzt – nichts zu tun"; exit 0; fi
-          if [ "${{ steps.mode.outputs.mode }}" = "lineup" ] && [ "${{ steps.mode.outputs.force }}" != "true" ]; then
+          if [ "${{ steps.mode.outputs.mode }}" != "auctions" ] && [ "${{ steps.mode.outputs.force }}" != "true" ]; then
             echo "run=${{ steps.gate.outputs.run }}" >> "$GITHUB_OUTPUT"
           else
             echo "run=true" >> "$GITHUB_OUTPUT"
