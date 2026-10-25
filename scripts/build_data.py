@@ -92,6 +92,23 @@ def build(raw, history):
                 if r.get("season") == "cur" and (not since or (r.get("date") or "") >= since):
                     g += num(r.get("goals"), 0) or 0
         s["goals"] = int(g)
+    # Torschützenliste: alle Spieler in den Kadern der Manager, Tore dieser Saison
+    POS_DE = {"keeper": "Tor", "defender": "Abwehr", "midfielder": "Mittelfeld", "striker": "Sturm"}
+    scorers = []
+    for uid, ps in (raw.get("squads") or {}).items():
+        for p in ps:
+            rows = [r for r in stats_all.get(str(p.get("id")), []) if r.get("season") == "cur"]
+            since = str(p.get("purchaseDate") or "")[:10]
+            goals = sum(num(r.get("goals"), 0) or 0 for r in rows)
+            if not goals:
+                continue
+            scorers.append({"id": str(p.get("id")), "name": p.get("name"), "club": p.get("club"),
+                            "position": POS_DE.get(p.get("position"), p.get("position")), "ownerId": str(uid),
+                            "owner": names.get(str(uid), "?"), "goals": int(goals),
+                            "goalsOwned": int(sum(num(r.get("goals"), 0) or 0 for r in rows if not since or (r.get("date") or "") >= since)),
+                            "games": sum(1 for r in rows if r.get("points") is not None or r.get("in")),
+                            "points": num(p.get("points"))})
+    scorers.sort(key=lambda r: (-r["goals"], -r["goalsOwned"], r["name"] or ""))
     pts_of = {s["id"]: s["points"] for s in standings}
     tv_of = {s["id"]: s["teamValue"] for s in standings}
 
@@ -335,6 +352,7 @@ def build(raw, history):
                "deviation": me_acc["deviation"]},
         "managers": [{"id": i, "name": names[i]} for i in ids],
         "standings": standings,
+        "scorers": scorers,
         "matchdays": md_rows,
         "alltime": alltime,
         "seasons": seasons,

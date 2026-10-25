@@ -71,6 +71,9 @@ def main():
                     h = get(f"/api/players/{pid}/match-statistics-history")
                     for e in h.get("matchStatisticsCollection") or []:
                         md = D(e.get("matchday"))
+                        if not os.environ.get("_probed"):
+                            os.environ["_probed"] = "1"
+                            print("::notice title=Felder Spielstatistik::" + ", ".join(f"{k}:{type(v).__name__}" for k, v in e.items())[:1500])
                         if md.get("seasonEnd") == 9999999 and str(md.get("key")) == str(md_key):
                             g, y, r, yr, pts = num(e.get("goals")), num(e.get("yellow")), num(e.get("red")), num(e.get("yellowRed")), num(e.get("points"))
                             break

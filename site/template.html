@@ -96,6 +96,8 @@ select{font:inherit;font-size:12.5px;padding:3px 5px;background:#fff;color:var(-
   </section>
   <section id="s-tabelle">
     <div class="card"><h2>Saisontabelle</h2><div id="t-standings"></div><p class="note">Tore = Treffer der Spieler im aktuellen Kader in dieser Saison, gezählt ab ihrem Kaufdatum. Ob der Spieler dabei aufgestellt war und Tore verkaufter Spieler sind nicht enthalten.</p></div>
+    <div class="card"><h2>Torschützen</h2><div style="margin-bottom:8px"><select id="sc-filter"></select></div><div id="t-scorers"></div>
+      <p class="note">Alle Spieler in den Kadern der Manager mit Toren in dieser Saison. „Für den Besitzer“ zählt nur Tore seit dem Kauf. Ob der Spieler dabei aufgestellt war, ist nicht berücksichtigt.</p></div>
     <div class="card"><h2>Spieltage</h2><div id="t-matchdays"></div></div>
     <div class="card"><h2>Prognose Endtabelle</h2><div id="t-forecast"></div><p class="note" id="fc-note"></p></div>
     <div class="card"><h2>Monatswertung</h2><div id="t-monthly"></div></div>
@@ -276,6 +278,18 @@ const k=document.getElementById("kpis");
 const stCols=[{h:"#",v:r=>r.rank,n:true},{h:"Manager",v:r=>r.name},{h:"Punkte",v:r=>int(r.points),s:r=>r.points,n:true},{h:"Rückstand",v:r=>r.gap?"−"+r.gap:"–",s:r=>r.gap,n:true},{h:"Tore",v:r=>r.goals??"–",s:r=>r.goals??-1,n:true},{h:"Teamwert",v:r=>mio(r.teamValue),s:r=>r.teamValue,n:true}];
 table("t-standings",D.standings,stCols,{me:isMe});
 table("mini-table",D.standings,stCols.slice(0,4),{me:isMe});
+(function(){ const sc=document.getElementById("sc-filter"); const S=D.scorers||[];
+  sc.append(el("option",{value:""},"Ganze Community")); sc.append(el("option",{value:D.me.id},"Mein Kader"));
+  D.managers.filter(m=>m.id!==D.me.id).forEach(m=>sc.append(el("option",{value:m.id},m.name)));
+  let first=true; try{ const v=localStorage.getItem("sc-filter"); if(v!=null) sc.value=v; }catch(e){}
+  const draw=()=>{ const rows=sc.value?S.filter(r=>r.ownerId===sc.value):S;
+    table("t-scorers",rows,[{h:"#",v:r=>rows.indexOf(r)+1,n:true},{h:"Spieler",v:r=>el("span",{class:"clubcell"},badge(r.club),r.name),s:r=>r.name},
+      {h:"Position",v:r=>r.position||"–"},{h:"Besitzer",v:r=>r.owner},{h:"Tore",v:r=>el("strong",{},String(r.goals)),s:r=>r.goals,n:true},
+      {h:"für den Besitzer",v:r=>r.goalsOwned,s:r=>r.goalsOwned,n:true},{h:"Spiele",v:r=>r.games,n:true},{h:"Punkte",v:r=>r.points??"–",s:r=>r.points||0,n:true}],
+      {me:r=>r.ownerId===D.me.id});
+    if(!rows.length) document.getElementById("t-scorers").append(el("p",{class:"note"},"Noch keine Tore."));
+    try{ localStorage.setItem("sc-filter",sc.value); }catch(e){} };
+  sc.onchange=draw; draw(); })();
 
 // Spieltage-Matrix
 (function(){
