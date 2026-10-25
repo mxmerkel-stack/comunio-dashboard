@@ -66,20 +66,19 @@ def main():
                 continue
             pid = str(p["id"])
             if pid not in stats_cache:
-                g = y = r = yr = pts = None
+                g = y = r = yr = pts = pg = pm = ps_ = None
                 try:
                     h = get(f"/api/players/{pid}/match-statistics-history")
                     for e in h.get("matchStatisticsCollection") or []:
                         md = D(e.get("matchday"))
-                        if not os.environ.get("_probed"):
-                            os.environ["_probed"] = "1"
-                            print("::notice title=Felder Spielstatistik::" + ", ".join(f"{k}:{type(v).__name__}" for k, v in e.items())[:1500])
                         if md.get("seasonEnd") == 9999999 and str(md.get("key")) == str(md_key):
                             g, y, r, yr, pts = num(e.get("goals")), num(e.get("yellow")), num(e.get("red")), num(e.get("yellowRed")), num(e.get("points"))
+                            pg, pm, ps_ = num(e.get("penaltyGoals")), num(e.get("penaltiesMissed")), num(e.get("penaltiesSaved"))
                             break
                 except SystemExit:
                     pass
-                stats_cache[pid] = {"goals": g or 0, "yellow": y or 0, "red": r or 0, "yellowRed": yr or 0, "points": pts}
+                stats_cache[pid] = {"goals": g or 0, "yellow": y or 0, "red": r or 0, "yellowRed": yr or 0, "points": pts,
+                                    "penGoals": pg or 0, "penMissed": pm or 0, "penSaved": ps_ or 0}
                 time.sleep(0.12)
             m["players"].append({"id": pid, "name": p.get("name"), "club": D(p.get("club")).get("name"),
                                  "slot": num(slot), "type": p.get("type"),
@@ -93,6 +92,9 @@ def main():
         m["goals"] = sum(p["goals"] for p in ps)
         m["red"] = sum(p["red"] + p["yellowRed"] for p in ps)
         m["yellow"] = sum(p["yellow"] for p in ps)
+        m["penGoals"] = sum(p["penGoals"] for p in ps)
+        m["penMissed"] = sum(p["penMissed"] for p in ps)
+        m["penSaved"] = sum(p["penSaved"] for p in ps)
         m["counted"] = m.get("scored") if m.get("scored") is not None else sum(1 for p in ps if p.get("matchStatus") not in (None, "pre"))
         m["lineupSize"] = 11
         m["empty"] = max(0, 11 - len(ps))
