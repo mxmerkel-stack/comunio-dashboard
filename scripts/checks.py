@@ -31,6 +31,7 @@ def slot_types(tactic):
 def lineup_checks(raw, nm, balance, offers, squad_rows):
     """nm: nextMatch-Block aus dem Dashboard; squad_rows: eigener Kader mit Status/Prognose."""
     issues = []
+    out_names = []  # Spieler in der Aufstellung, die ausfallen (verletzt/gesperrt/…)
     lu = raw.get("lineup") or {}
     slots = lu.get("slots") or []
     by_id = {r["id"]: r for r in (nm.get("squad") or [])}
@@ -63,6 +64,7 @@ def lineup_checks(raw, nm, balance, offers, squad_rows):
         r = by_id.get(s["id"]) or {}
         inj = (own.get(s["id"]) or {}).get("injury") or {}
         if st in OUT:
+            out_names.append(f"{s['name']} ({OUT[st]})")
             ret = f" Erwartete Rückkehr: {inj['return']}." if inj.get("return") else ""
             issues.append({"level": "warn", "title": f"{s['name']} ist {OUT[st]}",
                            "detail": f"Fällt voraussichtlich aus und holt 0 Punkte.{ret} {s.get('statusInfo') or ''}".strip()})
@@ -86,4 +88,6 @@ def lineup_checks(raw, nm, balance, offers, squad_rows):
                                      f"Erwartet {f1(top)} statt {f1(now)} Punkte."})
     warn = sum(1 for i in issues if i["level"] == "warn")
     return {"md": nm.get("md"), "deadline": nm.get("date"), "started": nm.get("started"), "balance": balance,
-            "issues": issues, "warnings": warn, "best": best}
+            "issues": issues, "warnings": warn, "best": best,
+            "emptySlots": len(empty) if slots else None, "balanceOk": None if balance is None else balance >= 0,
+            "outInLineup": out_names, "lineupKnown": bool(slots)}

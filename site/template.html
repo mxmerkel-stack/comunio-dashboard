@@ -43,6 +43,7 @@ section{display:none}section.on{display:block}
 .kpi{background:var(--panel);padding:8px 12px}
 .kpi .l{color:var(--muted);font-size:10.5px;text-transform:uppercase;letter-spacing:.06em}
 .kpi .v{font-size:18px;font-weight:700;margin-top:1px;font-variant-numeric:tabular-nums;color:#133a0d}
+.kpi.bad .v{color:var(--bad)}
 .kpi .h{color:var(--muted);font-size:11px}
 .card{background:var(--panel);border:1px solid #6d9b5c;padding:0 12px 12px;margin-bottom:14px;overflow-x:auto}
 .card h2{font-size:14px;margin:0 -12px 10px;padding:7px 12px;color:#fff;font-weight:700;
@@ -354,9 +355,14 @@ const k=document.getElementById("kpis");
  ["Teamwert", mio(D.me.teamValue), ""],
  ["Kreditrahmen", D.status&&D.status.credit!=null? eur(D.status.credit):"–", "laut Comunio"],
  ["Aufstellung", D.status? (D.status.lineupNow??0).toLocaleString("de-DE",{maximumFractionDigits:1})+" Pkt.":"–", D.status&&D.status.lineupGain>0.05? `beste Elf: ${(D.status.lineupBest).toLocaleString("de-DE",{maximumFractionDigits:1})} (${D.status.formationBest})` : "beste mögliche Elf"],
+ ...(()=>{ const c=D.checks||{}; const ok=(t,good,txt,h)=>[t,(good?"✓ ":"✗ ")+txt,h,good?"":"bad"];
+   if(!c.lineupKnown) return [["Aufstellung prüfen","–","keine Aufstellung gefunden","bad"]];
+   return [ok("Unbesetzte Position",c.emptySlots===0,c.emptySlots===0?"Nein":"Ja ("+c.emptySlots+")",c.emptySlots?`−${4*c.emptySlots} Punkte`:"alle 11 Plätze besetzt"),
+     ok("Kontostand positiv",c.balanceOk!==false,c.balanceOk===false?"Nein":"Ja",c.balanceOk===false?"Im Minus gibt es keine Punkte":"Spieltag zählt"),
+     ok("Ausfälle in der Aufstellung",!(c.outInLineup||[]).length,(c.outInLineup||[]).length?"Ja ("+c.outInLineup.length+")":"Nein",(c.outInLineup||[]).join(", ")||"keiner verletzt oder gesperrt")]; })(),
  ["Nächster Spieltag", D.status&&D.status.nextMd? D.status.nextMd+".":"–", D.status&&D.status.nextDate? dt(D.status.nextDate):""],
  ["Nächste Transfers", dt(D.nextTransfers), ""]
-].forEach(([l,v,h])=>k.append(el("div",{class:"kpi"+(["Kontostand","Kreditrahmen"].includes(l)?" money":"")},el("div",{class:"l"},l),el("div",{class:"v"},v),el("div",{class:"h"},h))));
+].forEach(([l,v,h,cls])=>k.append(el("div",{class:"kpi"+(["Kontostand","Kreditrahmen"].includes(l)?" money":"")+(cls?" "+cls:"")},el("div",{class:"l"},l),el("div",{class:"v"},v),el("div",{class:"h"},h))));
 
 // Tabelle
 const stCols=[{h:"#",v:r=>r.rank,n:true},{h:"Manager",v:r=>r.name},{h:"Punkte",v:r=>int(r.points),s:r=>r.points,n:true},{h:"Rückstand",v:r=>r.gap?"−"+r.gap:"–",s:r=>r.gap,n:true},{h:"Tore",v:r=>r.goals??"–",s:r=>r.goals??-1,n:true},{h:"Teamwert",v:r=>mio(r.teamValue),s:r=>r.teamValue,n:true}];
