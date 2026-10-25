@@ -2,6 +2,7 @@
 """Push-Nachrichten aufs iPhone über ntfy (https://ntfy.sh). Secret NTFY_TOPIC = dein geheimer Themenname.
 
   --mode eve      Abend vor dem Spieltag (20 Uhr): alle Warnungen und Tausch-Vorschläge, sonst "alles in Ordnung"
+  --mode result  Spieltagsergebnis: deine Gesamtpunkte, sobald alle Punkte feststehen (Spieltag aus Umgebungsvariable MD)
   --mode alarm    3 Std. vor Anpfiff: nur wenn das Konto im Minus ist oder eine Position unbesetzt/falsch besetzt ist
   --mode auctions Abend-Hinweis: welche empfohlenen Angebote in den nächsten ~12 Stunden enden
 Doppelte Meldungen werden über data/notified.json verhindert. Keine Beträge in den Nachrichten.
@@ -78,6 +79,38 @@ def alarm(d):
     print("Push gesendet." if ok else "Kein Push (NTFY_TOPIC fehlt oder Fehler).")
 
 
+def result(d):
+    mds = d.get("matchdays") or []
+    ids = [s["id"] for s in d.get("standings") or []]
+    played = (d.get("status") or {}).get("played") or 0
+    want = os.environ.get("MD", "").strip()
+    cand = [m for m in mds if all(m["points"].get(i) is not None for i in ids)]
+    if want:
+        cand = [m for m in cand if str(m["key"]) == want]
+    if not cand:
+        print("Punkte des Spieltags noch nicht vollständig – später erneut.")
+        return
+    m = max(cand, key=lambda x: x["key"])
+    if not FORCE and played < m["key"]:
+        print("Comunio hat den Spieltag noch nicht abgeschlossen – später erneut.")
+        return
+    me = d["me"]["id"]
+    mine = m["points"][me]
+    order = sorted(ids, key=lambda i: -m["points"][i])
+    rank = 1 + sum(1 for i in ids if m["points"][i] > mine)
+    best = m["points"][order[0]]
+    names = {s["id"]: s["name"] for s in d["standings"]}
+    top = [names[i] for i in ids if m["points"][i] == best]
+    me_st = next(s for s in d["standings"] if s["id"] == me)
+    lines = [f"Platz {rank} von {len(ids)} am Spieltag" + (" – Spieltagssieg!" if rank == 1 else f" (Bester: {', '.join(top)} mit {best})"),
+             f"Gesamtwertung: Platz {me_st['rank']}, " + ("Tabellenführer" if not me_st["gap"] else f"{me_st['gap']} Punkte hinter Platz 1")]
+    text = "\n".join(lines)
+    if not once(f"result-{m['key']}", text):
+        return
+    ok = ntfy(f"Comunio {m['key']}. Spieltag: {mine} Punkte", text, priority=3, click=SITE + "#tabelle", tags=["trophy" if rank == 1 else "soccer"])
+    print("Push gesendet." if ok else "Kein Push (NTFY_TOPIC fehlt oder Fehler).")
+
+
 def auctions(d):
     now = datetime.now(timezone.utc)
     rows = []
@@ -103,7 +136,7 @@ def auctions(d):
 def main():
     mode = sys.argv[sys.argv.index("--mode") + 1] if "--mode" in sys.argv else "eve"
     d = json.loads((DATA / "dashboard.json").read_text())
-    {"eve": eve, "alarm": alarm, "auctions": auctions}[mode](d)
+    {"eve": eve, "alarm": alarm, "result": result, "auctions": auctions}[mode](d)
 
 
 if __name__ == "__main__":

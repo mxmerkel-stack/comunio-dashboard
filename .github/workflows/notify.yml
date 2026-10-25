@@ -9,12 +9,13 @@ on:
     - cron: "7 17-20 * * *"   # Abend vor dem Spieltag: gesendet wird nur um 20 Uhr (Berlin)
     - cron: "11,41 6-19 * * *" # 3 Std. vor Anpfiff: nur bei Minus oder leerer Position
     - cron: "17 16 * * *"     # Abendhinweis zu auslaufenden Angeboten
+    - cron: "13,43 5-9,17-23 * * *" # Spieltagsergebnis, sobald alle Spiele beendet und die Punkte da sind
   workflow_dispatch:
     inputs:
       mode:
-        description: "Test (sendet sofort, ohne Zeitprüfung): eve, alarm oder auctions"
+        description: "Test (sendet sofort, ohne Zeitprüfung): eve, alarm, result oder auctions"
         type: choice
-        options: [eve, alarm, auctions]
+        options: [eve, alarm, result, auctions]
         default: eve
 
 permissions:
@@ -40,11 +41,20 @@ jobs:
             echo "mode=${{ inputs.mode }}" >> "$GITHUB_OUTPUT"; echo "force=true" >> "$GITHUB_OUTPUT"
           elif [ "${{ github.event.schedule }}" = "17 16 * * *" ]; then
             echo "mode=auctions" >> "$GITHUB_OUTPUT"; echo "force=false" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event.schedule }}" = "13,43 5-9,17-23 * * *" ]; then
+            echo "mode=result" >> "$GITHUB_OUTPUT"; echo "force=false" >> "$GITHUB_OUTPUT"
           elif [ "${{ github.event.schedule }}" = "11,41 6-19 * * *" ]; then
             echo "mode=alarm" >> "$GITHUB_OUTPUT"; echo "force=false" >> "$GITHUB_OUTPUT"
           else
             echo "mode=eve" >> "$GITHUB_OUTPUT"; echo "force=false" >> "$GITHUB_OUTPUT"
           fi
+
+      - name: Bereits gemeldet (Zwischenspeicher)
+        uses: actions/cache/restore@v4
+        with:
+          path: data/notified.json
+          key: notified-${{ github.run_id }}
+          restore-keys: notified-
 
       - name: Zeitpunkt prüfen
         id: gate
@@ -66,14 +76,6 @@ jobs:
       - name: Abhängigkeiten
         if: steps.go.outputs.run == 'true'
         run: pip install -r requirements.txt
-
-      - name: Bereits gemeldet (Zwischenspeicher)
-        if: steps.go.outputs.run == 'true'
-        uses: actions/cache/restore@v4
-        with:
-          path: data/notified.json
-          key: notified-${{ github.run_id }}
-          restore-keys: notified-
 
       - name: Verlauf laden (verschlüsselt)
         if: steps.go.outputs.run == 'true'
@@ -101,6 +103,7 @@ jobs:
         if: steps.go.outputs.run == 'true'
         env:
           FORCE: ${{ steps.mode.outputs.force }}
+          MD: ${{ steps.gate.outputs.md }}
         run: python scripts/push_ntfy.py --mode ${{ steps.mode.outputs.mode }}
 
       - name: Gemeldetes merken
