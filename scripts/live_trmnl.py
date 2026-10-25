@@ -135,7 +135,10 @@ def main():
             for e in hist.get("matchStatisticsCollection") or []:
                 md = FC.D(FC.D(e).get("matchday"))
                 if md.get("seasonEnd") == 9999999 and str(md.get("key")) == md_key:
-                    pts = e.get("points")
+                    try:
+                        pts = int(float(e.get("points")))
+                    except (TypeError, ValueError):
+                        pts = None  # noch keine Note
         except SystemExit:
             pass
         club = FC.D(FC.D(squad.get(pid)).get("club")).get("name") or ""
