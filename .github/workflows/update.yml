@@ -89,6 +89,22 @@ jobs:
           touch dist/.nojekyll
           printf 'User-agent: *\nDisallow: /\n' > dist/robots.txt
 
+      - name: Live-Daten (Spieltag)
+        continue-on-error: true
+        env:
+          COMUNIO_USER: ${{ secrets.COMUNIO_USER }}
+          COMUNIO_PASS: ${{ secrets.COMUNIO_PASS }}
+          PAGE_PASSWORD: ${{ secrets.PAGE_PASSWORD }}
+        run: |
+          python scripts/fetch_live.py
+          python scripts/encrypt_page.py --live
+
+      - name: Seite für Live-Updates merken
+        uses: actions/cache/save@v4
+        with:
+          path: dist
+          key: site-dist-${{ github.run_id }}
+
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist

@@ -65,6 +65,13 @@ a{color:#1d5c12}
 button.toggle{font:inherit;font-size:12px;font-weight:700;padding:5px 12px;cursor:pointer;color:#16300f;
   background:linear-gradient(180deg,#f4f9ef,#d5e8ca);border:1px solid #6d9b5c}
 button.toggle.on{color:#fff;background:linear-gradient(180deg,#d99a3a,#b8761f);border-color:#8a5a12}
+.lvrow{display:grid;grid-template-columns:minmax(90px,160px) 1fr 48px;align-items:center;gap:10px;padding:4px 0}
+.lvrow.me .lvname{font-weight:700}
+.lvtrack{background:#d5e8ca;height:18px;position:relative}
+.lvbar{display:block;height:100%;background:linear-gradient(180deg,#4a8a39,#2e6b23)}
+.lvrow.me .lvbar{background:linear-gradient(180deg,#d99a3a,#b8761f)}
+.lvbar.neg{background:#a3261e}
+.lvval{text-align:right;font-variant-numeric:tabular-nums}
 .clubcell{display:inline-flex;align-items:center;gap:6px}
 .crestimg{width:22px;height:22px;object-fit:contain;flex:none}
 .crest{display:inline-flex;align-items:center;justify-content:center;width:30px;height:22px;border-radius:3px 3px 11px 11px;
@@ -119,6 +126,15 @@ select{font:inherit;font-size:12.5px;padding:3px 5px;background:#fff;color:var(-
     <div class="card"><h2>Mögliche Käufer</h2><div style="margin-bottom:8px"><select id="by-filter"></select></div><div id="t-buyers"></div>
       <p class="note">Aktivität = Käufe der letzten 30 Tage im Verhältnis zum aktivsten Manager. Gebotsspanne = Mindestgebot bis +12 %, begrenzt durch den (berechneten) Kontostand.</p></div>
     <div class="card"><h2>Transfer-Pläne</h2><div id="t-plans"></div><p class="note">Kombinationen aus bis zu vier Verkaufskandidaten und bis zu drei Käufen, Gebot 3 % über Mindestgebot, Konto danach nicht negativ. Bewertet nach der besten Aufstellung (erwartete Punkte je Spieltag). Kadergrenzen sind nicht geprüft.</p></div>
+  </section>
+  <section id="s-live">
+    <div class="toolbar"><button id="lv-refresh" class="toggle" type="button">↻ Aktualisieren</button><span id="lv-stand" style="color:#e7f2dd;font-size:12px"></span></div>
+    <div class="kpis" id="lv-kpis"></div>
+    <div class="card"><h2 id="lv-title">Livepunkte</h2><div id="lv-bars"></div></div>
+    <div class="card"><h2>Tore, Karten und gezählte Spieler</h2><div id="t-lv"></div>
+      <p class="note">Tore, Gelbe und Rote Karten der aufgestellten Spieler am laufenden Spieltag (Gelb-Rot zählt als Rot). Gezählt = Spieler mit Punktwertung, von allen aufgestellten. Die Daten werden während der Spiele etwa alle 10 Minuten bei Comunio abgerufen; der Knopf lädt den neuesten Abruf.</p></div>
+    <div class="card"><h2>Aufstellungen live</h2><div style="margin-bottom:8px"><select id="lv-filter"></select></div><div id="t-lv-players"></div></div>
+    <div class="card"><h2>Spiele</h2><div id="t-lv-fx"></div></div>
   </section>
   <section id="s-nextmatch">
     <div class="kpis" id="nm-kpis"></div>
@@ -238,7 +254,7 @@ const isMe = r => String(r.id)===D.me.id;
 document.getElementById("meta").textContent = `${D.community} · Saison ${D.season||""} · Stand ${dt(D.generatedAt)}`;
 
 // Tabs
-const TABS=[["uebersicht","Übersicht"],["nextmatch","Next Match"],["aufstellung","Aufstellung"],["kader","Kader"],["markt","Transfermarkt"],["tabelle","Tabelle"],["konten","Kontostände"],["transfers","Transfers"],["ewig","Ewige Tabelle"],["siege","Siege"],["methodik","Methodik"]];
+const TABS=[["uebersicht","Übersicht"],["nextmatch","Next Match"],["live","Live"],["aufstellung","Aufstellung"],["kader","Kader"],["markt","Transfermarkt"],["tabelle","Tabelle"],["konten","Kontostände"],["transfers","Transfers"],["ewig","Ewige Tabelle"],["siege","Siege"],["methodik","Methodik"]];
 const tabs=document.getElementById("tabs");
 const CHARTS={}; function show(id){ document.querySelectorAll("section").forEach(s=>s.classList.toggle("on",s.id==="s-"+id)); tabs.querySelectorAll("button").forEach(b=>b.classList.toggle("on",b.dataset.id===id)); try{history.replaceState(null,"","#"+id)}catch(e){} Object.values(CHARTS).forEach(f=>f()); }
 TABS.forEach(([id,l])=>{ const b=el("button",{"data-id":id},l); b.onclick=()=>show(id); tabs.append(b); });
@@ -572,6 +588,60 @@ document.getElementById("opp-note").textContent=`Positiv = gegen diesen Gegner p
   (D.market||[]).forEach(m=>{ const x=m.injury; if(x&&x.url&&!seen.has(x.url)){ seen.add(x.url); src.push({t:x.source||x.url,u:x.url,p:m.name}); } });
   src.unshift({t:"Comunio (Daten der Community, nur lesend abgerufen)",u:"https://www.comunio.de",p:"alle"});
   table("t-sources",src,[{h:"Quelle",v:r=>el("a",{href:r.u,target:"_blank",rel:"noopener"},r.t)},{h:"betrifft",v:r=>r.p}]);
+})();
+
+// Live
+(function(){
+  const b64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+  const stand=document.getElementById("lv-stand"), btn=document.getElementById("lv-refresh");
+  function keyB64(){ try{ const k=sessionStorage.getItem("cz-live-key"); if(k) return k; }catch(e){}
+    try{ for(let i=0;i<localStorage.length;i++){ const n=localStorage.key(i); if(n&&n.startsWith("cz-key-")) return localStorage.getItem(n); } }catch(e){} return null; }
+  async function loadLive(){
+    const t=Date.now();
+    try{ const r=await fetch("live.enc.json?t="+t,{cache:"no-store"});
+      if(r.ok){ const P=await r.json(); const k=keyB64(); if(!k) throw new Error("Kein Schlüssel – bitte einmal neu anmelden.");
+        const key=await crypto.subtle.importKey("raw",b64(k),"AES-GCM",false,["decrypt"]);
+        const plain=await crypto.subtle.decrypt({name:"AES-GCM",iv:b64(P.iv)},key,b64(P.data));
+        return JSON.parse(new TextDecoder().decode(plain)); } }catch(e){ if(String(e.message||"").startsWith("Kein")) throw e; }
+    const r2=await fetch("live.json?t="+t,{cache:"no-store"}); if(r2.ok) return r2.json();
+    throw new Error("Noch keine Live-Daten vorhanden.");
+  }
+  function render(L){
+    const when=new Date(L.fetchedAt);
+    stand.textContent=`Stand ${when.toLocaleString("de-DE",{weekday:"short",day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})} · ${L.finished?"Spieltag beendet":L.started?"Spieltag läuft":"Spieltag noch nicht gestartet"}`;
+    document.getElementById("lv-title").textContent=`Livepunkte ${L.matchday||""}. Spieltag`;
+    const M=L.managers||[]; const meM=M.find(m=>m.id===String(L.me))||{}; const rank=M.findIndex(m=>m.id===String(L.me))+1;
+    const kk=document.getElementById("lv-kpis"); kk.textContent="";
+    const sum=f=>M.reduce((a,m)=>a+(m[f]||0),0);
+    [["Deine Livepunkte",meM.livePoints??"–",rank?`Platz ${rank} am Spieltag`:""],["Tore (alle Teams)",sum("goals"),""],["Rote Karten",sum("red"),""],
+     ["Gezählte Spieler",`${meM.counted??"–"}/${meM.lineupSize??"–"}`,"bei dir"]]
+     .forEach(([l,v,h])=>kk.append(el("div",{class:"kpi"},el("div",{class:"l"},l),el("div",{class:"v"},String(v)),el("div",{class:"h"},h))));
+    const bx=document.getElementById("lv-bars"); bx.textContent="";
+    const mx=Math.max(1,...M.map(m=>Math.abs(m.livePoints||0)));
+    M.forEach(m=>{ const v=m.livePoints||0; const me=m.id===String(L.me);
+      bx.append(el("div",{class:"lvrow"+(me?" me":"")},el("span",{class:"lvname"},m.name),
+        el("span",{class:"lvtrack"},el("span",{class:"lvbar"+(v<0?" neg":""),style:`width:${Math.max(2,Math.abs(v)/mx*100)}%`})),
+        el("strong",{class:"lvval"},String(m.livePoints??"–")))); });
+    table("t-lv",M,[{h:"#",v:r=>M.indexOf(r)+1,n:true},{h:"Manager",v:r=>r.name},{h:"Livepunkte",v:r=>el("strong",{},String(r.livePoints??"–")),s:r=>r.livePoints??-999,n:true},
+      {h:"Tore",v:r=>r.goals??"–",s:r=>r.goals||0,n:true},{h:"Rote Karten",v:r=>r.red??"–",s:r=>r.red||0,n:true,cls:r=>r.red?"neg":""},
+      {h:"Gelbe Karten",v:r=>r.yellow??"–",s:r=>r.yellow||0,n:true},{h:"Gezählt",v:r=>`${r.counted??"–"}/${r.lineupSize??"–"}`,s:r=>r.counted||0,n:true},
+      {h:"Gesamt",v:r=>int(r.total),s:r=>r.total||0,n:true}],{me:r=>r.id===String(L.me)});
+    const sel=document.getElementById("lv-filter"); const prev=sel.value; sel.textContent="";
+    M.forEach(m=>sel.append(el("option",{value:m.id},m.name))); sel.value=prev||String(L.me);
+    const drawP=()=>{ const m=M.find(x=>x.id===sel.value)||M[0]||{players:[]};
+      table("t-lv-players",m.players||[],[{h:"Spieler",v:r=>el("span",{class:"clubcell"},badge(r.club),r.name),s:r=>r.name},
+        {h:"Punkte",v:r=>el("strong",{},r.livePoints==null?"–":String(r.livePoints)),s:r=>r.livePoints??-999,n:true,cls:r=>r.livePoints<0?"neg":""},
+        {h:"Tore",v:r=>r.goals||"",s:r=>r.goals||0,n:true},{h:"Karten",v:r=>[r.yellow?"🟨".repeat(r.yellow):"",r.yellowRed?"🟨🟥":"",r.red?"🟥":""].join("")||"",s:r=>(r.red+r.yellowRed)*10+r.yellow},
+        {h:"Status",v:r=>r.livePoints==null?"noch nicht gewertet":(r.subbed?"ausgewechselt":"gewertet")}],{sort:1}); };
+    sel.onchange=drawP; drawP();
+    const kick=s=>s?new Date(s).toLocaleString("de-DE",{weekday:"short",hour:"2-digit",minute:"2-digit"}):"–";
+    table("t-lv-fx",L.fixtures||[],[{h:"Anstoß",v:r=>kick(r.kickoff),s:r=>r.kickoff||""},{h:"Heim",v:r=>el("span",{class:"clubcell"},badge(r.home),r.home)},
+      {h:"Ergebnis",v:r=>r.started?el("strong",{},`${r.goalsHome??0}:${r.goalsAway??0}`):"–"},{h:"Gast",v:r=>el("span",{class:"clubcell"},badge(r.away),r.away)}]);
+  }
+  async function refresh(){ btn.disabled=true; btn.textContent="↻ Lädt …";
+    try{ render(await loadLive()); }catch(e){ stand.textContent=e.message||String(e); }
+    btn.disabled=false; btn.textContent="↻ Aktualisieren"; }
+  btn.onclick=refresh; refresh();
 })();
 
 // Next Match

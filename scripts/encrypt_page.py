@@ -61,6 +61,7 @@ async function open(raw){
   const key = await crypto.subtle.importKey("raw", raw, "AES-GCM", false, ["decrypt"]);
   const plain = await crypto.subtle.decrypt({name:"AES-GCM", iv:b64(P.iv)}, key, b64(P.data));
   const html = new TextDecoder().decode(plain);
+  try { sessionStorage.setItem("cz-live-key", btoa(String.fromCharCode(...raw))); } catch (_) {}
   document.open(); document.write(html); document.close();
 }
 (async () => {
@@ -78,10 +79,31 @@ document.getElementById("f").addEventListener("submit", async e => {
 """
 
 
+def derive_key(pw):
+    digest = hashes.Hash(hashes.SHA256())
+    digest.update(b"comunio-zentrale:" + pw.encode())
+    salt = digest.finalize()[:16]
+    return salt, PBKDF2HMAC(algorithm=hashes.SHA256(), length=32, salt=salt, iterations=ITERATIONS).derive(pw.encode())
+
+
+def encrypt_live(pw):
+    """dist/live.json -> dist/live.enc.json (gleicher Schlüssel wie die Seite)."""
+    src = DIST / "live.json"
+    _, key = derive_key(pw)
+    iv = os.urandom(12)
+    data = AESGCM(key).encrypt(iv, src.read_bytes(), None)
+    enc = lambda b: base64.b64encode(b).decode()
+    (DIST / "live.enc.json").write_text(json.dumps({"iv": enc(iv), "data": enc(data)}))
+    src.unlink()
+    print("ok: live.enc.json verschlüsselt")
+
+
 def main():
     pw = os.environ.get("PAGE_PASSWORD", "")
     if len(pw) < 12:
         sys.exit("PAGE_PASSWORD fehlt oder ist kürzer als 12 Zeichen.")
+    if "--live" in sys.argv:
+        return encrypt_live(pw)
     src = DIST / "index.html"
     plain = src.read_bytes()
     # Salz bleibt pro Passwort gleich, damit "angemeldet bleiben" tägliche Updates übersteht.

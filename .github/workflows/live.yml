@@ -1,0 +1,63 @@
+name: Live-Punkte aktualisieren
+
+on:
+  schedule:
+    # alle 10 Minuten in den üblichen Spielzeiten (UTC; Winterzeit = MEZ − 1 Std.)
+    - cron: "*/10 18-21 * * 5"    # Freitagabend
+    - cron: "*/10 13-20 * * 6"    # Samstag
+    - cron: "*/10 13-19 * * 0"    # Sonntag
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    env:
+      DIST_DIR: dist
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Abhängigkeiten
+        run: pip install -r requirements.txt
+
+      - name: Letzte Seite laden
+        id: site
+        uses: actions/cache/restore@v4
+        with:
+          path: dist
+          key: site-dist-${{ github.run_id }}
+          restore-keys: site-dist-
+
+      - name: Live-Daten abrufen und verschlüsseln
+        if: steps.site.outputs.cache-matched-key != ''
+        env:
+          COMUNIO_USER: ${{ secrets.COMUNIO_USER }}
+          COMUNIO_PASS: ${{ secrets.COMUNIO_PASS }}
+          PAGE_PASSWORD: ${{ secrets.PAGE_PASSWORD }}
+        run: |
+          python scripts/fetch_live.py
+          python scripts/encrypt_page.py --live
+
+      - uses: actions/upload-pages-artifact@v3
+        if: steps.site.outputs.cache-matched-key != ''
+        with:
+          path: dist
+
+      - id: deploy
+        if: steps.site.outputs.cache-matched-key != ''
+        uses: actions/deploy-pages@v4
