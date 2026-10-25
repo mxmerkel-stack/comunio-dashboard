@@ -437,12 +437,12 @@ table("t-wins",D.wins,[{h:"Manager",v:r=>r.name},{h:"Meistertitel",v:r=>r.titles
 const sgn=v=>!v?"–":(v>0?"+":"−")+eur(Math.abs(v));
 table("t-accounts",D.accounts,[{h:"Manager",v:r=>r.name},{h:"Kontostand",v:r=>el("strong",{},eur(r.balance)),s:r=>r.balance,n:true,cls:r=>(r.balance<0?"neg":"")+" money"},
   {h:"",v:r=>r.real!=null?el("span",{class:"pill"},"echt"):el("span",{class:"pill warn"},"berechnet"),s:r=>r.real!=null?1:0},
-  {h:"Basis 27.05.",v:r=>eur(r.base),s:r=>r.base,n:true,cls:()=>"money"},{h:"Verkäufe",v:r=>sgn(r.sales),s:r=>r.sales,n:true,cls:()=>"pos money"},
+  {h:"Basis",v:r=>el("span",{title:r.resetAt?"Saisonübergang gebucht am "+dt(r.resetAt):""},eur(r.base)),s:r=>r.base,n:true,cls:()=>"money"},{h:"Verkäufe",v:r=>sgn(r.sales),s:r=>r.sales,n:true,cls:()=>"pos money"},
   {h:"Käufe",v:r=>sgn(-r.buys),s:r=>r.buys,n:true,cls:()=>"neg money"},{h:"Punkteprämie",v:r=>sgn(r.pointsBonus),s:r=>r.pointsBonus,n:true,cls:()=>"money"},
   {h:"Strafen/Gutschr.",v:r=>r.penalties?sgn(r.penalties):"–",s:r=>r.penalties,n:true,cls:r=>(r.penalties<0?"neg":(r.penalties>0?"pos":""))+" money"},
   {h:"Berechnet",v:r=>eur(r.estimate),s:r=>r.estimate,n:true,cls:()=>"money"},
   {h:"Teamwert",v:r=>mio(r.teamValue),s:r=>r.teamValue,n:true},{h:"Gesamt",v:r=>mio(r.total),s:r=>r.total,n:true,cls:()=>"money"}],{me:isMe,sort:1});
-document.getElementById("acc-note").textContent = "Berechnung: 15 Mio. € am 27.05. (10 Mio. nach Strafen/Gutschriften zum Saisonübergang + 5 Mio. Saisonwechsel-Bonus) + Verkäufe − Käufe + 10.000 € je Punkt + spätere Strafen/Gutschriften. Dein Kontostand ist der echte Wert von Comunio." + (D.me.deviation? ` Deine eigene Berechnung weicht um ${eur(D.me.deviation)} davon ab – so groß kann der Fehler bei den anderen ungefähr sein.` : " Deine eigene Berechnung stimmt exakt.");
+document.getElementById("acc-note").textContent = "Berechnung: 15 Mio. € Basis (Konto zum Saisonübergang vom Communityleiter auf 10 Mio. € gesetzt + 5 Mio. € Saisonwechsel-Bonus) + Verkäufe − Käufe + 10.000 € je Punkt + spätere Strafen/Gutschriften. Gezählt wird je Manager alles nach seiner letzten Saisonübergangs-Buchung (Datum: Mauszeiger auf „Basis“). Dein Kontostand ist der echte Wert von Comunio." + (D.me.deviation? ` Deine eigene Berechnung weicht um ${eur(D.me.deviation)} davon ab – Hinweis auf fehlende Daten (z. B. ein Spieltag, dessen Prämie noch nicht gebucht ist).` : " Deine eigene Berechnung stimmt auf den Euro genau – das bestätigt die Methode für alle.");
 table("t-bonuses",D.bonuses,[{h:"Datum",v:r=>dt(r.date),s:r=>r.date},{h:"Manager",v:r=>r.name},{h:"Betrag",v:r=>sgn(r.amount),s:r=>r.amount,n:true,cls:r=>r.amount<0?"neg":"pos"},{h:"Begründung",v:r=>r.reason||"–"},
   {h:"",v:r=>r.counted?el("span",{class:"pill"},"eingerechnet"):el("span",{class:"pill warn"},"Saisonübergang")}]);
 const hDates=D.history.map(h=>h.date.slice(5).split("-").reverse().join("."));

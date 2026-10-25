@@ -18,7 +18,6 @@ from pathlib import Path
 BASE = "https://www.comunio.de"
 UA = "Mozilla/5.0 (comunio-dashboard; private read-only)"
 OUT = Path(os.environ.get("DATA_DIR", "data")) / "raw.json"
-MAX_NEWS = int(os.environ.get("MAX_NEWS", "400"))
 
 
 def D(x):
@@ -382,50 +381,59 @@ def main():
             break
         start += 50
 
-    # Transfer-News (seitenweise)
-    transfers, start = [], 0
-    while start < MAX_NEWS:
-        page = get(links["game:news"] + f"?group=true&originaltypes=true&start={start}&limit=50&type=TRANSACTION_TRANSFER")
-        groups = D(page.get("newsList")).get("groups") or {}
-        entries = [e for g in (groups.values() if isinstance(groups, dict) else groups) for e in D(g).get("entries", []) if isinstance(e, dict)]
-        for e in entries:
-            for kind, rows in D(e.get("message")).items():
-                if not isinstance(rows, list):
+    # News seitenweise lesen. Achtung: Comunio liefert je Abruf weniger Meldungen als „limit“
+    # (eine Sammelmeldung je Tag). Deshalb um die Zahl der gelieferten Meldungen weiterblättern,
+    # nicht um „limit“ – sonst fehlen Meldungen.
+    def read_news(kind, max_entries=5000):
+        seen, out, start = set(), [], 0
+        while start < max_entries:
+            page = get(links["game:news"] + f"?group=true&originaltypes=true&start={start}&limit=50&type={kind}")
+            nl = D(page.get("newsList"))
+            groups = nl.get("groups") or {}
+            entries = [e for g in (groups.values() if isinstance(groups, dict) else groups)
+                       for e in D(g).get("entries", []) if isinstance(e, dict)]
+            for e in entries:
+                if e.get("id") in seen:
                     continue
-                for r in rows:
-                    if not isinstance(r, dict):
-                        continue
-                    transfers.append({
-                        "newsId": e.get("id"), "date": e.get("date"), "kind": kind,
-                        "player": D(r.get("tradable")).get("name"),
-                        "playerId": D(r.get("tradable")).get("id"),
-                        "price": r.get("price"),
-                        "fromId": D(r.get("from")).get("id"), "from": D(r.get("from")).get("name"),
-                        "toId": D(r.get("to")).get("id"), "to": D(r.get("to")).get("name"),
-                    })
-        if not D(page.get("newsList")).get("hasMore") or not entries:
-            break
-        start += 50
-        time.sleep(0.3)
+                seen.add(e.get("id"))
+                out.append(e)
+            if not nl.get("hasMore") or not entries:
+                break
+            start += len(entries)
+            time.sleep(0.3)
+        else:
+            print(f"::warning title=Comunio-News::Obergrenze erreicht ({kind}) – ältere Meldungen fehlen")
+        return out
 
-    # Strafen & Gutschriften (Communityleiter)
-    bonuses, start = [], 0
+    # Transfer-News (vollständig)
+    transfers = []
+    for e in read_news("TRANSACTION_TRANSFER"):
+        for kind, rows in D(e.get("message")).items():
+            if not isinstance(rows, list):
+                continue
+            for r in rows:
+                if not isinstance(r, dict):
+                    continue
+                transfers.append({
+                    "newsId": e.get("id"), "date": e.get("date"), "kind": kind,
+                    "player": D(r.get("tradable")).get("name"),
+                    "playerId": D(r.get("tradable")).get("id"),
+                    "price": r.get("price"),
+                    "fromId": D(r.get("from")).get("id"), "from": D(r.get("from")).get("name"),
+                    "toId": D(r.get("to")).get("id"), "to": D(r.get("to")).get("name"),
+                })
+
+    # Strafen & Gutschriften (Communityleiter, vollständig)
+    bonuses = []
     pat = re.compile(r"(Disziplinarstrafe|Gutschrift):\s*([\d.]+)\s+wurden\s+(.+?)\s+vom Communityleiter.*?(?:Begründung:\s*(.*))?$", re.S)
-    while start < 300:
-        page = get(links["game:news"] + f"?group=true&originaltypes=true&start={start}&limit=50&type=TRANSACTION_BONUS")
-        groups = D(page.get("newsList")).get("groups") or {}
-        entries = [e for g in (groups.values() if isinstance(groups, dict) else groups) for e in D(g).get("entries", []) if isinstance(e, dict)]
-        for e in entries:
-            text = D(e.get("message")).get("text") or ""
-            m = pat.search(text.strip())
-            if m:
-                amount = int(m.group(2).replace(".", ""))
-                bonuses.append({"newsId": e.get("id"), "date": e.get("date"),
-                                "amount": -amount if m.group(1) == "Disziplinarstrafe" else amount,
-                                "name": m.group(3).strip(), "reason": (m.group(4) or "").strip()})
-        if not D(page.get("newsList")).get("hasMore") or not entries:
-            break
-        start += 50
+    for e in read_news("TRANSACTION_BONUS"):
+        text = re.sub(r"<[^>]+>", " ", D(e.get("message")).get("text") or "")
+        m = pat.search(re.sub(r"\s+", " ", text).strip())
+        if m:
+            amount = int(m.group(2).replace(".", ""))
+            bonuses.append({"newsId": e.get("id"), "date": e.get("date"),
+                            "amount": -amount if m.group(1) == "Disziplinarstrafe" else amount,
+                            "name": m.group(3).strip(), "reason": (m.group(4) or "").strip()})
 
     raw = {
         "fetchedAt": datetime.now(timezone.utc).isoformat(),

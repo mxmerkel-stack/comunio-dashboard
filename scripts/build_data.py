@@ -192,12 +192,45 @@ def build(raw, history):
                          "matchdayWins": 0, "former": True})
     wins.sort(key=lambda r: (-r["titles"], -r["matchdayWins"]))
 
-    # --- Transfers: Startlücke aus config + Comunio-News, ohne Doppelte ---
-    tx_from = CFG.get("news_transfers_from", CFG.get("season_start", "2000-01-01"))
-    tx = [dict(t, newsId="seed", playerId=None) for t in CFG.get("seed_transfers", [])]
-    tx += [t for t in raw["transfers"] if (t.get("date") or "")[:10] >= tx_from]
+    # --- Saisonübergang: Kontostand je Manager neu gesetzt ---
+    # Der Communityleiter hat jedes Konto per Strafe/Gutschrift („Saisonübergang“) auf 10 Mio. € gesetzt,
+    # danach kamen 5 Mio. € Saisonwechsel-Bonus dazu (= 15 Mio. € Basis). Maßgeblich ist je Manager der
+    # Zeitpunkt SEINER letzten Saisonübergangs-Buchung: Transfers und Buchungen davor stecken im Reset.
+    # (Geprüft am 25.10.2026 gegen den echten Kontoauszug: ergibt den Kontostand auf den Euro genau.)
+    ref = CFG.get("balance_reference", {})
+    ref_after = ref.get("after", "1970-01-01")
+    base = num(ref.get("base_eur", 15000000))
+    reset_re = re.compile(ref.get("reset_reason", "saisonübergang"), re.I)
+
+    def ts(x):
+        try:
+            d = datetime.fromisoformat(re.sub(r"([+-]\d{2})(\d{2})$", r"\1:\2", str(x).replace("Z", "+00:00")))
+        except ValueError:
+            return None
+        return d if d.tzinfo else d.replace(tzinfo=timezone.utc)
+
+    season_floor = ts(ref.get("season_floor", "2026-05-20T00:00:00+00:00"))
+    reset_at = {}
+    for b in raw.get("bonuses", []):
+        bid = id_for(b.get("name"))
+        t = ts(b.get("date"))
+        if bid and t and t >= season_floor and reset_re.search(b.get("reason") or ""):
+            reset_at[bid] = max(reset_at.get(bid, t), t)
+    default_reset = ts(ref_after)
+    for i in ids:
+        reset_at.setdefault(i, default_reset)
+
+    def after_reset(i, date):
+        t = ts(date)
+        return bool(t and reset_at.get(i) and t > reset_at[i])
+
+    # --- Transfers (Comunio-News, vollständig, ohne Doppelte) ---
+    first_reset = min(reset_at.values())
     seen, tx_unique = set(), []
-    for t in tx:
+    for t in raw["transfers"]:
+        tt = ts(t.get("date"))
+        if not tt or tt < first_reset:
+            continue
         key = (t.get("newsId"), t.get("player"), str(t.get("fromId")), str(t.get("toId")), num(t.get("price")))
         if key not in seen:
             seen.add(key)
@@ -208,13 +241,13 @@ def build(raw, history):
                     "fromComputer": 0, "toComputer": 0, "betweenManagers": 0} for i in ids}
     for t in tx_unique:
         f, to, price = str(t.get("fromId")), str(t.get("toId")), num(t.get("price"))
-        if f in tf_stats:
+        if f in tf_stats and after_reset(f, t.get("date")):
             sales[f] += price
             st = tf_stats[f]
             st["sells"] += 1
             st["sellSum"] += price
             st["toComputer" if to == str(COMPUTER_ID) else "betweenManagers"] += 1
-        if to in tf_stats:
+        if to in tf_stats and after_reset(to, t.get("date")):
             buys[to] += price
             st = tf_stats[to]
             st["buys"] += 1
@@ -225,19 +258,16 @@ def build(raw, history):
         st["net"] = st["sellSum"] - st["buySum"]
     transfer_stats = sorted(tf_stats.values(), key=lambda s: -s["total"])
 
-    # --- Strafen & Gutschriften nach dem Saisonübergang ---
-    ref = CFG.get("balance_reference", {})
-    ref_after = ref.get("after", "1970-01-01")
-    base = num(ref.get("base_eur", 15000000))
+    # --- Strafen & Gutschriften nach dem jeweiligen Saisonübergang ---
     bonus_sum = defaultdict(int)
     bonus_rows = []
     for b in raw.get("bonuses", []):
         bid = id_for(b.get("name"))
-        counted = (b.get("date") or "") > ref_after
-        if bid and counted:
+        counted = bool(bid and after_reset(bid, b.get("date")))
+        if counted:
             bonus_sum[bid] += num(b.get("amount"))
         bonus_rows.append({"date": b.get("date"), "name": names.get(bid, b.get("name")), "amount": num(b.get("amount")),
-                           "reason": b.get("reason"), "counted": bool(bid and counted)})
+                           "reason": b.get("reason"), "counted": counted})
     bonus_rows.sort(key=lambda r: r["date"] or "", reverse=True)
 
     accounts = []
@@ -246,7 +276,8 @@ def build(raw, history):
         est = base + sales[i] - buys[i] + pts * bonus_per_point + bonus_sum[i]
         real = num(raw["me"]["budget"]) if i == me_id else None
         balance = real if real is not None else est
-        accounts.append({"id": i, "name": names[i], "base": base, "sales": sales[i], "buys": buys[i],
+        accounts.append({"id": i, "name": names[i], "base": base, "resetAt": reset_at[i].isoformat() if reset_at.get(i) else None,
+                         "sales": sales[i], "buys": buys[i],
                          "pointsBonus": pts * bonus_per_point, "penalties": bonus_sum[i], "estimate": est,
                          "real": real, "balance": balance, "teamValue": tv_of.get(i, 0),
                          "total": balance + tv_of.get(i, 0)})
@@ -897,6 +928,13 @@ def main():
     save_history(history)
     (DATA / "dashboard.json").write_text(json.dumps(dash, ensure_ascii=False))
     print(f"ok: dashboard.json gebaut, {len(history)} Verlaufstage")
+    # Kontrolle ohne Beträge (Logs sind öffentlich): stimmt die eigene Berechnung mit dem echten Kontostand?
+    dev = (dash.get("me") or {}).get("deviation")
+    if dev is not None:
+        if abs(dev) < 1:
+            print("::notice title=Kontostände::Eigene Berechnung stimmt auf den Euro mit dem echten Kontostand überein")
+        else:
+            print("::warning title=Kontostände::Eigene Berechnung weicht vom echten Kontostand ab – Daten prüfen")
 
 
 if __name__ == "__main__":
