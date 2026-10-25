@@ -5,6 +5,7 @@ Alle Funktionen arbeiten nur mit den Daten aus raw.json – nichts wird bei Comu
 import itertools
 import math
 import random
+import re
 import statistics
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
@@ -21,6 +22,14 @@ POS_ORDER = ["keeper", "defender", "midfielder", "striker"]
 UNAV_NOW = {"ACTIVE": 0.0, "WEAKENED": 0.35, "INJURED": 0.85, "REHABILITATION": 0.6, "SUSPENDED": 1.0,
             "REDBANNED": 1.0, "YELLOWREDBANNED": 1.0, "YELLOWBANNED": 1.0, "AWAY": 0.9, "RETIRED": 1.0}
 COMPUTER_ID = "1"
+# Saisonprognose
+MODEL_SD = 3.0        # Unsicherheit des Modells selbst (Punkte je Spieltag), zusätzlich zur Streuung der Spieltage
+ZERO_K = 6.0          # Gewicht des Community-Mittels beim Ausfallrisiko (Minus-Konto → 0 Punkte)
+DISC_K = 10.0         # Gewicht des Community-Mittels bei der Aufstell-Effizienz
+DISC_LIM = (0.95, 1.05)
+GAIN_REALIZE = 0.5    # Anteil des besten Transferplans, der über die Saison tatsächlich umgesetzt wird
+GAIN_CAP = 3.0        # Obergrenze Punkte je Spieltag durch Guthaben
+EMPTY_SLOT_PENALTY = 4  # Comunio: jede unbesetzte Position kostet 4 Punkte
 
 
 def num(x, default=None):
@@ -212,26 +221,132 @@ def lineup_total(squad, ids, key="e_next"):
     return round(sum(look[i][key] for i in ids if i in look), 2)
 
 
+# ---------------------------------------------------------------- Kader-Rekonstruktion & Aufstell-Effizienz
+def parse_dt(x):
+    try:
+        d = datetime.fromisoformat(re.sub(r"([+-]\d{2})(\d{2})$", r"\1:\2", str(x).replace("Z", "+00:00")))
+    except ValueError:
+        return None
+    return d if d.tzinfo else d.replace(tzinfo=timezone.utc)
+
+
+def squads_at(transfers, squads_now, deadlines, managers):
+    """Kader jedes Managers zu jedem Aufstellungsschluss, rekonstruiert aus den Transfers.
+
+    transfers: Liste {playerId, date, fromId, toId}; squads_now: {manager: [Spieler-IDs]};
+    deadlines: {spieltag: datetime}. Vor dem ersten bekannten Transfer gehört ein Spieler dem
+    „von“-Manager dieses Transfers, ohne Transfer dem heutigen Besitzer.
+    Ergebnis: {spieltag: {manager: set(Spieler-IDs)}}"""
+    mset = {str(m) for m in managers}
+    now_owner = {str(pid): str(uid) for uid, ids in squads_now.items() for pid in ids}
+    by_player = defaultdict(list)
+    for t in transfers:
+        pid, d = t.get("playerId"), parse_dt(t.get("date"))
+        if pid is None or d is None:
+            continue
+        by_player[str(pid)].append((d, str(t.get("fromId")), str(t.get("toId"))))
+    out = {k: {m: set() for m in mset} for k in deadlines}
+    for pid in set(by_player) | set(now_owner):
+        ev = sorted(by_player.get(pid, []))
+        owner0 = ev[0][1] if ev else now_owner.get(pid)
+        for k, T in deadlines.items():
+            owner = owner0
+            for d, _f, to in ev:
+                if d < T:
+                    owner = to
+                else:
+                    break
+            if owner in mset:
+                out[k][owner].add(pid)
+    return out
+
+
+def hindsight_best(pool):
+    """Beste mögliche Elf im Nachhinein. pool: [{id, position, pts}]. Unbesetzte Positionen kosten Punkte."""
+    if not pool:
+        return 0.0
+    _, total, ids, _ = best_lineup(pool, key="pts")
+    return total - EMPTY_SLOT_PENALTY * max(0, 11 - len(ids))
+
+
+def lineup_factors(owners, player_pts, positions, actual, fetched, min_cover=0.9):
+    """Wie nah kommt jeder Manager an die im Nachhinein beste Elf seines Kaders?
+
+    owners: {spieltag: {manager: set(ids)}}; player_pts: {id: {spieltag: Punkte}};
+    actual: {manager: {spieltag: Punkte oder None}}; fetched: Spieler mit geladener Statistik.
+    Faktor = Quote des Managers / Community-Quote, Richtung 1 gezogen (wenige Spieltage)."""
+    sums = {}
+    for md, per in owners.items():
+        for uid, pids in per.items():
+            a = (actual.get(uid) or {}).get(md)
+            if a is None or not pids:
+                continue
+            if sum(1 for p in pids if p in fetched) / len(pids) < min_cover:
+                continue
+            pool = [{"id": p, "position": positions[p], "pts": float((player_pts.get(p) or {}).get(md) or 0.0)}
+                    for p in pids if positions.get(p)]
+            if len(pool) / len(pids) < min_cover:
+                continue
+            h = hindsight_best(pool)
+            if h <= 0:
+                continue
+            row = sums.setdefault(uid, [0.0, 0.0, 0])
+            row[0] += a
+            row[1] += h
+            row[2] += 1
+    tot_a = sum(v[0] for v in sums.values())
+    tot_h = sum(v[1] for v in sums.values())
+    if not tot_h:
+        return {}, None
+    pooled = tot_a / tot_h
+    out = {}
+    for uid, (a, h, n) in sums.items():
+        rel = (a / h) / pooled
+        f = 1 + (rel - 1) * n / (n + DISC_K)
+        out[uid] = {"factor": round(max(DISC_LIM[0], min(DISC_LIM[1], f)), 3), "eff": round(a / h, 3), "n": n}
+    return out, round(pooled, 3)
+
+
 # ---------------------------------------------------------------- Saisonprognose
-def forecast(managers, squads_model, md_points, standings_pts, remaining, seed=7):
+def forecast(managers, squads_model, md_points, standings_pts, remaining, seed=7, extras=None):
+    """extras: {manager: {"disc": Aufstell-Faktor, "gain": Punkte/Spieltag durch Guthaben}}"""
     rnd = random.Random(seed)
+    extras = extras or {}
+    n_all = sum(len(v) for v in md_points.values())
+    z_all = sum(1 for v in md_points.values() for x in v if x is None)
+    pooled_zero = z_all / n_all if n_all else 0.0
     rates, sds = {}, {}
     for m in managers:
+        ex = extras.get(m, {})
         squad = squads_model.get(m, [])
-        _, xi, _, _ = best_lineup(squad, key="e_base") if squad else (None, 0, None, None)
-        hist = [v for v in md_points.get(m, []) if v is not None]
-        avg = statistics.fmean(hist) if hist else xi
-        rates[m] = 0.7 * xi + 0.3 * avg if hist else xi
-        sds[m] = max(10.0, statistics.pstdev(hist) if len(hist) > 2 else 12.0)
-        rates[m] = {"rate": rates[m], "xi": xi, "avg": avg}
+        if squad:
+            _, xi, xi_ids, _ = best_lineup(squad, key="e_base")
+        else:
+            xi, xi_ids = 0, []
+        missing = max(0, 11 - len(xi_ids)) if squad else 0
+        xi_adj = (xi - EMPTY_SLOT_PENALTY * missing) * ex.get("disc", 1.0) + ex.get("gain", 0.0)
+        all_h = md_points.get(m, [])
+        hist = [v for v in all_h if v is not None]
+        zeros = len(all_h) - len(hist)
+        p_zero = (zeros + ZERO_K * pooled_zero) / (len(all_h) + ZERO_K) if (all_h or pooled_zero) else 0.0
+        avg = statistics.fmean(hist) if hist else xi_adj
+        rate = 0.7 * xi_adj + 0.3 * avg if hist else xi_adj
+        sd = max(10.0, statistics.pstdev(hist) if len(hist) > 2 else 12.0)
+        sd_level = math.sqrt(sd ** 2 / max(len(hist), 1) + MODEL_SD ** 2)
+        rates[m] = {"rate": rate, "xi": xi, "xi_adj": xi_adj, "avg": avg, "p_zero": p_zero,
+                    "sd_level": sd_level, "missing": missing}
+        sds[m] = sd
     finals = {m: [] for m in managers}
     title, top3, rank_sum = defaultdict(int), defaultdict(int), defaultdict(float)
     for _ in range(SIMS):
         res = {}
         for m in managers:
             tot = standings_pts.get(m, 0)
-            r, sd = rates[m]["rate"], sds[m]
+            r = rates[m]["rate"] + rnd.gauss(0, rates[m]["sd_level"])  # Grundniveau unsicher, gilt für die ganze Saison
+            sd, pz = sds[m], rates[m]["p_zero"]
             for _k in range(remaining):
+                if pz and rnd.random() < pz:
+                    continue  # Konto im Minus beim Anpfiff: keine Punkte
                 tot += rnd.gauss(r, sd)
             res[m] = tot
             finals[m].append(tot)
@@ -244,12 +359,15 @@ def forecast(managers, squads_model, md_points, standings_pts, remaining, seed=7
     out = []
     for m in managers:
         f = sorted(finals[m])
+        ex = extras.get(m, {})
         out.append({"id": m, "pts_now": standings_pts.get(m, 0), "rate": round(rates[m]["rate"], 1),
-                     "rate_squad": round(rates[m]["xi"], 1), "avg": round(rates[m]["avg"], 1),
-                     "exp_final": round(statistics.fmean(f)), "p10": round(f[int(0.1 * SIMS)]),
-                     "p90": round(f[int(0.9 * SIMS)]), "p_title": round(title[m] / SIMS, 3),
-                     "p_top3": round(top3[m] / SIMS, 3), "exp_rank": round(rank_sum[m] / SIMS, 2),
-                     "sd": round(sds[m], 1)})
+                    "rate_squad": round(rates[m]["xi"], 1), "avg": round(rates[m]["avg"], 1),
+                    "disc": ex.get("disc", 1.0), "gain": round(ex.get("gain", 0.0), 2),
+                    "p_zero": round(rates[m]["p_zero"], 3), "missing": rates[m]["missing"],
+                    "exp_final": round(statistics.fmean(f)), "p10": round(f[int(0.1 * SIMS)]),
+                    "p90": round(f[int(0.9 * SIMS)]), "p_title": round(title[m] / SIMS, 3),
+                    "p_top3": round(top3[m] / SIMS, 3), "exp_rank": round(rank_sum[m] / SIMS, 2),
+                    "sd": round(sds[m], 1), "sd_level": round(rates[m]["sd_level"], 1)})
     out.sort(key=lambda r: -r["exp_final"])
     for i, r in enumerate(out):
         r["rank_final"] = i + 1
@@ -303,6 +421,17 @@ def transfer_plans(own, market, balance, sale_price, buy_price, max_buys=3, n_se
         p["id"] = f"{chr(65 + i)}"
         p["kind"] = "Verkaufen und kaufen" if p["sell"] else "Nur kaufen"
     return out, {s["id"]: round(loss[s["id"]], 2) for s in own}
+
+
+def cash_gain(own, cands, cash, sale_price, buy_price):
+    """Punkte je Spieltag, die ein Manager mit seinem Guthaben (und ggf. Verkäufen) am Markt dazugewinnen kann.
+    Nur ein Teil (GAIN_REALIZE) des besten Plans wird angesetzt – niemand setzt den Idealplan um."""
+    if not own or not cands:
+        return 0.0
+    plans, _ = transfer_plans(own, cands, cash, sale_price, buy_price, top=1)
+    if not plans:
+        return 0.0
+    return round(min(GAIN_CAP, GAIN_REALIZE * plans[0]["delta_md"]), 2)
 
 
 # ---------------------------------------------------------------- Monatswertung

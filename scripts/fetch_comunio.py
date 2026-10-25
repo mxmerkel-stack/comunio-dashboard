@@ -73,6 +73,7 @@ def download_image(url, token):
 
 
 STATS = "https://stats.comunio.de"
+SEASON_FLOOR = os.environ.get("SEASON_FLOOR", "2026-05-24")  # Beginn der Saison 2026/27 (für Kader-Rekonstruktion)
 
 
 def fetch_stats_trends():
@@ -278,8 +279,50 @@ def main():
                 pass
             time.sleep(0.2)
 
+    # News seitenweise lesen. Achtung: Comunio liefert je Abruf weniger Meldungen als „limit“
+    # (eine Sammelmeldung je Tag). Deshalb um die Zahl der gelieferten Meldungen weiterblättern,
+    # nicht um „limit“ – sonst fehlen Meldungen.
+    def read_news(kind, max_entries=5000):
+        seen, out, start = set(), [], 0
+        while start < max_entries:
+            page = get(links["game:news"] + f"?group=true&originaltypes=true&start={start}&limit=50&type={kind}")
+            nl = D(page.get("newsList"))
+            groups = nl.get("groups") or {}
+            entries = [e for g in (groups.values() if isinstance(groups, dict) else groups)
+                       for e in D(g).get("entries", []) if isinstance(e, dict)]
+            for e in entries:
+                if e.get("id") in seen:
+                    continue
+                seen.add(e.get("id"))
+                out.append(e)
+            if not nl.get("hasMore") or not entries:
+                break
+            start += len(entries)
+            time.sleep(0.3)
+        else:
+            print(f"::warning title=Comunio-News::Obergrenze erreicht ({kind}) – ältere Meldungen fehlen")
+        return out
+
+    # Transfer-News (vollständig)
+    transfers = []
+    for e in read_news("TRANSACTION_TRANSFER"):
+        for kind, rows in D(e.get("message")).items():
+            if not isinstance(rows, list):
+                continue
+            for r in rows:
+                if not isinstance(r, dict):
+                    continue
+                transfers.append({
+                    "newsId": e.get("id"), "date": e.get("date"), "kind": kind,
+                    "player": D(r.get("tradable")).get("name"),
+                    "playerId": D(r.get("tradable")).get("id"),
+                    "price": r.get("price"),
+                    "fromId": D(r.get("from")).get("id"), "from": D(r.get("from")).get("name"),
+                    "toId": D(r.get("to")).get("id"), "to": D(r.get("to")).get("name"),
+                })
+
     # Trend-Pfeile: Comunio liefert den Trend (ganze Zahl) für alle Spieler der Liga in der Spielersuche
-    trends, start = {}, 0
+    trends, positions_all, start = {}, {}, 0
     while start < 1500:
         try:
             page = get(f"/api/communities/{cid}/players?start={start}&limit=50")
@@ -289,6 +332,8 @@ def main():
         for t in rows:
             if t.get("trend") is not None and t.get("id") is not None:
                 trends[str(t["id"])] = t["trend"]
+            if t.get("position") and t.get("id") is not None:
+                positions_all[str(t["id"])] = t["position"]
         if len(rows) < 50:
             break
         start += 50
@@ -296,6 +341,19 @@ def main():
 
     # Spielstatistik je Spieltag (alle Kader- und Marktspieler) – Grundlage der Prognosen
     player_ids = {str(p["id"]) for ps in squads.values() for p in ps} | {str(m["id"]) for m in market_items}
+    # Auch ehemalige Kaderspieler: Grundlage, um die Kader zu jedem Anpfiff zu rekonstruieren (Aufstell-Effizienz)
+    ever_owned = {str(t["playerId"]) for t in transfers
+                  if t.get("playerId") is not None and (t.get("date") or "")[:10] >= SEASON_FLOOR}
+    for pid in sorted(ever_owned - player_ids):
+        if pid not in positions_all:  # nicht mehr in der Liga: Position aus den Spielerdetails
+            try:
+                det = get(f"/api/communities/{cid}/users/{me.get('id')}/players/{pid}")
+                if det.get("type"):
+                    positions_all[pid] = det["type"]
+            except SystemExit:
+                pass
+            time.sleep(0.15)
+    player_ids |= ever_owned
     stats = {}
     for pid in sorted(player_ids):
         try:
@@ -381,48 +439,6 @@ def main():
             break
         start += 50
 
-    # News seitenweise lesen. Achtung: Comunio liefert je Abruf weniger Meldungen als „limit“
-    # (eine Sammelmeldung je Tag). Deshalb um die Zahl der gelieferten Meldungen weiterblättern,
-    # nicht um „limit“ – sonst fehlen Meldungen.
-    def read_news(kind, max_entries=5000):
-        seen, out, start = set(), [], 0
-        while start < max_entries:
-            page = get(links["game:news"] + f"?group=true&originaltypes=true&start={start}&limit=50&type={kind}")
-            nl = D(page.get("newsList"))
-            groups = nl.get("groups") or {}
-            entries = [e for g in (groups.values() if isinstance(groups, dict) else groups)
-                       for e in D(g).get("entries", []) if isinstance(e, dict)]
-            for e in entries:
-                if e.get("id") in seen:
-                    continue
-                seen.add(e.get("id"))
-                out.append(e)
-            if not nl.get("hasMore") or not entries:
-                break
-            start += len(entries)
-            time.sleep(0.3)
-        else:
-            print(f"::warning title=Comunio-News::Obergrenze erreicht ({kind}) – ältere Meldungen fehlen")
-        return out
-
-    # Transfer-News (vollständig)
-    transfers = []
-    for e in read_news("TRANSACTION_TRANSFER"):
-        for kind, rows in D(e.get("message")).items():
-            if not isinstance(rows, list):
-                continue
-            for r in rows:
-                if not isinstance(r, dict):
-                    continue
-                transfers.append({
-                    "newsId": e.get("id"), "date": e.get("date"), "kind": kind,
-                    "player": D(r.get("tradable")).get("name"),
-                    "playerId": D(r.get("tradable")).get("id"),
-                    "price": r.get("price"),
-                    "fromId": D(r.get("from")).get("id"), "from": D(r.get("from")).get("name"),
-                    "toId": D(r.get("to")).get("id"), "to": D(r.get("to")).get("name"),
-                })
-
     # Strafen & Gutschriften (Communityleiter, vollständig)
     bonuses = []
     pat = re.compile(r"(Disziplinarstrafe|Gutschrift):\s*([\d.]+)\s+wurden\s+(.+?)\s+vom Communityleiter.*?(?:Begründung:\s*(.*))?$", re.S)
@@ -464,6 +480,7 @@ def main():
         "stats": stats,
         "quotes": quotes,
         "trends": trends,
+        "playerPositions": positions_all,
         "statsTrends": fetch_stats_trends(),
         "lineup": lineup,
         "offers": offers,

@@ -696,11 +696,13 @@ def analyze(raw, names, ids, me_id, squads, market, md_rows, pts_of, balance_of,
     def buy_price(mk):
         return round((num(mk.get("minBid"), 0) or num(mk.get("marketValue"), 0)) * 1.03, -3)
 
-    cands = []
+    cands_all = []
     for m in market:
-        if m.get("mine") or (m.get("status") or "ACTIVE") not in ("ACTIVE", "WEAKENED"):
+        if (m.get("status") or "ACTIVE") not in ("ACTIVE", "WEAKENED"):
             continue
-        cands.append({**mrow(m), "minBid": m.get("minBid"), "marketValue": num(m.get("marketValue"))})
+        cands_all.append({**mrow(m), "minBid": m.get("minBid"), "marketValue": num(m.get("marketValue")),
+                          "ownerId": str(m.get("ownerId")), "mine": bool(m.get("mine"))})
+    cands = [c for c in cands_all if not c["mine"]]
     plans, _ = M.transfer_plans(own, cands, own_cash, sale_price, buy_price) if own else ([], {})
     for p in plans:
         p["delta_rest"] = round(p["delta_md"] * remaining, 1)
@@ -710,7 +712,56 @@ def analyze(raw, names, ids, me_id, squads, market, md_rows, pts_of, balance_of,
     for md in md_rows:
         for uid in ids:
             md_points[uid].append(md["points"].get(uid))
-    fc = M.forecast(ids, squads_model, md_points, pts_of, remaining)
+    extras = {uid: {} for uid in ids}
+
+    # (a) Aufstell-Effizienz: Kader jedes Managers zu jedem Anpfiff aus den Transfers rekonstruieren und die
+    #     tatsächlichen Punkte mit der im Nachhinein besten Elf dieses Kaders vergleichen
+    try:
+        started = [c for c in cal if c.get("started") and str(c.get("key", "")).isdigit() and c.get("season")]
+        season_lbl = max(started, key=lambda c: c.get("date") or "").get("season") if started else None
+        deadlines = {str(int(c["key"])): M.parse_dt(c.get("date")) for c in started if c.get("season") == season_lbl}
+        deadlines = {k: v for k, v in deadlines.items() if v}
+        actual = {uid: {str(int(md["key"])): md["points"].get(uid) for md in md_rows} for uid in ids}
+        seen_tx, tx_all = set(), []
+        for t in raw.get("transfers") or []:
+            key = (t.get("newsId"), t.get("playerId"), str(t.get("fromId")), str(t.get("toId")), num(t.get("price")))
+            if key not in seen_tx:
+                seen_tx.add(key)
+                tx_all.append(t)
+        stats_raw = raw.get("stats") or {}
+        player_pts = {}
+        for pid, rows_ in stats_raw.items():
+            d_ = {}
+            for r_ in rows_:
+                if r_.get("season") == "cur" and r_.get("points") is not None and num(r_.get("md"), None) is not None:
+                    d_[str(int(num(r_["md"])))] = num(r_["points"], 0)
+            player_pts[str(pid)] = d_
+        pos_all = {str(k): v for k, v in (raw.get("playerPositions") or {}).items() if v}
+        pos_all.update({pid: pl.get("position") for pid, pl in players.items() if pl.get("position")})
+        owners = M.squads_at(tx_all, {uid: [str(x["id"]) for x in sq] for uid, sq in squads.items()}, deadlines, ids)
+        factors, pooled = M.lineup_factors(owners, player_pts, pos_all, actual, set(stats_raw))
+        for uid, f_ in factors.items():
+            extras[uid]["disc"] = f_["factor"]
+        print(f"::notice title=Aufstell-Effizienz::{len(factors)} Manager aus {len(deadlines)} Spieltagen; "
+              f"Faktoren {sorted(f_['factor'] for f_ in factors.values())}, Community-Quote {pooled}")
+    except Exception as e:  # Prognose bleibt auch ohne diese Zusatzgröße lauffähig
+        print(f"::warning title=Aufstell-Effizienz::übersprungen ({type(e).__name__})")
+
+    # (b) Guthaben: was kann jeder Manager mit seinem Geld am Markt dazugewinnen?
+    def sale_price_g(s):
+        return (s["marketValue"] or 0) * r_mean
+
+    for uid in ids:
+        try:
+            extras[uid]["gain"] = M.cash_gain(squads_model.get(uid, []), [c for c in cands_all if c["ownerId"] != uid],
+                                              balance_of.get(uid, 0), sale_price_g, buy_price)
+        except Exception as e:
+            print(f"::warning title=Guthaben-Effekt::übersprungen ({type(e).__name__})")
+
+    fc = M.forecast(ids, squads_model, md_points, pts_of, remaining, extras=extras)
+    print("::notice title=Prognose-Zusatzgrößen::Guthaben-Effekt (Pkt./Spieltag) "
+          f"{sorted(r['gain'] for r in fc)}, Ausfallrisiko {sorted(r['p_zero'] for r in fc)}, "
+          f"Unsicherheit Grundniveau {sorted(r['sd_level'] for r in fc)}")
     for r in fc:
         r["name"] = names[r["id"]]
 
