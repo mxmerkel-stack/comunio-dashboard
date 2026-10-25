@@ -8,6 +8,7 @@ import json
 import os
 import smtplib
 import sys
+import unicodedata
 import urllib.error
 import urllib.request
 from email.mime.text import MIMEText
@@ -23,7 +24,11 @@ def topic_name():
             t = t[len(pre):]
     if t.lower().startswith("ntfy.sh/"):
         t = t[len("ntfy.sh/"):]
-    return t.strip()
+    bad = [(i, f"U+{ord(c):04X} {unicodedata.name(c, '?')}") for i, c in enumerate(t) if not (c.isascii() and (c.isalnum() or c in "-_"))]
+    if bad:  # nur Position und Art der Zeichen melden, nicht den Namen selbst
+        print(f"::notice title=ntfy::Ungültige Zeichen im Themennamen bereinigt: {bad}")
+    t = "".join("-" if unicodedata.category(c) == "Pd" else c for c in t)
+    return "".join(c for c in t if c.isascii() and (c.isalnum() or c in "-_"))
 
 
 def ntfy(title, message, priority=3, click=SITE, tags=None):
