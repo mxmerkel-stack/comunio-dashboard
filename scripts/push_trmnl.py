@@ -219,6 +219,10 @@ def send(url, payload, label="TRMNL"):
     u = urlparse(url)
     path_ok = u.path.startswith("/api/custom_plugins/") and len(u.path) > len("/api/custom_plugins/") + 8
     print(f"{label}: Ziel {u.scheme}://{u.netloc}, Pfad {'ok' if path_ok else 'UNERWARTET (erwartet /api/custom_plugins/<id>)'}")
+    if "/plugin_settings/" in u.path:
+        print(f"{label}: Im Secret steht die Adresse der Plugin-Einstellungsseite, nicht die Webhook-URL. "
+              "Bitte dort das Feld 'Webhook URL' (beginnt mit https://trmnl.com/api/custom_plugins/) kopieren.")
+        return 1
     if not (u.scheme and u.netloc):
         print(f"{label}: Secret enthält keine gültige Webhook-URL (Länge {len(url)}, "
               f"Schrägstriche {url.count('/')}, Leerzeichen {url.count(' ')}) – übersprungen")
