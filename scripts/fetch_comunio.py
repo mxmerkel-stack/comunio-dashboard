@@ -300,12 +300,15 @@ def main():
              for m in (get("/api/matchdays") or []) if isinstance(m, dict)]
 
     # Nächster Spieltag: Paarungen (OpenLigaDB) und Tipico-Quoten (The Odds API, optional)
+    # Solange ein Spieltag noch läuft, ist die eigene Aufstellung für ihn schon gesperrt – fürs
+    # Planen zählt der nächste noch NICHT begonnene Spieltag (Aufstellungsschluss liegt in der Zukunft).
     import next_match as NM
     open_mds = sorted([m for m in mdays if not m.get("finished") and str(m.get("key", "")).isdigit()],
                       key=lambda m: int(m["key"]))
+    upcoming_mds = [m for m in open_mds if not m.get("started")]
     nm_info = {}
-    if open_mds:
-        nmd = open_mds[0]
+    if upcoming_mds or open_mds:
+        nmd = (upcoming_mds or open_mds)[0]
         season = str(nmd.get("season") or "")
         year = 2000 + int(season.split("/")[0]) if re.match(r"^\d{2}/\d{2}$", season) else datetime.now().year
         fixtures = NM.fetch_fixtures(year, int(nmd["key"]))
