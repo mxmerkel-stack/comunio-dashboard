@@ -132,7 +132,7 @@ select{font:inherit;font-size:12.5px;padding:3px 5px;background:#fff;color:var(-
     <div class="kpis" id="lv-kpis"></div>
     <div class="card"><h2 id="lv-title">Livepunkte</h2><div id="lv-bars"></div></div>
     <div class="card"><h2>Tore, Karten und gezählte Spieler</h2><div id="t-lv"></div>
-      <p class="note">Tore, Gelbe und Rote Karten der aufgestellten Spieler am laufenden Spieltag (Gelb-Rot zählt als Rot). Gezählt = Spieler mit Punktwertung, von allen aufgestellten. „Aktualisieren“ holt die Punkte sofort bei Comunio (Live-Dienst). Ist der Dienst nicht erreichbar, zeigt die Seite den letzten automatischen Abruf (während der Spiele etwa alle 10 Minuten).</p></div>
+      <p class="note">Tore, Gelbe und Rote Karten der aufgestellten Spieler am laufenden Spieltag (Gelb-Rot zählt als Rot). Gezählt = Spieler, deren Spiel schon läuft oder vorbei ist (so zählt auch Comunio), von 11 Positionen; „leer“ = unbesetzte Position. „Aktualisieren“ holt die Punkte sofort bei Comunio (Live-Dienst). Ist der Dienst nicht erreichbar, zeigt die Seite den letzten automatischen Abruf (während der Spiele etwa alle 10 Minuten).</p></div>
     <div class="card"><h2>Aufstellungen live</h2><div style="margin-bottom:8px"><select id="lv-filter"></select></div><div id="t-lv-players"></div></div>
     <div class="card"><h2>Spiele</h2><div id="t-lv-fx"></div></div>
   </section>
@@ -606,9 +606,10 @@ document.getElementById("opp-note").textContent=`Positiv = gegen diesen Gegner p
     const chunks=[]; for(let i=0;i<ids.length;i+=40) chunks.push(ids.slice(i,i+40));
     const parts=await Promise.all(chunks.map(c=>call(`part=stats&md=${L.matchday}&ids=${c.join(",")}`).catch(()=>({stats:{}}))));
     const S=Object.assign({},...parts.map(p=>p.stats||{}));
-    L.managers.forEach(m=>{ (m.players||[]).forEach(p=>Object.assign(p,{goals:0,yellow:0,red:0,yellowRed:0},S[p.id]||{}));
+    L.managers.forEach(m=>{ (m.players||[]).forEach(p=>{ const st=S[p.id]||{}; Object.assign(p,{goals:0,yellow:0,red:0,yellowRed:0},st);
+        if(p.livePoints==null && p.matchStatus && p.matchStatus!=="pre") p.livePoints=st.points??null; delete p.points; });
       const ps=m.players||[]; m.goals=ps.reduce((a,p)=>a+p.goals,0); m.red=ps.reduce((a,p)=>a+p.red+p.yellowRed,0);
-      m.yellow=ps.reduce((a,p)=>a+p.yellow,0); m.counted=ps.filter(p=>p.livePoints!=null).length; m.lineupSize=ps.length; });
+      m.yellow=ps.reduce((a,p)=>a+p.yellow,0); m.counted=m.scored??ps.filter(p=>p.matchStatus&&p.matchStatus!=="pre").length; m.lineupSize=11; m.empty=Math.max(0,11-ps.length); });
     L.managers.sort((a,b)=>(b.livePoints||0)-(a.livePoints||0));
     return L;
   }
@@ -642,7 +643,7 @@ document.getElementById("opp-note").textContent=`Positiv = gegen diesen Gegner p
         el("strong",{class:"lvval"},String(m.livePoints??"–")))); });
     table("t-lv",M,[{h:"#",v:r=>M.indexOf(r)+1,n:true},{h:"Manager",v:r=>r.name},{h:"Livepunkte",v:r=>el("strong",{},String(r.livePoints??"–")),s:r=>r.livePoints??-999,n:true},
       {h:"Tore",v:r=>r.goals??"–",s:r=>r.goals||0,n:true},{h:"Rote Karten",v:r=>r.red??"–",s:r=>r.red||0,n:true,cls:r=>r.red?"neg":""},
-      {h:"Gelbe Karten",v:r=>r.yellow??"–",s:r=>r.yellow||0,n:true},{h:"Gezählt",v:r=>`${r.counted??"–"}/${r.lineupSize??"–"}`,s:r=>r.counted||0,n:true},
+      {h:"Gelbe Karten",v:r=>r.yellow??"–",s:r=>r.yellow||0,n:true},{h:"Gezählt",v:r=>el("span",{},`${r.counted??"–"}/${r.lineupSize??11}`,r.empty?el("span",{class:"neg",title:"unbesetzte Position: −4 Punkte je Lücke"},` (${r.empty} leer)`):""),s:r=>r.counted||0,n:true},
       {h:"Gesamt",v:r=>int(r.total),s:r=>r.total||0,n:true}],{me:r=>r.id===String(L.me)});
     const sel=document.getElementById("lv-filter"); const prev=sel.value; sel.textContent="";
     M.forEach(m=>sel.append(el("option",{value:m.id},m.name))); sel.value=prev||String(L.me);
@@ -650,7 +651,7 @@ document.getElementById("opp-note").textContent=`Positiv = gegen diesen Gegner p
       table("t-lv-players",m.players||[],[{h:"Spieler",v:r=>el("span",{class:"clubcell"},badge(r.club),r.name),s:r=>r.name},
         {h:"Punkte",v:r=>el("strong",{},r.livePoints==null?"–":String(r.livePoints)),s:r=>r.livePoints??-999,n:true,cls:r=>r.livePoints<0?"neg":""},
         {h:"Tore",v:r=>r.goals||"",s:r=>r.goals||0,n:true},{h:"Karten",v:r=>[r.yellow?"🟨".repeat(r.yellow):"",r.yellowRed?"🟨🟥":"",r.red?"🟥":""].join("")||"",s:r=>(r.red+r.yellowRed)*10+r.yellow},
-        {h:"Status",v:r=>r.livePoints==null?"noch nicht gewertet":(r.subbed?"ausgewechselt":"gewertet")}],{sort:1}); };
+        {h:"Status",v:r=>r.matchStatus==="pre"?"noch nicht gespielt":r.matchStatus==="finished"?(r.subbed?"ausgewechselt":"gewertet"):r.matchStatus?"läuft":"–"}],{sort:1}); };
     sel.onchange=drawP; drawP();
     const kick=s=>s?new Date(s).toLocaleString("de-DE",{weekday:"short",hour:"2-digit",minute:"2-digit"}):"–";
     table("t-lv-fx",L.fixtures||[],[{h:"Anstoß",v:r=>kick(r.kickoff),s:r=>r.kickoff||""},{h:"Heim",v:r=>el("span",{class:"clubcell"},badge(r.home),r.home)},

@@ -76,7 +76,7 @@ async function stats(env, tok, ids, mdKey) {
     try {
       const h = await api(env, `/api/players/${pid}/match-statistics-history`, tok);
       const e = (h.matchStatisticsCollection || []).find(e => D(e.matchday).seasonEnd === 9999999 && String(D(e.matchday).key) === String(mdKey));
-      out[pid] = { goals: num(e && e.goals) || 0, yellow: num(e && e.yellow) || 0, red: num(e && e.red) || 0, yellowRed: num(e && e.yellowRed) || 0 };
+      out[pid] = { goals: num(e && e.goals) || 0, yellow: num(e && e.yellow) || 0, red: num(e && e.red) || 0, yellowRed: num(e && e.yellowRed) || 0, points: e ? num(e.points) : null };
     } catch (_) { out[pid] = { goals: 0, yellow: 0, red: 0, yellowRed: 0 }; }
   }));
   return { stats: out };

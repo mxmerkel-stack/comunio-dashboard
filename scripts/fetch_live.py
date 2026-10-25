@@ -66,37 +66,35 @@ def main():
                 continue
             pid = str(p["id"])
             if pid not in stats_cache:
-                g = y = r = yr = None
+                g = y = r = yr = pts = None
                 try:
                     h = get(f"/api/players/{pid}/match-statistics-history")
                     for e in h.get("matchStatisticsCollection") or []:
                         md = D(e.get("matchday"))
                         if md.get("seasonEnd") == 9999999 and str(md.get("key")) == str(md_key):
-                            g, y, r, yr = num(e.get("goals")), num(e.get("yellow")), num(e.get("red")), num(e.get("yellowRed"))
+                            g, y, r, yr, pts = num(e.get("goals")), num(e.get("yellow")), num(e.get("red")), num(e.get("yellowRed")), num(e.get("points"))
                             break
                 except SystemExit:
                     pass
-                stats_cache[pid] = {"goals": g or 0, "yellow": y or 0, "red": r or 0, "yellowRed": yr or 0}
+                stats_cache[pid] = {"goals": g or 0, "yellow": y or 0, "red": r or 0, "yellowRed": yr or 0, "points": pts}
                 time.sleep(0.12)
             m["players"].append({"id": pid, "name": p.get("name"), "club": D(p.get("club")).get("name"),
-                                 "slot": num(slot), "type": p.get("type"), "livePoints": num(p.get("livePoints")),
+                                 "slot": num(slot), "type": p.get("type"),
                                  "matchStatus": p.get("matchStatus"), "status": p.get("status"),
-                                 "subbed": p.get("wasLiveSubstituted"), "rawLive": p.get("livePoints"),
-                                 "lastPoints": p.get("lastPoints"), "linedup": p.get("linedup"), **stats_cache[pid]})
+                                 "subbed": p.get("wasLiveSubstituted"), **stats_cache[pid]})
+            pl = m["players"][-1]
+            # Comunio liefert hier keine Livepunkte je Spieler: Punkte aus der Spielstatistik, nur wenn das Spiel läuft/gespielt ist
+            pl["livePoints"] = num(p.get("livePoints")) if num(p.get("livePoints")) is not None else (pl.pop("points") if pl.get("matchStatus") not in (None, "pre") else None)
+            pl.pop("points", None)
         ps = m["players"]
         m["goals"] = sum(p["goals"] for p in ps)
         m["red"] = sum(p["red"] + p["yellowRed"] for p in ps)
         m["yellow"] = sum(p["yellow"] for p in ps)
-        m["counted"] = sum(1 for p in ps if p["livePoints"] is not None)
-        m["lineupSize"] = len(ps)
+        m["counted"] = m.get("scored") if m.get("scored") is not None else sum(1 for p in ps if p.get("matchStatus") not in (None, "pre"))
+        m["lineupSize"] = 11
+        m["empty"] = max(0, 11 - len(ps))
         time.sleep(0.2)
 
-    from collections import Counter
-    for i, m in enumerate(managers):
-        ps = m["players"]
-        print(f"::notice title=Diagnose Manager {i + 1}::API scored={m.get('scored')} ours={m.get('counted')} n={len(ps)} "
-              f"matchStatus={dict(Counter(str(p['matchStatus']) for p in ps))} rawLive={dict(Counter(repr(p['rawLive']) for p in ps))} "
-              f"linedup={dict(Counter(str(p['linedup']) for p in ps))} lastPoints={dict(Counter(repr(p['lastPoints']) for p in ps))}")
     out = {"fetchedAt": datetime.now(timezone.utc).isoformat(), "matchday": md_key,
            "started": cur.get("started"), "finished": cur.get("finished"), "fixtures": fixtures,
            "managers": sorted(managers, key=lambda m: -(m["livePoints"] or 0)), "me": str(me)}
