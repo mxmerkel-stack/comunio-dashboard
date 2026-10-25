@@ -244,6 +244,22 @@ def main():
                 pass
             time.sleep(0.2)
 
+    # Trend-Pfeile: Comunio liefert den Trend (ganze Zahl) für alle Spieler der Liga in der Spielersuche
+    trends, start = {}, 0
+    while start < 1500:
+        try:
+            page = get(f"/api/communities/{cid}/players?start={start}&limit=50")
+        except SystemExit:
+            break
+        rows = [t for t in (page.get("tradables") or []) if isinstance(t, dict)]
+        for t in rows:
+            if t.get("trend") is not None and t.get("id") is not None:
+                trends[str(t["id"])] = t["trend"]
+        if len(rows) < 50:
+            break
+        start += 50
+        time.sleep(0.2)
+
     # Spielstatistik je Spieltag (alle Kader- und Marktspieler) – Grundlage der Prognosen
     player_ids = {str(p["id"]) for ps in squads.values() for p in ps} | {str(m["id"]) for m in market_items}
     stats = {}
@@ -278,7 +294,7 @@ def main():
         time.sleep(0.15)
 
     # Welche Trend-Werte liefert Comunio? (nur die Wertemenge, keine Spielerdaten)
-    seen = sorted({str(x.get("trend")) for ps in squads.values() for x in ps} | {str(m.get("trend")) for m in market_items})
+    seen = sorted({str(v) for v in trends.values()} | {str(m.get("trend")) for m in market_items})
     print(f"::notice title=Trend-Werte von Comunio::{', '.join(seen)}")
 
     # Eigene Aufstellung, Angebote an dich, Spieltagskalender
@@ -404,6 +420,7 @@ def main():
         "dobs": dobs,
         "stats": stats,
         "quotes": quotes,
+        "trends": trends,
         "lineup": lineup,
         "offers": offers,
         "credit": credit,
