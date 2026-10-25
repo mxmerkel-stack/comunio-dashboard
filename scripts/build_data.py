@@ -270,8 +270,12 @@ def build(raw, history):
         pid = str(p.get("id"))
         out = {"positionName": POSITIONS.get(p.get("position"), p.get("position") or "–"),
                "statusName": STATUS.get(p.get("status") or "ACTIVE", p.get("status"))}
-        api_trend = p.get("trend") if p.get("trend") is not None else (raw.get("trends") or {}).get(pid)
-        out["trend"], out["trendSrc"] = M.player_trend(api_trend, all_quotes.get(pid))
+        stats_tr = raw.get("statsTrends") or {}
+        if pid in stats_tr:  # Original-Pfeil von stats.comunio.de (None = „?“)
+            out["trend"], out["trendSrc"] = stats_tr[pid], ("stats" if stats_tr[pid] is not None else None)
+        else:
+            api_trend = p.get("trend") if p.get("trend") is not None else (raw.get("trends") or {}).get(pid)
+            out["trend"], out["trendSrc"] = M.player_trend(api_trend, all_quotes.get(pid))
         dob = (raw.get("dobs") or {}).get(pid) or p.get("dob") or ((raw.get("ownDetails") or {}).get(pid) or {}).get("dob")
         if dob:
             out["age"] = M.age(dob)

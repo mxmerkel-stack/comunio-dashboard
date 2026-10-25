@@ -73,6 +73,41 @@ def download_image(url, token):
     return f"data:{ctype};base64," + base64.b64encode(raw).decode()
 
 
+STATS = "https://stats.comunio.de"
+
+
+def fetch_stats_trends():
+    """Original-Trendpfeile von stats.comunio.de (öffentliche Kaderlisten, ohne Anmeldung).
+
+    Jede Zeile enthält data-playerid='<Comunio-Spieler-ID>' und ein Bild mit der Klasse icon-trend_<N>
+    (N von -5 bis +5, leer = „?“). Ergebnis: {spieler_id: N oder None}."""
+    def html(path):
+        req = urllib.request.Request(STATS + path, headers={"User-Agent": UA, "Accept": "text/html"})
+        with urllib.request.urlopen(req, timeout=30) as r:
+            return r.read().decode("utf-8", "replace")
+    out = {}
+    try:
+        import html as _h
+        clubs = sorted({_h.unescape(m[1]) for m in re.findall(r"""href=(['"])(/squad/\d+-.*?)\1""", html("/squad"))})
+    except Exception as e:
+        print(f"::warning title=Trend-Pfeile::Kaderliste nicht erreichbar ({type(e).__name__})")
+        return out
+    for path in clubs:
+        try:
+            page = html(urllib.parse.quote(path, safe="/+-'"))
+        except Exception as e:
+            print(f"::warning title=Trend-Pfeile::{type(e).__name__} bei einer Kaderliste")
+            continue
+        for row in re.split(r"<tr[\s>]", page):
+            pid = re.search(r"""data-playerid=['"](\d+)['"]""", row)
+            tr = re.search(r"icon-trend_(-?\d*)", row)
+            if pid and tr:
+                out[pid.group(1)] = int(tr.group(1)) if tr.group(1) else None
+        time.sleep(0.5)
+    print(f"::notice title=Trend-Pfeile::{len(out)} Spieler aus {len(clubs)} Kaderlisten")
+    return out
+
+
 def login():
     user = os.environ.get("COMUNIO_USER")
     pw = os.environ.get("COMUNIO_PASS")
@@ -421,6 +456,7 @@ def main():
         "stats": stats,
         "quotes": quotes,
         "trends": trends,
+        "statsTrends": fetch_stats_trends(),
         "lineup": lineup,
         "offers": offers,
         "credit": credit,
