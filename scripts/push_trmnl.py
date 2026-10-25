@@ -191,6 +191,22 @@ def build_market(d):
             "rows": rows}
 
 
+def normalize_url(value):
+    """Webhook-URL aus dem Secret: ergänzt fehlendes https:// oder baut sie aus der reinen Kennung."""
+    v = (value or "").strip().strip('"').strip("'").strip()
+    if re.match(r"^https?://", v):
+        return v
+    if v.startswith("trmnl.com/") or v.startswith("usetrmnl.com/") or v.startswith("www."):
+        return "https://" + v
+    if v.startswith("/api/custom_plugins/"):
+        return "https://trmnl.com" + v
+    if v.startswith("api/custom_plugins/"):
+        return "https://trmnl.com/" + v
+    if re.fullmatch(r"[A-Za-z0-9_-]{8,}", v):
+        return "https://trmnl.com/api/custom_plugins/" + v
+    return v
+
+
 def send(url, payload, label="TRMNL"):
     """Schickt merge_variables an einen TRMNL-Webhook. Die URL wird nie ausgegeben."""
     body = json.dumps({"merge_variables": payload}, ensure_ascii=False, separators=(",", ":")).encode()
@@ -199,9 +215,14 @@ def send(url, payload, label="TRMNL"):
         print(body.decode())
         return 0
     from urllib.parse import urlparse
+    url = normalize_url(url)
     u = urlparse(url)
     path_ok = u.path.startswith("/api/custom_plugins/") and len(u.path) > len("/api/custom_plugins/") + 8
     print(f"{label}: Ziel {u.scheme}://{u.netloc}, Pfad {'ok' if path_ok else 'UNERWARTET (erwartet /api/custom_plugins/<id>)'}")
+    if not (u.scheme and u.netloc):
+        print(f"{label}: Secret enthält keine gültige Webhook-URL (Länge {len(url)}, "
+              f"Schrägstriche {url.count('/')}, Leerzeichen {url.count(' ')}) – übersprungen")
+        return 1
     headers = {"Content-Type": "application/json", "Accept": "application/json",
                "User-Agent": "comunio-zentrale/1.0 (+github actions)"}
     req = urllib.request.Request(url, data=body, headers=headers, method="POST")
