@@ -322,7 +322,7 @@ def main():
                 })
 
     # Trend-Pfeile: Comunio liefert den Trend (ganze Zahl) für alle Spieler der Liga in der Spielersuche
-    trends, positions_all, start = {}, {}, 0
+    trends, positions_all, clubs_all, start = {}, {}, {}, 0
     while start < 1500:
         try:
             page = get(f"/api/communities/{cid}/players?start={start}&limit=50")
@@ -334,6 +334,9 @@ def main():
                 trends[str(t["id"])] = t["trend"]
             if t.get("position") and t.get("id") is not None:
                 positions_all[str(t["id"])] = t["position"]
+            cl = D(t.get("club"))
+            if cl.get("id") and cl.get("name"):
+                clubs_all[str(cl["id"])] = cl["name"]
         if len(rows) < 50:
             break
         start += 50
@@ -370,7 +373,9 @@ def main():
                          "points": e.get("points"), "in": e.get("in"), "out": e.get("out"),
                          "status": e.get("status"), "yellow": e.get("yellow"), "yellowRed": e.get("yellowRed"),
                          "red": e.get("red"), "goals": e.get("goals"), "clubId": e.get("clubId"),
-                         "homeId": D(mt.get("home")).get("id"), "guestId": D(mt.get("guest")).get("id")})
+                         "homeId": D(mt.get("home")).get("id"), "guestId": D(mt.get("guest")).get("id"),
+                         "matchId": mt.get("id"), "homeGoals": mt.get("homeGoals"), "guestGoals": mt.get("guestGoals"),
+                         "kickoff": mt.get("kickoff")})
         stats[pid] = rows
         time.sleep(0.15)
 
@@ -419,7 +424,7 @@ def main():
     open_mds = sorted([m for m in mdays if not m.get("finished") and str(m.get("key", "")).isdigit()],
                       key=lambda m: int(m["key"]))
     upcoming_mds = [m for m in open_mds if not m.get("started")]
-    nm_info = {}
+    nm_info, season_fixtures = {}, None
     if upcoming_mds or open_mds:
         nmd = (upcoming_mds or open_mds)[0]
         season = str(nmd.get("season") or "")
@@ -427,6 +432,7 @@ def main():
         fixtures = NM.fetch_fixtures(year, int(nmd["key"]))
         nm_info = {"md": int(nmd["key"]), "date": nmd.get("date"), "started": nmd.get("started"),
                    "fixtures": fixtures, "odds": NM.fetch_odds()}
+        season_fixtures = NM.fetch_season(year)  # ganzer Spielplan – für die Saisonsimulation
 
     # Eigener Kontoauszug (seitenweise)
     statement, start = [], 0
@@ -481,6 +487,8 @@ def main():
         "quotes": quotes,
         "trends": trends,
         "playerPositions": positions_all,
+        "clubs": clubs_all,
+        "seasonFixtures": season_fixtures,
         "statsTrends": fetch_stats_trends(),
         "lineup": lineup,
         "offers": offers,

@@ -65,19 +65,59 @@ all_players = [p for sq in squads.values() for p in sq] + market
 for i, m in enumerate(market):
     m["clubId"], m["club"] = clubs[i % len(clubs)]
     m["ownerId"] = 101 if m["owner"] == "Adler" else 1
+# Spielplan: Jeder gegen jeden (Rundenverfahren), Tore nach Vereinsstärke; Punkte hängen an Tordifferenz
+import math
+strength = {cid: random.gauss(0, 0.6) for cid, _ in clubs}
+def rounds(ids):
+    ids = list(ids); out = []
+    for r in range(len(ids) - 1):
+        out.append([(ids[i], ids[-1 - i]) if r % 2 else (ids[-1 - i], ids[i]) for i in range(len(ids) // 2)])
+        ids = [ids[0]] + [ids[-1]] + ids[1:-1]
+    return out
+rr = rounds([c for c, _ in clubs])
+def pois(l):
+    k, t, L = 0, random.random(), math.exp(-l)
+    while t > L:
+        k += 1; t *= random.random()
+    return k
+games = {}
+mid = 1
+for season, n in (("cur", 7), (397004, 34)):
+    for mdk in range(1, n + 1):
+        for h, g in rr[(mdk - 1) % len(rr)]:
+            d = strength[h] - strength[g] + 0.3
+            games[(season, mdk, h)] = games[(season, mdk, g)] = (mid, h, g, pois(1.5 + d / 2), pois(1.5 - d / 2))
+            mid += 1
+club_shock = {k: random.gauss(0, 1.5) for k in games}
 for p in all_players:
     rows = []
-    for season, n in (("cur", 6), (397004, 34)):
+    talent = random.gauss(0, 1.5)
+    p_start = random.choice([0.2, 0.5, 0.8, 0.9])
+    cid = p.get("clubId", 1)
+    for season, n in (("cur", 7), (397004, 34)):
         for mdk in range(n, 0, -1):
+            if season == "cur" and mdk == 7:
+                continue  # 7. Spieltag läuft noch
+            m_id, h, g, hg, gg = games[(season, mdk, cid)]
+            gd = (hg - gg) if cid == h else (gg - hg)
             r = random.random()
-            role_pts = None if r < 0.25 else random.randint(-2, 14)
-            sub_in = str(random.randint(55, 85)) if 0.25 <= r < 0.4 else None
-            oid = random.choice(clubs)[0]
-            rows.append({"season": season, "md": str(mdk), "date": "2026-10-01", "points": None if role_pts is None else str(role_pts),
-                         "in": sub_in, "out": None, "status": "ACTIVE", "yellow": "1" if random.random() < 0.1 else None,
-                         "yellowRed": None, "red": None, "goals": (str(random.randint(1, 2)) if random.random() < 0.15 else None), "clubId": p.get("clubId", 1),
-                         "homeId": p.get("clubId", 1), "guestId": oid})
+            unav = r < 0.1
+            start = not unav and random.random() < p_start
+            sub = not unav and not start and random.random() < 0.4
+            pts = None
+            if start:
+                pts = round(4 + talent + 0.8 * (gd - strength[cid]) + club_shock[(season, mdk, cid)] + random.gauss(0, 4))
+            elif sub:
+                pts = round(1 + 0.4 * talent + 0.25 * gd + random.gauss(0, 2))
+            rows.append({"season": season, "md": str(mdk), "date": "2026-10-01", "points": None if pts is None else str(pts),
+                         "in": "60" if sub else None, "out": None, "status": "INJURED" if unav else "ACTIVE",
+                         "yellow": "1" if random.random() < 0.1 else None, "yellowRed": None, "red": None,
+                         "goals": None, "clubId": cid, "homeId": h, "guestId": g, "matchId": m_id,
+                         "homeGoals": hg, "guestGoals": gg, "kickoff": "2026-10-01T15:30:00+02:00"})
     stats[str(p["id"])] = rows
+season_fixtures = [{"md": mdk, "home": dict(clubs)[h], "away": dict(clubs)[g], "kickoff": "", "finished": mdk < 7,
+                    "goalsHome": None, "goalsAway": None}
+                   for mdk in range(1, 35) for (h, g) in (rr[(mdk - 1) % len(rr)] if mdk <= 17 else [(b_, a_) for a_, b_ in rr[(mdk - 18) % len(rr)]])]
 quotes = {str(p["id"]): [[f"2026-10-{23 - k:02d}", int(p["marketValue"]) + k * 10000] for k in range(23)]
           for p in squads["5695415"] + market}
 own_ids = [str(p["id"]) for p in squads["5695415"][:11]]
@@ -106,6 +146,8 @@ raw = {
     "clubLogos": {"21": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMCAxMCI+PHJlY3Qgd2lkdGg9IjEwIiBoZWlnaHQ9IjEwIiBmaWxsPSJibHVlIi8+PC9zdmc+", "1": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMCAxMCI+PGNpcmNsZSBjeD0iNSIgY3k9IjUiIHI9IjQiIGZpbGw9InJlZCIvPjwvc3ZnPg=="},
     "stats": stats, "quotes": quotes, "lineup": {"tactic": "433", "ids": own_ids}, "offers": offers,
     "credit": 15881499, "matchdayCalendar": calendar,
+    "clubs": {str(c): n for c, n in clubs}, "seasonFixtures": season_fixtures,
+    "playerPositions": {str(p["id"]): p["position"] for p in all_players},
     "nextMatch": {"md": 7, "date": "2026-10-23T20:30:00+02:00", "started": True,
                   "fixtures": [{"home": h, "away": a, "kickoff": f"2026-10-2{4 + i // 3}T15:30:00Z", "finished": i == 0,
                                 "goalsHome": 2 if i == 0 else None, "goalsAway": 1 if i == 0 else None, "source": "OpenLigaDB"}

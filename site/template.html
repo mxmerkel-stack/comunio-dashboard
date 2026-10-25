@@ -65,6 +65,10 @@ tr.me:hover td{background:#f6e9a8}
 .trend{display:inline-block;line-height:0;vertical-align:middle;cursor:help}
 .trend.unk{display:inline-block;min-width:1.2em;text-align:center;font-weight:700;line-height:1;color:#c9b800;-webkit-text-stroke:.6px #000}
 .bar{height:8px;background:var(--accent);min-width:2px}
+.rk{display:inline-flex;align-items:flex-end;gap:2px;height:22px;vertical-align:middle}
+.rk i{display:block;width:7px;background:var(--accent);min-height:1px}
+.kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px 16px;margin:6px 0 10px}
+.kv div{font-size:12.5px}.kv b{display:block;font-size:15px}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 @media (max-width:760px){.grid2{grid-template-columns:1fr}h1{font-size:19px}}
 svg text{fill:var(--muted);font-size:11px}
@@ -137,6 +141,7 @@ select{font:inherit;font-size:12.5px;padding:3px 5px;background:#fff;color:var(-
       <p class="note">Alle Spieler in den Kadern der Manager mit Toren in dieser Saison. „Für den Besitzer“ zählt nur Tore seit dem Kauf. Ob der Spieler dabei aufgestellt war, ist nicht berücksichtigt.</p></div>
     <div class="card"><h2>Spieltage</h2><div id="t-matchdays"></div></div>
     <div class="card"><h2>Prognose Endtabelle</h2><div id="t-forecast"></div><p class="note" id="fc-note"></p></div>
+    <div class="card"><h2>Prognosegüte (Rückprüfung)</h2><div id="calib"></div></div>
     <div class="card"><h2>Monatswertung</h2><div id="t-monthly"></div></div>
   </section>
   <section id="s-ewig">
@@ -628,15 +633,49 @@ table("t-plans",D.plans||[],[{h:"Plan",v:r=>r.id},{h:"Verkaufen",v:r=>r.sell.joi
 if(!(D.plans||[]).length) document.getElementById("t-plans").append(el("p",{class:"note"},"Kein Plan verbessert die Aufstellung bei nicht-negativem Konto."));
 
 // Prognose Endtabelle
+const rankBars=r=>{const w=el("span",{class:"rk",title:(r.p_rank||[]).map((p,i)=>`Platz ${i+1}: ${pct(p)}`).join(" · ")});
+  (r.p_rank||[]).forEach(p=>w.append(el("i",{style:`height:${Math.max(1,Math.round(p*22))}px`})));return w;};
 table("t-forecast",D.forecast||[],[{h:"#",v:r=>r.rank_final,n:true},{h:"Manager",v:r=>r.name},{h:"Punkte jetzt",v:r=>int(r.pts_now),s:r=>r.pts_now,n:true},
-  {h:"Ø je Spieltag (Prognose)",v:r=>el("span",{title:`Beste Elf ${f1(r.rate_squad)} · bisheriger Schnitt ${f1(r.avg)}`},f1(r.rate)),s:r=>r.rate,n:true},
+  {h:"Ø je Spieltag (Prognose)",v:r=>el("span",{title:`Beste Elf des heutigen Kaders am nächsten Spieltag ${f1(r.rate_squad)} · bisheriger Schnitt ${f1(r.avg)}`},f1(r.rate)),s:r=>r.rate,n:true},
   {h:"Aufstellung",v:r=>el("span",{title:"Wie nah der Manager in den bisherigen Spieltagen an die im Nachhinein beste Elf seines Kaders kam (Community = 100 %, nur leicht gewichtet, weil Kader klein sind)"},(r.disc*100).toFixed(1).replace(".",",")+" %"),s:r=>r.disc,n:true},
   {h:"Guthaben",v:r=>el("span",{title:"Zusatzpunkte je Spieltag durch den besten Marktplan mit dem aktuellen Guthaben, zur Hälfte angesetzt"},signed(r.gain,f1)),s:r=>r.gain,n:true,cls:r=>r.gain>0?"pos":""},
   {h:"Minus-Risiko",v:r=>el("span",{title:"Wahrscheinlichkeit je Spieltag, mit negativem Konto keine Punkte zu bekommen (bisherige Häufigkeit, zum Community-Mittel gezogen)"},pct(r.p_zero)),s:r=>r.p_zero,n:true,cls:r=>r.p_zero>=.05?"neg":""},
   {h:"Erwartet am Ende",v:r=>el("strong",{},int(r.exp_final)),s:r=>r.exp_final,n:true},
   {h:"Spanne (10–90 %)",v:r=>`${int(r.p10)} – ${int(r.p90)}`,s:r=>r.p10},{h:"Meister",v:r=>pct(r.p_title),s:r=>r.p_title,n:true},
-  {h:"Top 3",v:r=>pct(r.p_top3),s:r=>r.p_top3,n:true},{h:"Ø Platz",v:r=>f2(r.exp_rank),s:r=>r.exp_rank,n:true}],{me:isMe});
-document.getElementById("fc-note").textContent=`${int(4000)} Simulationen der restlichen ${S.remaining??"–"} Spieltage. Tempo je Manager = 70 % erwartete Punkte der besten Elf aus dem aktuellen Kader (unbesetzte Positionen −4 Punkte, mal Aufstellungs-Faktor, plus Guthaben-Effekt) + 30 % bisheriger Schnitt. Streuung aus den eigenen Spieltagen; zusätzlich ist das Grundniveau jedes Managers unsicher (ca. ±3–5 Punkte je Spieltag), das verbreitert die Spanne. Mit negativem Konto gibt es keine Punkte: dieses Risiko je Spieltag kommt aus der bisherigen Häufigkeit.`;
+  {h:"Top 3",v:r=>pct(r.p_top3),s:r=>r.p_top3,n:true},{h:"Ø Platz",v:r=>f2(r.exp_rank),s:r=>r.exp_rank,n:true},
+  {h:"Platz 1 … "+((D.forecast||[]).length),v:r=>rankBars(r),s:r=>r.exp_rank}],{me:isMe});
+(function(){
+  const C=D.calib||{}, P=C.prm||{}, note=document.getElementById("fc-note");
+  if(C.model!=="Spielerebene"){ note.textContent=`Einfaches Modell (die Simulation auf Spielerebene ist bei diesem Lauf ausgefallen): ${int(4000)} Simulationen, Tempo aus der besten Elf und dem bisherigen Schnitt.`; return; }
+  const fx=C.fixtures||{};
+  note.textContent=`${int(C.sims)} Simulationen der restlichen ${S.remaining??"–"} Spieltage, Spieler für Spieler: Für jedes Spiel laut Spielplan (${fx.mds_with_fixtures??"–"} Spieltage, ${(fx.sources||[]).join(", ")||"–"}) wird eine Tordifferenz gezogen – aus der Stärke beider Vereine und dem Heimvorteil${C.oddsUsed?`, beim nächsten Spieltag zur Hälfte aus den Wettquoten`:""}. Sie trifft alle Spieler beider Vereine gemeinsam; dazu kommen ein Vereins-Schock, Einsatz oder Bank, Verletzungen (die oft mehrere Spieltage dauern) und das Einzelrauschen. Jeder Manager stellt an jedem Spieltag aus seinen fitten Spielern die nach Erwartung beste Elf auf (leere Plätze −4). Darauf kommen Aufstellungs-Faktor, Guthaben-Effekt, Minus-Risiko und Kaderwechsel über die Saison (z. B. Winter-Transfers). Alle Streuungen sind aus vergangenen Spielen geschätzt, siehe Prognosegüte.`;
+  const box=document.getElementById("calib"); box.textContent="";
+  const pl=C.player||{}, mg=C.manager||{}, f3=v=>v==null?"–":Number(v).toLocaleString("de-DE",{maximumFractionDigits:2});
+  const kv=el("div",{class:"kv"});
+  const add=(t,v,h)=>kv.append(el("div",{title:h||""},el("b",{},v),t));
+  add("Fehler je Spieler und Spiel (Modell)",f3(pl.rmse_model)+" Pkt.",`Wurzel des mittleren quadratischen Fehlers, ${int(pl.n_rows)} Spiele, nur mit älteren Daten vorhergesagt`);
+  add("zum Vergleich: Schnitt der letzten 10 Spiele",f3(pl.rmse_avg10)+" Pkt.","Einfaches Verfahren wie bei Comstats-Schnitten");
+  add("Spielplan-Nutzen (mit / ohne Gegner)",`${f3(pl.rmse_fixture)} / ${f3(pl.rmse_no_fixture)}`,"Fehler, wenn die erwartete Tordifferenz gegen den jeweiligen Gegner eingerechnet wird");
+  add("Gewichtung der Vergangenheit",`Halbwertszeit ${C.hl} Spiele, ${f3(C.k)} Pseudo-Spiele`,"Aus mehreren Varianten die mit dem kleinsten Fehler, automatisch bei jedem Lauf");
+  add("Manager-Spieltage geprüft",int(mg.n),"Laufende Saison: Kader beim Anpfiff aus den Transfers rekonstruiert, Spielerwerte nur aus älteren Spielen");
+  add("Treffer im 10–90-%-Bereich",pct(mg.cover80),"Ideal sind 80 %. Weniger heißt: Modell zu sicher (wird über die Zusatzstreuung korrigiert)");
+  add("Abweichung im Schnitt (echt − Modell)",signed(mg.bias,f1)+" Pkt.",`Fließt geschrumpft als Korrektur ein: ${signed(P.bias_adj,f1)} je Spieltag`);
+  add("Streuung je Manager-Spieltag",`Modell ${f1(mg.sd_pred)} · echt ${f1(mg.rmse)}`,`Zusatzstreuung ${f1(P.sig_extra)} Punkte je Spieltag`);
+  add("Mannschaftseffekt je Tor Differenz",Object.entries(P.beta||{}).map(([k,v])=>({keeper:"TW",defender:"AB",midfielder:"MF",striker:"ST"}[k]+" "+f3(v))).join(" · "),`Joker ${f3(P.beta_sub)} – Punkte mehr je Tor, das der eigene Verein besser abschneidet als üblich`);
+  add("Gemeinsame Schwankung",`Verein ${f3(P.sig_c)} · Spielerniveau ${f3(P.sig_lvl)}`,"Vereins-Schock je Spiel (trifft alle Startelfspieler) und bleibender Fehler im geschätzten Spielerniveau");
+  add("Kaderwechsel je Spieltag",C.drift?`± ${f3(C.drift.sd)} Pkt.`:"–","Wie stark sich die beste Elf durch Transfers von Spieltag zu Spieltag verändert hat (gleicht sich in der Simulation teilweise aus)");
+  add("Heimvorteil / Streuung Tordifferenz",`${f3(C.hfa)} / ${f3(C.sdGd)} Tore`);
+  box.append(kv);
+  const rec=C.managerRecords||[];
+  if(rec.length){
+    const d=el("details",{},el("summary",{},`Einzelne Manager-Spieltage (${rec.length})`),el("div",{id:"t-calib"}));
+    box.append(d);
+    table("t-calib",rec,[{h:"Spieltag",v:r=>r.md,n:true},{h:"Manager",v:r=>r.name},{h:"Echt",v:r=>int(r.actual),s:r=>r.actual,n:true},
+      {h:"Modell",v:r=>f1(r.mean),s:r=>r.mean,n:true},{h:"10–90 %",v:r=>`${int(r.p10)} – ${int(r.p90)}`,s:r=>r.p10},
+      {h:"",v:r=>r.actual<r.p10?"darunter":r.actual>r.p90?"darüber":"✓",cls:r=>r.actual<r.p10||r.actual>r.p90?"neg":"pos"}],{sort:0});
+  }
+  box.append(el("p",{class:"note"},"Rückprüfung: Jedes vergangene Spiel wird nur mit den Daten vorhergesagt, die vorher bekannt waren, und mit dem echten Ergebnis verglichen. Daraus kommen die Gewichtung, die Streuungen und eine Korrektur der Manager-Prognose. Die Endtabelle selbst lässt sich erst am Saisonende prüfen; der Verlauf der Prognose wird dafür gespeichert."));
+})();
 
 // Monatswertung
 (function(){
@@ -671,7 +710,8 @@ const METHOD=[
  ["Verletzungen","Ausfallwahrscheinlichkeit aus dem aktuellen Status (angeschlagen, Reha, verletzt, gesperrt), den recherchierten Rückkehrterminen und der eigenen Ausfallhistorie. Für die Restsaison erholt sie sich schrittweise zur Grundrate."],
  ["Sperren","Gelbe Karten je Einsatz, gedämpft zum Schnitt; Wahrscheinlichkeit, bis Saisonende die 5. Gelbe zu sehen (Poisson)."],
  ["Aufstellung","Beste Elf je Formation (3-4-3, 3-5-2, 4-3-3, 4-4-2, 4-5-1, 5-3-2, 5-4-1) nach erwarteten Punkten für den nächsten Spieltag."],
- ["Saisonprognose","4.000 Simulationen der restlichen Spieltage. Die Spanne zeigt das 10. bis 90. Perzentil."],
+ ["Saisonprognose","3.000 Simulationen der restlichen Spieltage auf Spielerebene: Spielplan mit Vereinsstärke und Heimvorteil, gemeinsame Tordifferenz je Spiel, Vereins-Schock, Einsatz/Bank, mehrwöchige Verletzungen, beste Elf je Manager und Spieltag, Kaderwechsel über die Saison. Die Spanne zeigt das 10. bis 90. Perzentil."],
+ ["Rückprüfung","Bei jedem Lauf werden alle Spiele der laufenden und letzten Saison nur mit vorher bekannten Daten vorhergesagt. Daraus werden die Gewichtung der Vergangenheit, Mannschaftseffekt, Streuungen und eine Korrektur der Manager-Prognose geschätzt."],
  ["Flip-Deals","Erwarteter Gewinn = Marktwert × mittleres Computer-Angebot (aus deinen aktuellen Angeboten) − Mindestgebot. Mitbieter und Marktwertänderung über Nacht sind nicht eingerechnet."],
  ["Transfer-Pläne","Alle Kombinationen aus bis zu vier von fünf Verkaufskandidaten und bis zu drei von zwölf Marktspielern, Gebot 3 % über Mindestgebot, Konto danach nicht negativ."],
  ["Kontostände","Basis 15 Mio. € am 27.05. plus Verkäufe, minus Käufe, plus 10.000 € je Punkt, plus spätere Strafen/Gutschriften. Dein eigener Wert ist der echte Kontostand."],

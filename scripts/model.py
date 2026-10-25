@@ -66,7 +66,11 @@ def parse_history(rows):
         if r.get("homeId") and r.get("guestId") and r.get("clubId"):
             home = r["clubId"] == r["homeId"]
             opp = r["guestId"] if home else r["homeId"]
-        out.append({**r, "pts": pts, "role": role, "opp": opp, "home": home})
+        gd = None
+        hg, gg = num(r.get("homeGoals")), num(r.get("guestGoals"))
+        if home is not None and hg is not None and gg is not None:
+            gd = (hg - gg) if home else (gg - hg)
+        out.append({**r, "pts": pts, "role": role, "opp": opp, "home": home, "gd": gd})
     return out
 
 
@@ -113,11 +117,12 @@ def opponent_factors(histories, base):
 
 
 def player_base(hist, pos, means, status, injury_return=None):
+    half_life, shrink_k = HALF_LIFE, SHRINK_K  # zur Laufzeit veränderbar (Kalibrierung)
     w_start = w_sub = w_avail = w_unav = w_all = 0.0
     s_start = s_sub = n_s = n_b = 0.0
     yellow_cur, apps_cur = 0, 0
     for i, r in enumerate(hist[:40]):
-        w = 0.5 ** (i / HALF_LIFE)
+        w = 0.5 ** (i / half_life)
         w_all += w
         if r["role"] == "unav":
             w_unav += w
@@ -136,8 +141,8 @@ def player_base(hist, pos, means, status, injury_return=None):
             apps_cur += 1
             yellow_cur += int(num(r.get("yellow"), 0) or 0)
     m = means.get(pos, {"start": 4.0, "sub": 1.5})
-    ppg_start = (s_start + SHRINK_K * m["start"]) / (n_s + SHRINK_K)
-    ppg_sub = (s_sub + SHRINK_K * m["sub"]) / (n_b + SHRINK_K)
+    ppg_start = (s_start + shrink_k * m["start"]) / (n_s + shrink_k)
+    ppg_sub = (s_sub + shrink_k * m["sub"]) / (n_b + shrink_k)
     # Rollenwahrscheinlichkeit: wenig Daten -> vorsichtig (Prior: 30 % Start, 20 % Joker)
     p_start = (w_start + 0.6) / (w_avail + 2.0)
     p_sub = (w_sub + 0.4) / (w_avail + 2.0)
@@ -151,7 +156,7 @@ def player_base(hist, pos, means, status, injury_return=None):
     # Gelbsperre: Wahrscheinlichkeit, bis Saisonende die 5. Gelbe zu sehen (vereinfacht, Poisson)
     return {"ppg_start": ppg_start, "ppg_sub": ppg_sub, "p_start": p_start, "p_sub": p_sub,
             "p_unav": p_unav, "base_unav": base_unav, "e_play": e_play,
-            "yellow": yellow_cur, "apps": apps_cur}
+            "yellow": yellow_cur, "apps": apps_cur, "n_start": n_s, "n_sub": n_b}
 
 
 def poisson_at_least(lmbda, k):

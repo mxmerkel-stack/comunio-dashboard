@@ -64,6 +64,28 @@ def fetch_fixtures(season_year, md):
     return out
 
 
+def fetch_season(season_year):
+    """OpenLigaDB: alle Paarungen einer Bundesliga-Saison (für die Saisonsimulation). None bei Fehler."""
+    try:
+        data = _get(f"https://api.openligadb.de/getmatchdata/bl1/{season_year}", timeout=40)
+    except Exception as e:
+        print(f"::warning title=OpenLigaDB-Spielplan::{type(e).__name__}")
+        return None
+    out = []
+    for m in data or []:
+        if not isinstance(m, dict):
+            continue
+        res = [r for r in (m.get("matchResults") or []) if isinstance(r, dict)]
+        final = next((r for r in res if r.get("resultTypeID") == 2), None)
+        out.append({"md": (m.get("group") or {}).get("groupOrderID"),
+                    "home": (m.get("team1") or {}).get("teamName"), "away": (m.get("team2") or {}).get("teamName"),
+                    "kickoff": m.get("matchDateTimeUTC") or m.get("matchDateTime"),
+                    "finished": bool(m.get("matchIsFinished")),
+                    "goalsHome": final.get("pointsTeam1") if final else None,
+                    "goalsAway": final.get("pointsTeam2") if final else None})
+    return out
+
+
 def fetch_odds():
     """The Odds API (Tipico DE, Siegwette 1/X/2). Nur wenn ODDS_API_KEY gesetzt ist."""
     key = os.environ.get("ODDS_API_KEY")

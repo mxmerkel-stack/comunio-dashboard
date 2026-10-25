@@ -13,6 +13,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import model as M
+import season as S
 
 ROOT = Path(__file__).resolve().parent.parent
 DATA = Path(os.environ.get("DATA_DIR", ROOT / "data"))
@@ -434,7 +435,10 @@ def build(raw, history):
 
     # --- Verlauf (ein Eintrag pro Tag) ---
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    snap = {"date": today, "balance": dict(balance_of), "points": dict(pts_of), "teamValue": dict(tv_of)}
+    snap = {"date": today, "balance": dict(balance_of), "points": dict(pts_of), "teamValue": dict(tv_of),
+            # Prognose-Archiv: so lässt sich die Endtabellen-Prognose am Saisonende rückwirkend prüfen
+            "forecast": {r["id"]: [r["exp_final"], r["p10"], r["p90"], r["p_title"]] for r in an.get("forecast") or []},
+            "forecastModel": (an.get("calib") or {}).get("model")}
     history = [h for h in history if h["date"] != today] + [snap]
     history.sort(key=lambda h: h["date"])
 
@@ -495,6 +499,20 @@ def analyze(raw, names, ids, me_id, squads, market, md_rows, pts_of, balance_of,
         players.setdefault(str(m["id"]), {**m})
     positions = {pid: p.get("position") for pid, p in players.items()}
     histories = {pid: M.parse_history(rows) for pid, rows in (raw.get("stats") or {}).items()}
+    pos_all = {str(k): v for k, v in (raw.get("playerPositions") or {}).items() if v}
+    pos_all.update({pid: pl.get("position") for pid, pl in players.items() if pl.get("position")})
+
+    # --- Rückprüfung (Paket 4): Gewichtung der Vergangenheit an allen bisherigen Spielen kalibrieren ---
+    calib = {"ok": False}
+    try:
+        bt = S.player_backtest(histories, pos_all)
+        if bt and bt["best"]["n"] >= 2000:
+            M.HALF_LIFE, M.SHRINK_K = bt["best"]["hl"], bt["best"]["k"]
+        calib.update({"ok": True, "grid": bt["grid"] if bt else [], "hl": M.HALF_LIFE, "k": M.SHRINK_K})
+        print(f"::notice title=Rückprüfung Spieler::Gewichtung Halbwertszeit {M.HALF_LIFE} Spiele, "
+              f"{M.SHRINK_K} Pseudo-Spiele; " + "; ".join(f"{g['hl']}/{g['k']}: {g['rmse_cond']:.3f}" for g in (bt or {}).get("grid", [])))
+    except Exception as e:
+        print(f"::warning title=Rückprüfung Spieler::übersprungen ({type(e).__name__}: {e})")
     means = M.position_means(histories, positions)
     base = {pid: M.player_base(histories.get(pid, []), positions.get(pid), means, players[pid].get("status"))
             for pid in players}
@@ -713,6 +731,7 @@ def analyze(raw, names, ids, me_id, squads, market, md_rows, pts_of, balance_of,
         for uid in ids:
             md_points[uid].append(md["points"].get(uid))
     extras = {uid: {} for uid in ids}
+    owners, actual = None, {}
 
     # (a) Aufstell-Effizienz: Kader jedes Managers zu jedem Anpfiff aus den Transfers rekonstruieren und die
     #     tatsächlichen Punkte mit der im Nachhinein besten Elf dieses Kaders vergleichen
@@ -736,8 +755,6 @@ def analyze(raw, names, ids, me_id, squads, market, md_rows, pts_of, balance_of,
                 if r_.get("season") == "cur" and r_.get("points") is not None and num(r_.get("md"), None) is not None:
                     d_[str(int(num(r_["md"])))] = num(r_["points"], 0)
             player_pts[str(pid)] = d_
-        pos_all = {str(k): v for k, v in (raw.get("playerPositions") or {}).items() if v}
-        pos_all.update({pid: pl.get("position") for pid, pl in players.items() if pl.get("position")})
         owners = M.squads_at(tx_all, {uid: [str(x["id"]) for x in sq] for uid, sq in squads.items()}, deadlines, ids)
         factors, pooled = M.lineup_factors(owners, player_pts, pos_all, actual, set(stats_raw))
         for uid, f_ in factors.items():
@@ -758,10 +775,92 @@ def analyze(raw, names, ids, me_id, squads, market, md_rows, pts_of, balance_of,
         except Exception as e:
             print(f"::warning title=Guthaben-Effekt::übersprungen ({type(e).__name__})")
 
-    fc = M.forecast(ids, squads_model, md_points, pts_of, remaining, extras=extras)
+    # (c) Minus-Risiko je Spieltag (bisherige Häufigkeit, zum Community-Mittel gezogen)
+    n_all = sum(len(v) for v in md_points.values())
+    z_all = sum(1 for v in md_points.values() for x in v if x is None)
+    pooled_zero = z_all / n_all if n_all else 0.0
+    for uid in ids:
+        h_ = md_points.get(uid, [])
+        z_ = sum(1 for x in h_ if x is None)
+        extras[uid]["p_zero"] = (z_ + M.ZERO_K * pooled_zero) / (len(h_) + M.ZERO_K) if (h_ or pooled_zero) else 0.0
+
+    # (d) Saisonsimulation auf Spielerebene (Paket 3), kalibriert durch Rückprüfung (Paket 4)
+    fc = None
+    try:
+        import next_match as NM
+        matches = S.matches_from_histories(histories)
+        prm, info = S.residual_params(histories, pos_all, matches)
+        calib["player"] = {k: (round(v, 3) if isinstance(v, float) else v) for k, v in info.items()}
+        mb = S.manager_backtest(owners, histories, pos_all, matches, actual, prm) if owners else None
+        if mb:
+            prm["sig_extra"] = round(mb["sig_extra"], 2)
+            prm["bias_adj"] = round(mb["bias_adj"], 2)
+            calib["manager"] = {k: (round(v, 3) if isinstance(v, float) else v) for k, v in mb.items() if k != "records"}
+            calib["managerRecords"] = [{"md": r_["md"], "name": names.get(r_["uid"], r_["uid"]), "actual": r_["actual"],
+                                        "mean": round(r_["mean"], 1), "p10": round(r_["p10"]), "p90": round(r_["p90"])}
+                                       for r_ in mb["records"]]
+        e_any = {pid: M.player_base(h_, pos_all[pid], means, "ACTIVE")["e_play"]
+                 for pid, h_ in histories.items() if pos_all.get(pid) in M.POS_ORDER}
+        e_any.update({pid: mm_["e_play"] for pid, mm_ in model.items() if mm_ and "e_play" in mm_})
+        mu_d, sd_d = S.squad_drift(owners, {uid: [str(x["id"]) for x in sq] for uid, sq in squads.items()},
+                                   e_any, pos_all) if owners else (None, None)
+        if sd_d is not None:
+            prm["sig_drift"] = round(min(3.0, sd_d), 2)
+            calib["drift"] = {"mean": round(mu_d, 2), "sd": round(sd_d, 2)}
+        rt, hfa, sd_gd = S.team_ratings(matches)
+        club_names = {str(k): v for k, v in (raw.get("clubs") or {}).items()}
+        for p_ in players.values():
+            if p_.get("clubId") and p_.get("club"):
+                club_names.setdefault(str(p_["clubId"]), p_["club"])
+        rem_mds = list(range(played + 1, M.SEASON_MDS + 1))
+        fixtures, fx_info = S.build_fixtures(raw, histories, club_names, rem_mds, NM.match_name)
+        # Quoten (falls vorhanden) für den nächsten Spieltag: erwartete Tordifferenz ≈ 2,6 × (P(Sieg) − P(Niederlage))
+        odds_gd = {}
+        lookup = list(club_names.values())
+        rev = {v: k for k, v in club_names.items()}
+        for o in ((raw.get("nextMatch") or {}).get("odds") or []):
+            imp = NM.implied(o.get("odd1"), o.get("oddX"), o.get("odd2"))
+            h_, g_ = NM.match_name(o.get("home"), lookup), NM.match_name(o.get("away"), lookup)
+            if imp and h_ and g_ and rem_mds:
+                eg = 2.6 * (imp["p1"] - imp["p2"])
+                for c_, sg in ((rev[h_], 1), (rev[g_], -1)):
+                    base_eg = S.exp_gd(rt, hfa, c_, rev[g_] if sg == 1 else rev[h_], sg == 1)
+                    odds_gd[(rem_mds[0], c_)] = 0.5 * sg * eg + 0.5 * base_eg
+        pinfo = {}
+        for uid, sq in squads.items():
+            for p_ in sq:
+                pid = str(p_["id"])
+                pos_ = p_.get("position") or pos_all.get(pid)
+                if pos_ in M.POS_ORDER:
+                    pinfo[pid] = S.player_info(pid, histories.get(pid, []), pos_, means, p_.get("status"),
+                                               str(p_.get("clubId")) if p_.get("clubId") else None,
+                                               ((injuries or {}).get(pid) or {}).get("return"), sig_lvl=prm["sig_lvl"])
+        squads_ids = {uid: [str(x["id"]) for x in sq if str(x["id"]) in pinfo] for uid, sq in squads.items()}
+        fc = S.season_forecast(ids, squads_ids, pinfo, fixtures, rt, hfa, sd_gd, prm, rem_mds, extras,
+                               pts_of, md_points, odds_gd=odds_gd)
+        calib.update({"prm": prm, "fixtures": fx_info, "hfa": round(hfa, 2), "sdGd": round(sd_gd, 2),
+                      "oddsUsed": len(odds_gd) // 2, "sims": 3000, "model": "Spielerebene"})
+        mp = calib.get("manager") or {}
+        print(f"::notice title=Rückprüfung Manager::{mp.get('n')} Manager-Spieltage; Abweichung Ø {mp.get('bias')}, "
+              f"Fehler {mp.get('rmse')}, Modell-Streuung {mp.get('sd_pred')}, Treffer 10–90 % {mp.get('cover80')}; "
+              f"Zusatzstreuung {prm['sig_extra']}, Korrektur {prm['bias_adj']}")
+        print(f"::notice title=Simulationsparameter::Mannschaftseffekt {prm['beta']}, Joker {prm['beta_sub']}, "
+              f"Vereins-Schock {prm['sig_c']}, Spielerniveau {prm['sig_lvl']}, Einzel {prm['sig_ind']}, Kaderwechsel {calib.get('drift')}, "
+              f"Spielplan {fx_info}, Heimvorteil {round(hfa, 2)}, Streuung Tordifferenz {round(sd_gd, 2)}, Quoten {len(odds_gd) // 2}")
+        pi = calib.get("player") or {}
+        print(f"::notice title=Prognosegüte Spieler::Fehler Modell {pi.get('rmse_model')} vs. Schnitt letzte 10 {pi.get('rmse_avg10')} "
+              f"(laufende Saison {pi.get('rmse_model_cur')} vs. {pi.get('rmse_avg10_cur')}); mit Spielplan {pi.get('rmse_fixture')} "
+              f"vs. ohne {pi.get('rmse_no_fixture')}; Steigung {pi.get('slope')}, n={pi.get('n_rows')}")
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        print(f"::warning title=Saisonsimulation::übersprungen, einfaches Modell ({type(e).__name__}: {e})")
+        calib["model"] = "einfach"
+    if fc is None:
+        fc = M.forecast(ids, squads_model, md_points, pts_of, remaining, extras=extras)
     print("::notice title=Prognose-Zusatzgrößen::Guthaben-Effekt (Pkt./Spieltag) "
           f"{sorted(r['gain'] for r in fc)}, Ausfallrisiko {sorted(r['p_zero'] for r in fc)}, "
-          f"Unsicherheit Grundniveau {sorted(r['sd_level'] for r in fc)}")
+          f"Streuung Endstand {sorted(r['sd_level'] for r in fc)}")
     for r in fc:
         r["name"] = names[r["id"]]
 
@@ -937,7 +1036,7 @@ def analyze(raw, names, ids, me_id, squads, market, md_rows, pts_of, balance_of,
             "lineup": {"now": xi_rows(cur_ids), "best": xi_rows(best_ids), "formationNow": M.tactic_name(lu.get("tactic")),
                        "formationBest": best_form},
             "formations": formations, "offers": offers_out, "buyers": buyers, "plans": plans,
-            "forecast": fc, "monthly": monthly, "opponents": opp_list, "nextMatch": next_match}
+            "forecast": fc, "calib": calib, "monthly": monthly, "opponents": opp_list, "nextMatch": next_match}
 
 
 def _fernet():
