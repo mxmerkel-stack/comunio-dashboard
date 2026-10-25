@@ -72,6 +72,11 @@ button.toggle.on{color:#fff;background:linear-gradient(180deg,#d99a3a,#b8761f);b
 .lvrow.me .lvbar{background:linear-gradient(180deg,#d99a3a,#b8761f)}
 .lvbar.neg{background:#a3261e}
 .lvval{text-align:right;font-variant-numeric:tabular-nums}
+.eye{margin-left:auto;align-self:center;width:38px;height:32px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;
+  background:linear-gradient(180deg,#f4f9ef,#d5e8ca);border:1px solid #11330d;color:#16300f;padding:0}
+.eye.on{background:linear-gradient(180deg,#d99a3a,#b8761f);color:#fff}
+.eye svg{width:22px;height:22px}
+body.hide-money .money{filter:blur(7px);user-select:none;pointer-events:none}
 .clubcell{display:inline-flex;align-items:center;gap:6px}
 .crestimg{width:22px;height:22px;object-fit:contain;flex:none}
 .crest{display:inline-flex;align-items:center;justify-content:center;width:30px;height:22px;border-radius:3px 3px 11px 11px;
@@ -81,7 +86,7 @@ select{font:inherit;font-size:12.5px;padding:3px 5px;background:#fff;color:var(-
 </head>
 <body>
 <header>
-  <div class="brand"><h1>comunio zentrale</h1><div class="sub" id="meta"></div></div>
+  <div class="brand"><h1>comunio zentrale</h1><div class="sub" id="meta"></div><button id="eye" class="eye" type="button" title="Kontostände ausblenden" aria-label="Kontostände ausblenden" aria-pressed="false"></button></div>
 </header>
 <nav><div class="in" id="tabs"></div></nav>
 <main>
@@ -118,10 +123,10 @@ select{font:inherit;font-size:12.5px;padding:3px 5px;background:#fff;color:var(-
     <div class="card"><h2>Kontostände</h2><div id="t-accounts"></div>
       <p class="note" id="acc-note"></p></div>
     <div class="card"><h2>Strafen &amp; Gutschriften</h2><div id="t-bonuses"></div></div>
-    <div class="card"><h2>Verlauf Kontostand</h2><div id="chart-bal"></div></div>
+    <div class="card"><h2>Verlauf Kontostand</h2><div id="chart-bal" class="money"></div></div>
   </section>
   <section id="s-markt">
-    <div class="card"><h2>Deine Angebote</h2><div id="t-offers"></div><p class="note" id="of-note"></p></div>
+    <div class="card"><h2>Deine Angebote</h2><div id="t-offers"></div><p class="note money" id="of-note"></p></div>
     <div class="card"><h2>Transfermarkt</h2><div id="mk-bar" class="toolbar"><span id="mk-count" class="note" style="margin:0"></span></div><div id="t-market"></div>
       <p class="note" id="mk-note"></p></div>
     <div class="card"><h2>Preis und Leistung</h2><div id="chart-pp"></div><p class="note">Marktwert gegen prognostizierte Saisonpunkte. Je weiter oben links, desto mehr Punkte pro Euro.</p></div>
@@ -231,6 +236,24 @@ function plate(name){
 const clubCell=name=>name?el("span",{class:"clubcell"},badge(name),name):"–";
 const oppCell=(name,venue)=>name?el("span",{class:"clubcell"},badge(name),`${name} (${venue==="Heim"?"H":"A"})`):"–";
 
+// Kontostände ausblenden (Auge)
+(function(){
+  const EYE='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+  const EYE_OFF='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 19c-7 0-11-7-11-7a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 7 11 7a18.5 18.5 0 0 1-2.16 3.19"/><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
+  const b=document.getElementById("eye"); let hide=false; try{ hide=localStorage.getItem("hide-money")==="1"; }catch(e){}
+  const set=()=>{ document.body.classList.toggle("hide-money",hide); b.classList.toggle("on",hide); b.innerHTML=hide?EYE_OFF:EYE;
+    const t=hide?"Kontostände einblenden":"Kontostände ausblenden"; b.title=t; b.setAttribute("aria-label",t); b.setAttribute("aria-pressed",String(hide)); };
+  b.onclick=()=>{ hide=!hide; try{ localStorage.setItem("hide-money",hide?"1":"0"); }catch(e){} set(); }; set();
+})();
+
+// Beträge hinter „Konto…“ / „Kreditrahmen“ in Texten zum Ausblenden markieren
+function moneyText(str){
+  const out=el("span",{}); const re=/((?:Konto\w*|Kreditrahmen|Guthaben)[^.;:]*?)(-?[\d.,]+\s?(?:Mio\.|T)?\s?€)/g; let i=0,m;
+  str=String(str??"");
+  while((m=re.exec(str))){ out.append(str.slice(i,m.index)+m[1]); out.append(el("span",{class:"money"},m[2])); i=m.index+m[0].length; }
+  out.append(str.slice(i)); return out;
+}
+
 // Sortierbare Tabelle: cols = [{h, v:(row)=>display, s:(row)=>sortValue, n:true(numeric), cls:(row)=>""}]
 function table(target, rows, cols, opts={}){
   const box=document.getElementById(target); box.textContent="";
@@ -272,7 +295,7 @@ const k=document.getElementById("kpis");
  ["Aufstellung", D.status? (D.status.lineupNow??0).toLocaleString("de-DE",{maximumFractionDigits:1})+" Pkt.":"–", D.status&&D.status.lineupGain>0.05? `beste Elf: ${(D.status.lineupBest).toLocaleString("de-DE",{maximumFractionDigits:1})} (${D.status.formationBest})` : "beste mögliche Elf"],
  ["Nächster Spieltag", D.status&&D.status.nextMd? D.status.nextMd+".":"–", D.status&&D.status.nextDate? dt(D.status.nextDate):""],
  ["Nächste Transfers", dt(D.nextTransfers), ""]
-].forEach(([l,v,h])=>k.append(el("div",{class:"kpi"},el("div",{class:"l"},l),el("div",{class:"v"},v),el("div",{class:"h"},h))));
+].forEach(([l,v,h])=>k.append(el("div",{class:"kpi"+(["Kontostand","Kreditrahmen"].includes(l)?" money":"")},el("div",{class:"l"},l),el("div",{class:"v"},v),el("div",{class:"h"},h))));
 
 // Tabelle
 const stCols=[{h:"#",v:r=>r.rank,n:true},{h:"Manager",v:r=>r.name},{h:"Punkte",v:r=>int(r.points),s:r=>r.points,n:true},{h:"Rückstand",v:r=>r.gap?"−"+r.gap:"–",s:r=>r.gap,n:true},{h:"Tore",v:r=>r.goals??"–",s:r=>r.goals??-1,n:true},{h:"Teamwert",v:r=>mio(r.teamValue),s:r=>r.teamValue,n:true}];
@@ -356,13 +379,13 @@ table("t-wins",D.wins,[{h:"Manager",v:r=>r.name},{h:"Meistertitel",v:r=>r.titles
 
 // Konten
 const sgn=v=>!v?"–":(v>0?"+":"−")+eur(Math.abs(v));
-table("t-accounts",D.accounts,[{h:"Manager",v:r=>r.name},{h:"Kontostand",v:r=>el("strong",{},eur(r.balance)),s:r=>r.balance,n:true,cls:r=>r.balance<0?"neg":""},
+table("t-accounts",D.accounts,[{h:"Manager",v:r=>r.name},{h:"Kontostand",v:r=>el("strong",{},eur(r.balance)),s:r=>r.balance,n:true,cls:r=>(r.balance<0?"neg":"")+" money"},
   {h:"",v:r=>r.real!=null?el("span",{class:"pill"},"echt"):el("span",{class:"pill warn"},"berechnet"),s:r=>r.real!=null?1:0},
-  {h:"Basis 27.05.",v:r=>eur(r.base),s:r=>r.base,n:true},{h:"Verkäufe",v:r=>sgn(r.sales),s:r=>r.sales,n:true,cls:()=>"pos"},
-  {h:"Käufe",v:r=>sgn(-r.buys),s:r=>r.buys,n:true,cls:()=>"neg"},{h:"Punkteprämie",v:r=>sgn(r.pointsBonus),s:r=>r.pointsBonus,n:true},
-  {h:"Strafen/Gutschr.",v:r=>r.penalties?sgn(r.penalties):"–",s:r=>r.penalties,n:true,cls:r=>r.penalties<0?"neg":(r.penalties>0?"pos":"")},
-  {h:"Berechnet",v:r=>eur(r.estimate),s:r=>r.estimate,n:true},
-  {h:"Teamwert",v:r=>mio(r.teamValue),s:r=>r.teamValue,n:true},{h:"Gesamt",v:r=>mio(r.total),s:r=>r.total,n:true}],{me:isMe,sort:1});
+  {h:"Basis 27.05.",v:r=>eur(r.base),s:r=>r.base,n:true,cls:()=>"money"},{h:"Verkäufe",v:r=>sgn(r.sales),s:r=>r.sales,n:true,cls:()=>"pos money"},
+  {h:"Käufe",v:r=>sgn(-r.buys),s:r=>r.buys,n:true,cls:()=>"neg money"},{h:"Punkteprämie",v:r=>sgn(r.pointsBonus),s:r=>r.pointsBonus,n:true,cls:()=>"money"},
+  {h:"Strafen/Gutschr.",v:r=>r.penalties?sgn(r.penalties):"–",s:r=>r.penalties,n:true,cls:r=>(r.penalties<0?"neg":(r.penalties>0?"pos":""))+" money"},
+  {h:"Berechnet",v:r=>eur(r.estimate),s:r=>r.estimate,n:true,cls:()=>"money"},
+  {h:"Teamwert",v:r=>mio(r.teamValue),s:r=>r.teamValue,n:true},{h:"Gesamt",v:r=>mio(r.total),s:r=>r.total,n:true,cls:()=>"money"}],{me:isMe,sort:1});
 document.getElementById("acc-note").textContent = "Berechnung: 15 Mio. € am 27.05. (10 Mio. nach Strafen/Gutschriften zum Saisonübergang + 5 Mio. Saisonwechsel-Bonus) + Verkäufe − Käufe + 10.000 € je Punkt + spätere Strafen/Gutschriften. Dein Kontostand ist der echte Wert von Comunio." + (D.me.deviation? ` Deine eigene Berechnung weicht um ${eur(D.me.deviation)} davon ab – so groß kann der Fehler bei den anderen ungefähr sein.` : " Deine eigene Berechnung stimmt exakt.");
 table("t-bonuses",D.bonuses,[{h:"Datum",v:r=>dt(r.date),s:r=>r.date},{h:"Manager",v:r=>r.name},{h:"Betrag",v:r=>sgn(r.amount),s:r=>r.amount,n:true,cls:r=>r.amount<0?"neg":"pos"},{h:"Begründung",v:r=>r.reason||"–"},
   {h:"",v:r=>r.counted?el("span",{class:"pill"},"eingerechnet"):el("span",{class:"pill warn"},"Saisonübergang")}]);
@@ -442,7 +465,7 @@ const signed=(v,fmt)=>v==null?"–":(v>0?"+":"")+fmt(v);
   const list=el("div",{style:"display:grid;gap:10px"});
   D.actions.forEach(a=>list.append(el("div",{style:"display:grid;grid-template-columns:auto 1fr;gap:4px 12px;align-items:start"},
     el("span",{class:"pill"+(a.tag==="Konto"||a.tag==="Risiko"||a.tag==="Verlust"?" warn":"")},a.tag),
-    el("div",{},el("strong",{},a.prio+". "+a.title),el("div",{class:"note",style:"margin:2px 0 0"},a.detail)))));
+    el("div",{},el("strong",{},a.prio+". ",moneyText(a.title)),el("div",{class:"note"+(a.tag==="Konto"?" money":""),style:"margin:2px 0 0"},moneyText(a.detail))))));
   box.append(list);
 })();
 
@@ -535,16 +558,16 @@ CHARTS.pp=()=>scatter("chart-pp",ppPts); CHARTS.pp();
 const byF=document.getElementById("by-filter"); byF.append(el("option",{value:""},"Alle Marktspieler"));
 [...new Set((D.buyers||[]).map(b=>b.player))].forEach(n=>byF.append(el("option",{value:n},n)));
 const drawBy=()=>table("t-buyers",(D.buyers||[]).filter(b=>!byF.value||b.player===byF.value).filter(b=>byF.value||b.score>0),
-  [{h:"Spieler",v:r=>r.player},{h:"Manager",v:r=>r.manager},{h:"Kontostand",v:r=>eur(r.balance),s:r=>r.balance,n:true,cls:r=>r.balance<0?"neg":""},
+  [{h:"Spieler",v:r=>r.player},{h:"Manager",v:r=>r.manager},{h:"Kontostand",v:r=>eur(r.balance),s:r=>r.balance,n:true,cls:r=>(r.balance<0?"neg":"")+" money"},
    {h:"Kann sich leisten",v:r=>r.affordable?"ja":el("span",{class:"neg"},"nein"),s:r=>r.affordable?1:0},
    {h:"Käufe 30 T.",v:r=>r.buys30,n:true},{h:"Aktivität",v:r=>pct(r.activity),s:r=>r.activity,n:true},
-   {h:"Gebotsspanne",v:r=>r.affordable?`${mio(r.bidLow)} – ${mio(r.bidHigh)}`:"–",s:r=>r.bidHigh||0},
+   {h:"Gebotsspanne",v:r=>r.affordable?`${mio(r.bidLow)} – ${mio(r.bidHigh)}`:"–",s:r=>r.bidHigh||0,cls:()=>"money"},
    {h:"Wahrscheinlichkeit",v:r=>pct(r.score),s:r=>r.score,n:true}],{sort:7});
 byF.onchange=drawBy; drawBy();
 
 // Transfer-Pläne
 table("t-plans",D.plans||[],[{h:"Plan",v:r=>r.id},{h:"Verkaufen",v:r=>r.sell.join(", ")||"–"},{h:"Kaufen",v:r=>el("strong",{},r.buy.join(", "))},
-  {h:"Erlös",v:r=>mio(r.proceeds),s:r=>r.proceeds,n:true},{h:"Kosten",v:r=>mio(r.cost),s:r=>r.cost,n:true},{h:"Konto danach",v:r=>mio(r.cash_after),s:r=>r.cash_after,n:true},
+  {h:"Erlös",v:r=>mio(r.proceeds),s:r=>r.proceeds,n:true},{h:"Kosten",v:r=>mio(r.cost),s:r=>r.cost,n:true},{h:"Konto danach",v:r=>mio(r.cash_after),s:r=>r.cash_after,n:true,cls:()=>"money"},
   {h:"+ Punkte/Spieltag",v:r=>signed(r.delta_md,f1),s:r=>r.delta_md,n:true,cls:()=>"pos"},{h:"+ Punkte Rest",v:r=>signed(r.delta_rest,f1),s:r=>r.delta_rest,n:true,cls:()=>"pos"}]);
 if(!(D.plans||[]).length) document.getElementById("t-plans").append(el("p",{class:"note"},"Kein Plan verbessert die Aufstellung bei nicht-negativem Konto."));
 
