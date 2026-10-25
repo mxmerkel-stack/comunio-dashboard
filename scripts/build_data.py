@@ -82,6 +82,16 @@ def build(raw, history):
     leader_pts = standings[0]["points"] if standings else 0
     for s in standings:
         s["gap"] = leader_pts - s["points"]
+    # Tore der aktuellen Kaderspieler in dieser Saison, gezählt ab dem Kaufdatum
+    stats_all = raw.get("stats") or {}
+    for s in standings:
+        g = 0
+        for p in (raw.get("squads") or {}).get(s["id"], []):
+            since = str(p.get("purchaseDate") or "")[:10]
+            for r in stats_all.get(str(p.get("id")), []):
+                if r.get("season") == "cur" and (not since or (r.get("date") or "") >= since):
+                    g += num(r.get("goals"), 0) or 0
+        s["goals"] = int(g)
     pts_of = {s["id"]: s["points"] for s in standings}
     tv_of = {s["id"]: s["teamValue"] for s in standings}
 

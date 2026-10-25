@@ -75,7 +75,7 @@ for p in all_players:
             oid = random.choice(clubs)[0]
             rows.append({"season": season, "md": str(mdk), "date": "2026-10-01", "points": None if role_pts is None else str(role_pts),
                          "in": sub_in, "out": None, "status": "ACTIVE", "yellow": "1" if random.random() < 0.1 else None,
-                         "yellowRed": None, "red": None, "goals": None, "clubId": p.get("clubId", 1),
+                         "yellowRed": None, "red": None, "goals": (str(random.randint(1, 2)) if random.random() < 0.15 else None), "clubId": p.get("clubId", 1),
                          "homeId": p.get("clubId", 1), "guestId": oid})
     stats[str(p["id"])] = rows
 quotes = {str(p["id"]): [[f"2026-10-{23 - k:02d}", int(p["marketValue"]) + k * 10000] for k in range(23)]

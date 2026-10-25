@@ -88,7 +88,7 @@ select{font:inherit;font-size:12.5px;padding:3px 5px;background:#fff;color:var(-
     <div class="card"><h2>Punkteverlauf je Spieltag</h2><div id="chart-md"></div></div>
   </section>
   <section id="s-tabelle">
-    <div class="card"><h2>Saisontabelle</h2><div id="t-standings"></div></div>
+    <div class="card"><h2>Saisontabelle</h2><div id="t-standings"></div><p class="note">Tore = Treffer der Spieler im aktuellen Kader in dieser Saison, gezählt ab ihrem Kaufdatum. Ob der Spieler dabei aufgestellt war und Tore verkaufter Spieler sind nicht enthalten.</p></div>
     <div class="card"><h2>Spieltage</h2><div id="t-matchdays"></div></div>
     <div class="card"><h2>Prognose Endtabelle</h2><div id="t-forecast"></div><p class="note" id="fc-note"></p></div>
     <div class="card"><h2>Monatswertung</h2><div id="t-monthly"></div></div>
@@ -257,7 +257,7 @@ const k=document.getElementById("kpis");
 ].forEach(([l,v,h])=>k.append(el("div",{class:"kpi"},el("div",{class:"l"},l),el("div",{class:"v"},v),el("div",{class:"h"},h))));
 
 // Tabelle
-const stCols=[{h:"#",v:r=>r.rank,n:true},{h:"Manager",v:r=>r.name},{h:"Punkte",v:r=>int(r.points),s:r=>r.points,n:true},{h:"Rückstand",v:r=>r.gap?"−"+r.gap:"–",s:r=>r.gap,n:true},{h:"Teamwert",v:r=>mio(r.teamValue),s:r=>r.teamValue,n:true}];
+const stCols=[{h:"#",v:r=>r.rank,n:true},{h:"Manager",v:r=>r.name},{h:"Punkte",v:r=>int(r.points),s:r=>r.points,n:true},{h:"Rückstand",v:r=>r.gap?"−"+r.gap:"–",s:r=>r.gap,n:true},{h:"Tore",v:r=>r.goals??"–",s:r=>r.goals??-1,n:true},{h:"Teamwert",v:r=>mio(r.teamValue),s:r=>r.teamValue,n:true}];
 table("t-standings",D.standings,stCols,{me:isMe});
 table("mini-table",D.standings,stCols.slice(0,4),{me:isMe});
 
