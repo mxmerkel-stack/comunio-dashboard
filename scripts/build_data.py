@@ -264,10 +264,13 @@ def build(raw, history):
     rumors, rumors_asof = load_research("rumors") or ({}, None)
     injuries, injuries_asof = load_research("injuries") or ({}, None)
 
+    all_quotes = raw.get("quotes") or {}
+
     def enrich(p):
         pid = str(p.get("id"))
         out = {"positionName": POSITIONS.get(p.get("position"), p.get("position") or "–"),
                "statusName": STATUS.get(p.get("status") or "ACTIVE", p.get("status"))}
+        out["trend"], out["trendSrc"] = M.player_trend(p.get("trend"), all_quotes.get(pid))
         dob = (raw.get("dobs") or {}).get(pid) or p.get("dob") or ((raw.get("ownDetails") or {}).get(pid) or {}).get("dob")
         if dob:
             out["age"] = M.age(dob)
@@ -566,6 +569,7 @@ def analyze(raw, names, ids, me_id, squads, market, md_rows, pts_of, balance_of,
                          "p_inj5": mm.get("p_inj5"), "yellow": mm.get("yellow"), "p_ban": mm.get("p_ban"),
                          "marketValue": mv, "purchasePrice": buy, "pnl": (mv - buy) if buy else None,
                          "pnl_pct": round((mv / buy - 1) * 100, 1) if buy else None,
+                         "trend": p.get("trend"), "trendSrc": p.get("trendSrc"),
                          "mv_tr7": M.trend(quotes.get(pid), 7), "mv_tr30": M.trend(quotes.get(pid), 30),
                          "mv_per_pt": round(mv / sp) if sp > 0 else None,
                          "pts_per_mio": round((mm.get("proj") or 0) / max(mv, 1) * 1e6, 1),

@@ -338,6 +338,29 @@ def trend(quotes, days):
     return round((a / b - 1) * 100, 1)
 
 
+TREND_UP = {"UP", "RISING", "RISE", "POSITIVE", "PLUS", "INCREASING", "1", "+1"}
+TREND_DOWN = {"DOWN", "FALLING", "FALL", "NEGATIVE", "MINUS", "DECREASING", "-1"}
+TREND_FLAT = {"STABLE", "EQUAL", "NEUTRAL", "FLAT", "SAME", "STEADY", "NONE", "0"}
+
+
+def player_trend(api_value, quotes):
+    """Trend-Pfeil wie bei Comstats: UP / FLAT / DOWN oder None (= Fragezeichen).
+
+    Vorrang hat der Trend, den Comunio selbst liefert. Fehlt er, wird er aus dem Marktwertverlauf
+    der letzten 7 Tage abgeleitet (Quelle "mw"). Ohne beides bleibt er unbekannt."""
+    key = str(api_value).strip().upper() if api_value is not None else ""
+    if key in TREND_UP:
+        return "UP", "api"
+    if key in TREND_DOWN:
+        return "DOWN", "api"
+    if key in TREND_FLAT:
+        return "FLAT", "api"
+    t7 = trend(quotes, 7)
+    if t7 is None:
+        return None, None
+    return ("UP" if t7 > 0 else "DOWN" if t7 < 0 else "FLAT"), "mw"
+
+
 def age(dob, today=None):
     if not dob:
         return None

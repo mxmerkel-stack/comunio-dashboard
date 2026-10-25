@@ -62,6 +62,8 @@ tr.me:hover td{background:#f6e9a8}
 .pill.warn{background:#fdf0cf;color:var(--warn);border-color:var(--warn)}
 .pill.bad{background:#f8dcd9;color:var(--bad);border-color:var(--bad)}
 .pos{color:var(--good);font-weight:700}.neg{color:var(--bad);font-weight:700}
+.trend{display:inline-block;min-width:1.2em;text-align:center;font-weight:700;cursor:help}
+.trend.up{color:var(--good)}.trend.down{color:var(--bad)}.trend.flat{color:var(--warn)}.trend.unk{color:#8a8f87}
 .bar{height:8px;background:var(--accent);min-width:2px}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 @media (max-width:760px){.grid2{grid-template-columns:1fr}h1{font-size:19px}}
@@ -271,6 +273,11 @@ const LIGHT_TXT={green:"fit",yellow:"fraglich / angeschlagen",red:"fällt voraus
 const dot=(l,tip)=>l?el("span",{class:"dot "+l,title:(LIGHT_TXT[l]||"")+(tip&&l!=="green"?" – "+tip:"")}):"";
 const OUT_ST=new Set(["INJURED","REHABILITATION","SUSPENDED","REDBANNED","YELLOWREDBANNED","YELLOWBANNED","AWAY","RETIRED"]);
 const lightOf=p=>{ const st=p.status||"ACTIVE", pu=p.p_unav||0; return (OUT_ST.has(st)||pu>=.5)?"red":(st==="WEAKENED"||pu>=.15||p.injury)?"yellow":"green"; };
+const TREND={UP:["▲","up","steigend"],FLAT:["▶","flat","stabil"],DOWN:["▼","down","fallend"]};
+const trendCell=r=>{ const t=TREND[r.trend];
+  if(!t) return el("span",{class:"trend unk",title:"Trend unbekannt"},"?");
+  return el("span",{class:"trend "+t[1],title:"Trend: "+t[2]+(r.trendSrc==="mw"?" (aus dem Marktwertverlauf der letzten 7 Tage)":" (laut Comunio)")},t[0]); };
+const trendCol={h:"Trend",v:trendCell,s:r=>({UP:2,FLAT:1,DOWN:0})[r.trend]??-1,n:true};
 const clubCell=name=>name?el("span",{class:"clubcell"},badge(name),name):"–";
 const oppCell=(name,venue)=>name?el("span",{class:"clubcell"},badge(name),`${name} (${venue==="Heim"?"H":"A"})`):"–";
 
@@ -447,7 +454,7 @@ const mkCols=[{h:"Spieler",v:r=>r.name},{h:"Verein",v:r=>clubCell(r.club),s:r=>r
   {h:"Seit",v:r=>dt(r.listedAt),s:r=>r.listedAt||""},
   {h:"Noch",v:r=>el("span",{title:r.endsAt?"bis "+dt(r.endsAt):""},r.remainingText||"–"),s:r=>r.remainingDays??1e9,n:true},
   {h:"Punkte",v:r=>r.points,n:true},{h:"Vorsaison",v:r=>r.prevPoints??"–",s:r=>r.prevPoints??-999,n:true},
-  {h:"Marktwert",v:r=>mio(r.marketValue),s:r=>r.marketValue,n:true},
+  {h:"Marktwert",v:r=>mio(r.marketValue),s:r=>r.marketValue,n:true},trendCol,
   {h:"Kaufempfehlung",v:recPill,s:r=>-(recOrder[r.recommendation]*10+r.rank)},
   {h:"E nächster Sp.",v:r=>r.e_next==null?"–":r.e_next.toLocaleString("de-DE",{minimumFractionDigits:2,maximumFractionDigits:2}),s:r=>r.e_next||0,n:true},
   {h:"Prognose Saison",v:r=>r.proj==null?"–":Math.round(r.proj),s:r=>r.proj||0,n:true},
@@ -463,13 +470,13 @@ const isComp=r=>String(r.ownerId)==="1"||!r.owner||String(r.owner).toLowerCase()
 let onlyComp=false; try{ onlyComp=localStorage.getItem("mk-only-comp")==="1"; }catch(e){}
 const mkBtn=el("button",{class:"toggle",type:"button"});
 const drawMk=()=>{ mkBtn.textContent=onlyComp?"✓ Nur Computer":"Nur Computer"; mkBtn.classList.toggle("on",onlyComp);
-  const rows=onlyComp?D.market.filter(isComp):D.market; table("t-market",rows,mkCols,{sort:9});
+  const rows=onlyComp?D.market.filter(isComp):D.market; table("t-market",rows,mkCols,{sort:10});
   document.getElementById("mk-count").textContent=`${rows.length} von ${D.market.length} Spielern`; };
 mkBtn.onclick=()=>{ onlyComp=!onlyComp; try{ localStorage.setItem("mk-only-comp",onlyComp?"1":"0"); }catch(e){} drawMk(); };
 document.getElementById("mk-bar").prepend(mkBtn); drawMk();
-document.getElementById("mk-note").textContent = `Kaufempfehlung: Punkte dieser Saison doppelt gewichtet plus Vorsaison${D.prevSeason?" ("+D.prevSeason+")":""} anteilig, im Verhältnis zum Marktwert. Oberes Drittel = ja, mittleres = vielleicht, unteres oder verletzt/Reha/gesperrt = nein. Übersteigt das Gebot dein Guthaben, wird aus „ja“ ein „vielleicht“. Empfohlenes Gebot = Marktwert + 2–12 % Aufschlag. „Können sich leisten“ = Manager, deren (berechneter) Kontostand das Gebot deckt. Fahre über die Empfehlung für die Begründung.`;
+document.getElementById("mk-note").textContent = `Kaufempfehlung: Punkte dieser Saison doppelt gewichtet plus Vorsaison${D.prevSeason?" ("+D.prevSeason+")":""} anteilig, im Verhältnis zum Marktwert. Oberes Drittel = ja, mittleres = vielleicht, unteres oder verletzt/Reha/gesperrt = nein. Übersteigt das Gebot dein Guthaben, wird aus „ja“ ein „vielleicht“. Empfohlenes Gebot = Marktwert + 2–12 % Aufschlag. „Können sich leisten“ = Manager, deren (berechneter) Kontostand das Gebot deckt. Fahre über die Empfehlung für die Begründung. Trend: ▲ steigend, ▶ stabil, ▼ fallend, ? unbekannt (Wert von Comunio, sonst aus dem Marktwertverlauf der letzten 7 Tage).`;
 const mini=D.market.filter(m=>m.fromComputer && m.recommendation!=="nein").sort((a,b)=>recOrder[b.recommendation]-recOrder[a.recommendation]||b.rank-a.rank).slice(0,6);
-table("mini-market",mini,[mkCols[0],mkCols[2],mkCols[6],mkCols[8],mkCols[9],mkCols[14]]);
+table("mini-market",mini,[mkCols[0],mkCols[2],mkCols[6],mkCols[8],mkCols[9],mkCols[10],mkCols[15]]);
 if(!mini.length) document.getElementById("mini-market").append(el("p",{class:"note"},"Aktuell keine empfehlenswerten Computer-Spieler."));
 
 // Transfers
@@ -487,7 +494,7 @@ const rumorCell=r=>{ if(!r.rumor) return "–"; const x=r.rumor; const w=el("spa
 const sf=document.getElementById("sq-filter"); D.managers.forEach(m=>sf.append(el("option",{value:m.id},m.name))); sf.value=D.me.id;
 const drawSq=()=>table("t-squad",D.squads[sf.value]||[],[{h:"Spieler",v:r=>r.name},{h:"Verein",v:r=>clubCell(r.club),s:r=>r.club||""},{h:"Position",v:r=>r.positionName},
   {h:"Alter",v:r=>r.age==null?"–":f1(r.age),s:r=>r.age||0,n:true},
-  {h:"Punkte",v:r=>r.points,s:r=>Number(r.points),n:true},{h:"Ø",v:r=>r.avg,s:r=>Number(r.avg),n:true},{h:"Marktwert",v:r=>mio(r.marketValue),s:r=>r.marketValue,n:true},
+  {h:"Punkte",v:r=>r.points,s:r=>Number(r.points),n:true},{h:"Ø",v:r=>r.avg,s:r=>Number(r.avg),n:true},{h:"Marktwert",v:r=>mio(r.marketValue),s:r=>r.marketValue,n:true},trendCol,
   {h:"Kaufpreis",v:r=>mio(r.purchasePrice),s:r=>r.purchasePrice||0,n:true},
   {h:"+/−",v:r=>r.purchasePrice? mio(r.marketValue-r.purchasePrice):"–",s:r=>(r.marketValue||0)-(r.purchasePrice||0),n:true,cls:r=>r.purchasePrice?(r.marketValue>=r.purchasePrice?"pos":"neg"):""},
   {h:"Status",v:statusCell,s:r=>r.status},{h:"Rückkehr",v:injCell,s:r=>r.injury?r.injury.return:""},
@@ -495,7 +502,7 @@ const drawSq=()=>table("t-squad",D.squads[sf.value]||[],[{h:"Spieler",v:r=>r.nam
   {h:"Beste Elf",v:r=>r.inXI?el("span",{class:"pill"},"ja"):"–",s:r=>r.inXI?1:0},
   {h:"Transfergerücht",v:rumorCell,s:r=>r.rumor?r.rumor.probability||0:-1}],{sort:5});
 sf.onchange=drawSq; drawSq();
-document.getElementById("sq-note").textContent = `Gerüchte mit geschätzter Wechselwahrscheinlichkeit${D.research.rumorsAsOf?" (Stand "+D.research.rumorsAsOf+")":""}, Rückkehrtermine${D.research.injuriesAsOf?" (Stand "+D.research.injuriesAsOf+")":""} aus Online-Quellen (kicker, transfermarkt.de, Bild, Vereinsseiten). Fahre über einen Eintrag für Details.`;
+document.getElementById("sq-note").textContent = `Gerüchte mit geschätzter Wechselwahrscheinlichkeit${D.research.rumorsAsOf?" (Stand "+D.research.rumorsAsOf+")":""}, Rückkehrtermine${D.research.injuriesAsOf?" (Stand "+D.research.injuriesAsOf+")":""} aus Online-Quellen (kicker, transfermarkt.de, Bild, Vereinsseiten). Fahre über einen Eintrag für Details. Trend: ▲ steigend, ▶ stabil, ▼ fallend, ? unbekannt.`;
 
 // ===================== Bereiche aus der Comunio Zentrale =====================
 const S=D.status||{};
@@ -540,7 +547,7 @@ table("t-own",own,[{h:"Spieler",v:r=>el("span",{class:"clubcell"},badge(r.club),
   {h:"Start",v:r=>pct(r.p_start),s:r=>r.p_start,n:true},{h:"Joker",v:r=>pct(r.p_sub),s:r=>r.p_sub,n:true},{h:"Ausfall",v:r=>pct(r.p_unav),s:r=>r.p_unav,n:true},
   {h:"Punkte",v:r=>int(r.season_pts),s:r=>r.season_pts,n:true},{h:"Prognose",v:r=>int(Math.round(r.proj||0)),s:r=>r.proj||0,n:true},
   {h:"Verletzungsrisiko 5 Sp.",v:r=>pct(r.p_inj5),s:r=>r.p_inj5||0,n:true},{h:"Gelb",v:r=>r.yellow??"–",n:true},{h:"Sperre bis Saisonende",v:r=>pct(r.p_ban),s:r=>r.p_ban||0,n:true},
-  {h:"Marktwert",v:r=>mio(r.marketValue),s:r=>r.marketValue,n:true},{h:"Kaufpreis",v:r=>mio(r.purchasePrice),s:r=>r.purchasePrice||0,n:true},
+  {h:"Marktwert",v:r=>mio(r.marketValue),s:r=>r.marketValue,n:true},trendCol,{h:"Kaufpreis",v:r=>mio(r.purchasePrice),s:r=>r.purchasePrice||0,n:true},
   {h:"+/−",v:r=>r.pnl==null?"–":signed(r.pnl/1e6,f2)+" Mio.",s:r=>r.pnl||0,n:true,cls:r=>r.pnl==null?"":(r.pnl>=0?"pos":"neg")},
   {h:"MW 7 T.",v:r=>r.mv_tr7==null?"–":signed(r.mv_tr7,f1)+" %",s:r=>r.mv_tr7||0,n:true,cls:r=>(r.mv_tr7||0)>=0?"pos":"neg"},
   {h:"MW 30 T.",v:r=>r.mv_tr30==null?"–":signed(r.mv_tr30,f1)+" %",s:r=>r.mv_tr30||0,n:true,cls:r=>(r.mv_tr30||0)>=0?"pos":"neg"},

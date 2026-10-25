@@ -154,7 +154,8 @@ def main():
         squads[str(m["id"])] = [{
             "id": p.get("id"), "name": p.get("name"), "club": D(p.get("club")).get("name"),
             "position": p.get("position"), "points": p.get("points"), "avg": p.get("averagePoints"),
-            "marketValue": p.get("quotedprice"), "status": p.get("status"), "statusInfo": p.get("statusInfo"),
+            "marketValue": p.get("quotedprice"), "trend": p.get("trend"),
+            "status": p.get("status"), "statusInfo": p.get("statusInfo"),
             "purchasePrice": D(p.get("purchaseInfo")).get("price"),
             "purchaseDate": D(p.get("purchaseInfo")).get("date"),
             "clubId": D(p.get("club")).get("id"), "linedup": p.get("linedup"), "onMarket": p.get("onMarket"),
@@ -265,9 +266,9 @@ def main():
         stats[pid] = rows
         time.sleep(0.15)
 
-    # Marktwertverlauf (eigener Kader + Markt)
+    # Marktwertverlauf (alle Kader + Markt) – Grundlage der Trend-Pfeile, falls Comunio keinen Trend liefert
     quotes = {}
-    for pid in sorted({str(p["id"]) for p in squads.get(str(me.get("id")), [])} | {str(m["id"]) for m in market_items}):
+    for pid in sorted({str(p["id"]) for ps in squads.values() for p in ps} | {str(m["id"]) for m in market_items}):
         try:
             q = get(f"/api/players/{pid}/quote-history")
             quotes[pid] = [[(x.get("datetime_string") or "")[:10], x.get("quotedPrice")]
@@ -275,6 +276,10 @@ def main():
         except SystemExit:
             pass
         time.sleep(0.15)
+
+    # Welche Trend-Werte liefert Comunio? (nur die Wertemenge, keine Spielerdaten)
+    seen = sorted({str(x.get("trend")) for ps in squads.values() for x in ps} | {str(m.get("trend")) for m in market_items})
+    print(f"::notice title=Trend-Werte von Comunio::{', '.join(seen)}")
 
     # Eigene Aufstellung, Angebote an dich, Spieltagskalender
     lineup_raw = get(links["game:lineup"])

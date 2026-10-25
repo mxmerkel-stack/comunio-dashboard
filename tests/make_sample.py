@@ -25,7 +25,7 @@ perennial = [{"userId": m["id"], "name": m["name"],
 players = ["Müller", "Kimmich", "Wirtz", "Musiala", "Tah", "Baumann", "Undav", "Schlotterbeck", "Raum", "Andrich"]
 market = [{"id": 30000 + i, "name": n, "club": "Testverein", "position": random.choice(["keeper", "defender", "midfielder", "striker"]),
            "points": str(random.randint(0, 60)), "marketValue": str(random.randint(5, 150) * 100000),
-           "recommendedPrice": "-1", "trend": "UP", "status": random.choice(["ACTIVE"] * 5 + ["INJURED"]),
+           "recommendedPrice": "-1", "trend": random.choice(["UP", "DOWN", "STABLE", None]), "status": random.choice(["ACTIVE"] * 5 + ["INJURED"]),
            "statusInfo": "", "seasonPoints": {"24/25": str(random.randint(0, 150)), "25/26": str(random.randint(0, 180))},
            "owner": random.choice([None, None, "Adler"]), "remainingDays": random.randint(1, 13), "date": "2026-10-21T04:34:45+0200"}
           for i, n in enumerate(players)]
