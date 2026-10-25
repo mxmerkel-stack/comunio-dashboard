@@ -31,6 +31,20 @@ def num(x, default=0):
         return default
 
 
+OUT_STATES = {"INJURED", "REHABILITATION", "SUSPENDED", "REDBANNED", "YELLOWREDBANNED", "YELLOWBANNED", "AWAY", "RETIRED"}
+
+
+def light(status, p_unav=None, injury=None):
+    """Ampel: rot = fällt aus, gelb = fraglich/angeschlagen, grün = fit."""
+    st = status or "ACTIVE"
+    pu = p_unav or 0
+    if st in OUT_STATES or pu >= 0.5:
+        return "red"
+    if st == "WEAKENED" or pu >= 0.15 or injury:
+        return "yellow"
+    return "green"
+
+
 def norm(name):
     return re.sub(r"\s+", " ", str(name or "")).strip().lower()
 
@@ -324,6 +338,50 @@ def build(raw, history):
         squads[uid] = [{**p, **enrich(p), "marketValue": num(p.get("marketValue")),
                         "purchasePrice": num(p.get("purchasePrice"), None)} for p in players]
 
+    # --- Transfer-Bilanz: realisierte Gewinne (Verkauf gegen Kauf) und Buchgewinne im Kader ---
+    by_player = defaultdict(list)
+    for t in sorted(tx_unique, key=lambda t: t.get("date") or ""):
+        by_player[norm(t.get("player"))].append(t)
+    deals = []
+    for lst in by_player.values():
+        for k, t in enumerate(lst):
+            seller = str(t.get("fromId"))
+            if seller not in ids:
+                continue
+            buy = next((b for b in reversed(lst[:k]) if str(b.get("toId")) == seller), None)
+            if not buy:
+                continue
+            deals.append({"managerId": seller, "manager": names[seller], "player": t.get("player"),
+                          "buy": num(buy.get("price")), "sell": num(t.get("price")),
+                          "profit": num(t.get("price")) - num(buy.get("price")), "date": t.get("date"),
+                          "to": names.get(str(t.get("toId")), "Computer")})
+    deals.sort(key=lambda d: -d["profit"])
+    trade_balance = []
+    for i in ids:
+        mine = [d for d in deals if d["managerId"] == i]
+        held = [p for p in squads.get(i, []) if p.get("purchasePrice") is not None]
+        book = sum((p.get("marketValue") or 0) - p["purchasePrice"] for p in held) if held else None
+        real = sum(d["profit"] for d in mine)
+        trade_balance.append({"id": i, "name": names[i], "realized": real, "deals": len(mine),
+                              "wins": sum(1 for d in mine if d["profit"] > 0),
+                              "bookGain": book, "bookN": len(held),
+                              "total": real + (book or 0),
+                              "best": mine[0] if mine else None, "worst": mine[-1] if mine else None})
+    trade_balance.sort(key=lambda r: -r["total"])
+
+    # --- Platzierungsverlauf je Spieltag (kumulierte Punkte) ---
+    cum = {i: 0 for i in ids}
+    rank_hist = {"labels": [], "ranks": {i: [] for i in ids}, "points": {i: [] for i in ids}}
+    for r in md_rows:
+        if not any(v is not None for v in r["points"].values()):
+            continue
+        for i in ids:
+            cum[i] += r["points"].get(i) or 0
+        rank_hist["labels"].append(r["name"])
+        for i in ids:
+            rank_hist["ranks"][i].append(1 + sum(1 for j in ids if cum[j] > cum[i]))
+            rank_hist["points"][i].append(cum[i])
+
     # =============== Analysen aus der Comunio Zentrale ===============
     an = analyze(raw, names, ids, me_id, squads, market, md_rows, pts_of, balance_of, injuries, tx_unique, own_cash)
     # Prüfung vor dem Aufstellungsschluss (auch Grundlage der Morgen-Mail)
@@ -344,6 +402,10 @@ def build(raw, history):
     me_rank = next(s for s in standings if s["id"] == me_id)
     return {
         "generatedAt": raw["fetchedAt"],
+        "builtAt": datetime.now(timezone.utc).isoformat(),
+        "tradeBalance": trade_balance,
+        "deals": deals[:60] + [d for d in deals[60:] if d["managerId"] == me_id],
+        "rankHistory": rank_hist,
         "season": CFG.get("season_label"),
         "prevSeason": prev_label,
         "community": raw["community"]["name"],
@@ -401,6 +463,14 @@ def analyze(raw, names, ids, me_id, squads, market, md_rows, pts_of, balance_of,
     model = M.enrich_players(players, histories, means, opp, venue, remaining,
                              {k: v for k, v in (injuries or {}).items()})
 
+    for m in market:  # Prognose für Markt-Spieler (Auktions-Übersicht)
+        mm = model.get(str(m["id"]), {})
+        m["e_next"] = round(mm.get("e_next", 0.0) or 0.0, 2)
+        m["p_unav"] = round(mm.get("p_unav", 0.0) or 0.0, 3)
+        mv_ = num(m.get("marketValue")) or 0
+        m["ePerMio"] = round(m["e_next"] / (mv_ / 1e6), 2) if mv_ else None
+        m["light"] = light(m.get("status"), m["p_unav"], m.get("injury"))
+
     def mrow(p):
         pid = str(p["id"])
         mm = model.get(pid, {})
@@ -431,11 +501,19 @@ def analyze(raw, names, ids, me_id, squads, market, md_rows, pts_of, balance_of,
     club_of = {str(p.get("id")): p.get("club") for p in raw["squads"].get(str(me_id), [])}
     pos_de = {"keeper": "Tor", "defender": "Abwehr", "midfielder": "Mittelfeld", "striker": "Sturm"}
 
+    sq_me = {str(p["id"]): p for p in squads.get(me_id, [])}
+
+    def light_of(pid):
+        p = sq_me.get(str(pid)) or {}
+        return light(p.get("status"), p.get("p_unav"), p.get("injury"))
+
     def xi_rows(id_list):
         rows = [look[i] for i in id_list if i in look]
         rows.sort(key=lambda s: M.POS_ORDER.index(s["position"]) if s["position"] in M.POS_ORDER else 9)
         return [{"id": s["id"], "name": s["name"], "club": club_of.get(str(s["id"])), "pos": pos_de.get(s["position"], s["position"]),
-                 "e": round(s["e_next"], 2)} for s in rows]
+                 "e": round(s["e_next"], 2), "light": light_of(s["id"]),
+                 "note": ((sq_me.get(str(s["id"])) or {}).get("statusInfo") or ((sq_me.get(str(s["id"])) or {}).get("injury") or {}).get("return"))}
+                for s in rows]
 
     formations = sorted([{"formation": k, "total": v["total"], "complete": v["complete"]} for k, v in forms.items()],
                         key=lambda r: -r["total"])
@@ -700,7 +778,7 @@ def analyze(raw, names, ids, me_id, squads, market, md_rows, pts_of, balance_of,
                         "p_play": round((b.get("p_start", 0) + b.get("p_sub", 0)) * (1 - p_unav), 3),
                         "p_unav": round(p_unav, 3), "e_match": round(e_match, 2),
                         "adj": round(adj, 2), "adjSource": "Quote" if odds_adj is not None else "Gegnerhistorie",
-                        "inLineup": pid in cur_ids})
+                        "inLineup": pid in cur_ids, "light": light(p.get("status"), p_unav, p.get("injury"))})
     nm_squad = [{"id": r["id"], "name": r["name"], "position": r["position"], "e_match": r["e_match"]} for r in nm_rows]
     nm_form, nm_total, nm_ids, nm_forms = M.best_lineup(nm_squad, key="e_match") if nm_squad else (None, 0, [], {})
     for r in nm_rows:
@@ -712,9 +790,37 @@ def analyze(raw, names, ids, me_id, squads, market, md_rows, pts_of, balance_of,
                   "oddsAvailable": bool(odds), "bookmaker": next((f["bookmaker"] for f in fx_out if f.get("bookmaker")), None),
                   "squad": nm_rows, "formation": nm_form, "total": round(nm_total, 2), "nowTotal": nm_now,
                   "best": [{"name": r["name"], "club": r.get("club"), "pos": r["positionName"], "e": r["e_match"], "opponent": r["opponent"],
-                            "venue": r["venue"]} for r in nm_rows if r["inBest"]],
+                            "venue": r["venue"], "light": r["light"]} for r in nm_rows if r["inBest"]],
                   "formations": sorted([{"formation": k, "total": v["total"], "complete": v["complete"]}
                                         for k, v in nm_forms.items()], key=lambda x: -x["total"])}
+
+    # Tausch-Vorschlag: aktuelle Aufstellung -> empfohlene Aufstellung (Paare je Position)
+    swaps = []
+    by_nm = {r["id"]: r for r in nm_rows}
+    out_rows = [r for r in nm_rows if r["inLineup"] and r["id"] not in nm_ids]
+    in_rows = [r for r in nm_rows if r["inBest"] and not r["inLineup"]]
+    out_rows.sort(key=lambda r: r["e_match"])
+    in_rows.sort(key=lambda r: -r["e_match"])
+    used_in = set()
+    for o in out_rows:
+        cand = [r for r in in_rows if r["id"] not in used_in and r["position"] == o["position"]] or \
+               [r for r in in_rows if r["id"] not in used_in]
+        if not cand:
+            swaps.append({"out": o["name"], "outPos": o["positionName"], "outLight": o["light"], "in": None, "gain": round(-o["e_match"], 2)})
+            continue
+        i = cand[0]
+        used_in.add(i["id"])
+        swaps.append({"out": o["name"], "outPos": o["positionName"], "outLight": o["light"], "outE": o["e_match"],
+                      "in": i["name"], "inPos": i["positionName"], "inLight": i["light"], "inE": i["e_match"],
+                      "gain": round(i["e_match"] - o["e_match"], 2)})
+    for i in in_rows:
+        if i["id"] not in used_in:
+            swaps.append({"out": None, "in": i["name"], "inPos": i["positionName"], "inLight": i["light"], "inE": i["e_match"],
+                          "gain": i["e_match"]})
+    swaps.sort(key=lambda x: -x["gain"])
+    next_match["swaps"] = swaps
+    next_match["swapGain"] = round(nm_total - nm_now, 2)
+    next_match["lineupEmpty"] = not cur_ids
 
     opp_list = sorted([{"clubId": k, "adj": round(v, 2)} for k, v in opp.items()], key=lambda r: -r["adj"])
     club_names = {}

@@ -96,6 +96,7 @@ jobs:
         run: |
           python scripts/render_site.py
           python scripts/encrypt_page.py
+          python scripts/make_icons.py
           touch dist/.nojekyll
           printf 'User-agent: *\nDisallow: /\n' > dist/robots.txt
 
@@ -121,3 +122,13 @@ jobs:
 
       - id: deploy
         uses: actions/deploy-pages@v4
+
+      - name: Fehlermeldung senden
+        if: failure()
+        env:
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+          MAIL_USERNAME: ${{ secrets.MAIL_USERNAME }}
+          MAIL_APP_PASSWORD: ${{ secrets.MAIL_APP_PASSWORD }}
+          MAIL_TO: ${{ secrets.MAIL_TO }}
+        run: |
+          python scripts/alert.py "Comunio Zentrale: Update fehlgeschlagen" "Das Dashboard konnte nicht aktualisiert werden. Die Seite zeigt weiter die letzten Daten."

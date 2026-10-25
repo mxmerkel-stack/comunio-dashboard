@@ -33,6 +33,7 @@ Kontostände aller Manager, Transfers, Kader und Gebotsempfehlungen für den Tra
 | `GEMINI_API_KEY` | optional, kostenlos: Schlüssel von aistudio.google.com für die wöchentliche Aktualisierung von Gerüchten und Ausfällen |
 | `ANTHROPIC_API_KEY` | optional, Alternative zu Gemini: API-Schlüssel (console.anthropic.com) für die wöchentliche Aktualisierung von Gerüchten und Ausfällen (Workflow „Gerüchte und Ausfälle aktualisieren“) |
 | `ODDS_API_KEY` | optional: kostenloser Schlüssel von the-odds-api.com für die Tipico-Quoten im Reiter „Next Match“ |
+| `NTFY_TOPIC` | optional: geheimer Themenname für Push-Nachrichten aufs iPhone (App „ntfy“, Thema abonnieren) – Aufstellungs-Erinnerung, auslaufende Angebote, Fehlermeldungen |
 
 **Settings → Pages → Build and deployment → Source:** „GitHub Actions“
 

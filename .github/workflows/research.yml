@@ -56,3 +56,13 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh workflow run update.yml --ref main
+
+      - name: Fehlermeldung senden
+        if: failure()
+        env:
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+          MAIL_USERNAME: ${{ secrets.MAIL_USERNAME }}
+          MAIL_APP_PASSWORD: ${{ secrets.MAIL_APP_PASSWORD }}
+          MAIL_TO: ${{ secrets.MAIL_TO }}
+        run: |
+          python scripts/alert.py "Comunio Zentrale: Recherche fehlgeschlagen" "Die wöchentliche Recherche (Gerüchte, Ausfälle) ist fehlgeschlagen."

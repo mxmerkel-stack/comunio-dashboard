@@ -24,6 +24,13 @@ LOGIN = r"""<!doctype html>
 <html lang="de"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#1b4414">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Comunio">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icon-192.png">
 <title>Comunio Zentrale</title>
 <style>
 :root{--panel:#e7f2dd;--fg:#16300f;--muted:#4a6b40;--line:#6d9b5c;--accent:#2e6b23;--bad:#a3261e}

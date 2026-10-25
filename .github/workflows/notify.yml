@@ -1,0 +1,105 @@
+name: Push-Erinnerungen
+
+# Schickt Nachrichten aufs iPhone (über ntfy.sh, Secret NTFY_TOPIC):
+#  - vor dem Aufstellungsschluss: Warnungen und Tausch-Vorschläge (stündlich geprüft, Abruf nur kurz vor Anpfiff)
+#  - abends: empfohlene Angebote, die bald ablaufen
+on:
+  schedule:
+    - cron: "11 5-19 * * *"   # Prüfung ohne Comunio-Zugang, ob der erste Anpfiff in den nächsten 2,5 Std. liegt
+    - cron: "17 16 * * *"     # Abendhinweis zu auslaufenden Angeboten
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "Test: lineup oder auctions (sendet sofort, ohne Zeitprüfung)"
+        type: choice
+        options: [lineup, auctions]
+        default: lineup
+
+permissions:
+  contents: read
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      DATA_DIR: data
+      NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Modus bestimmen
+        id: mode
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "mode=${{ inputs.mode }}" >> "$GITHUB_OUTPUT"; echo "force=true" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event.schedule }}" = "17 16 * * *" ]; then
+            echo "mode=auctions" >> "$GITHUB_OUTPUT"; echo "force=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "mode=lineup" >> "$GITHUB_OUTPUT"; echo "force=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Anpfiff in Sicht?
+        id: gate
+        if: steps.mode.outputs.mode == 'lineup' && steps.mode.outputs.force != 'true'
+        run: python scripts/notify_gate.py
+
+      - name: Entscheiden
+        id: go
+        run: |
+          if [ -z "$NTFY_TOPIC" ]; then echo "run=false" >> "$GITHUB_OUTPUT"; echo "NTFY_TOPIC nicht gesetzt – nichts zu tun"; exit 0; fi
+          if [ "${{ steps.mode.outputs.mode }}" = "lineup" ] && [ "${{ steps.mode.outputs.force }}" != "true" ]; then
+            echo "run=${{ steps.gate.outputs.run }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Abhängigkeiten
+        if: steps.go.outputs.run == 'true'
+        run: pip install -r requirements.txt
+
+      - name: Bereits gemeldet (Zwischenspeicher)
+        if: steps.go.outputs.run == 'true'
+        uses: actions/cache/restore@v4
+        with:
+          path: data/notified.json
+          key: notified-${{ github.run_id }}
+          restore-keys: notified-
+
+      - name: Verlauf laden (verschlüsselt)
+        if: steps.go.outputs.run == 'true'
+        uses: actions/cache/restore@v4
+        with:
+          path: data/history.enc
+          key: history-restore-${{ github.run_id }}
+          restore-keys: history-
+
+      - name: Daten bei Comunio abrufen
+        if: steps.go.outputs.run == 'true'
+        env:
+          COMUNIO_USER: ${{ secrets.COMUNIO_USER }}
+          COMUNIO_PASS: ${{ secrets.COMUNIO_PASS }}
+          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+        run: python scripts/fetch_comunio.py
+
+      - name: Daten aufbereiten
+        if: steps.go.outputs.run == 'true'
+        env:
+          PAGE_PASSWORD: ${{ secrets.PAGE_PASSWORD }}
+        run: python scripts/build_data.py
+
+      - name: Nachricht senden
+        if: steps.go.outputs.run == 'true'
+        env:
+          FORCE: ${{ steps.mode.outputs.force }}
+        run: python scripts/push_ntfy.py --mode ${{ steps.mode.outputs.mode }}
+
+      - name: Gemeldetes merken
+        if: steps.go.outputs.run == 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: data/notified.json
+          key: notified-${{ github.run_id }}
