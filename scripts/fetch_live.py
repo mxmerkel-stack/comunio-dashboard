@@ -81,7 +81,8 @@ def main():
             m["players"].append({"id": pid, "name": p.get("name"), "club": D(p.get("club")).get("name"),
                                  "slot": num(slot), "type": p.get("type"), "livePoints": num(p.get("livePoints")),
                                  "matchStatus": p.get("matchStatus"), "status": p.get("status"),
-                                 "subbed": p.get("wasLiveSubstituted"), **stats_cache[pid]})
+                                 "subbed": p.get("wasLiveSubstituted"), "rawLive": p.get("livePoints"),
+                                 "lastPoints": p.get("lastPoints"), "linedup": p.get("linedup"), **stats_cache[pid]})
         ps = m["players"]
         m["goals"] = sum(p["goals"] for p in ps)
         m["red"] = sum(p["red"] + p["yellowRed"] for p in ps)
@@ -90,6 +91,12 @@ def main():
         m["lineupSize"] = len(ps)
         time.sleep(0.2)
 
+    from collections import Counter
+    for i, m in enumerate(managers):
+        ps = m["players"]
+        print(f"::notice title=Diagnose Manager {i + 1}::API scored={m.get('scored')} ours={m.get('counted')} n={len(ps)} "
+              f"matchStatus={dict(Counter(str(p['matchStatus']) for p in ps))} rawLive={dict(Counter(repr(p['rawLive']) for p in ps))} "
+              f"linedup={dict(Counter(str(p['linedup']) for p in ps))} lastPoints={dict(Counter(repr(p['lastPoints']) for p in ps))}")
     out = {"fetchedAt": datetime.now(timezone.utc).isoformat(), "matchday": md_key,
            "started": cur.get("started"), "finished": cur.get("finished"), "fixtures": fixtures,
            "managers": sorted(managers, key=lambda m: -(m["livePoints"] or 0)), "me": str(me)}
