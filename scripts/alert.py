@@ -8,22 +8,44 @@ import json
 import os
 import smtplib
 import sys
+import urllib.error
 import urllib.request
 from email.mime.text import MIMEText
 
 SITE = "https://mxmerkel-stack.github.io/comunio-dashboard/"
 
 
+def topic_name():
+    """Themenname aus dem Secret; erlaubt auch versehentlich eingefügte Adressen wie https://ntfy.sh/<thema>."""
+    t = (os.environ.get("NTFY_TOPIC") or "").strip().strip("/")
+    for pre in ("https://", "http://"):
+        if t.lower().startswith(pre):
+            t = t[len(pre):]
+    if t.lower().startswith("ntfy.sh/"):
+        t = t[len("ntfy.sh/"):]
+    return t.strip()
+
+
 def ntfy(title, message, priority=3, click=SITE, tags=None):
-    topic = os.environ.get("NTFY_TOPIC")
+    topic = topic_name()
     if not topic:
         return False
     body = json.dumps({"topic": topic, "title": title, "message": message, "priority": priority,
                        "click": click, "tags": tags or []}).encode()
-    req = urllib.request.Request("https://ntfy.sh/", data=body, headers={"Content-Type": "application/json"})
+    req = urllib.request.Request("https://ntfy.sh/", data=body, method="POST",
+                                 headers={"Content-Type": "application/json", "User-Agent": "comunio-zentrale/1.0"})
     try:
         urllib.request.urlopen(req, timeout=20).read()
+        print("::notice title=ntfy::Nachricht angenommen (HTTP 200)")
         return True
+    except urllib.error.HTTPError as e:
+        try:
+            err = json.loads(e.read().decode()).get("error", "")
+        except Exception:
+            err = ""
+        ok_chars = all(c.isalnum() or c in "-_" for c in topic)
+        print(f"::warning title=ntfy::HTTP {e.code} {err} (Themenname: {len(topic)} Zeichen, nur erlaubte Zeichen: {'ja' if ok_chars else 'nein'})")
+        return False
     except Exception as e:
         print(f"::warning title=ntfy::{type(e).__name__}")
         return False

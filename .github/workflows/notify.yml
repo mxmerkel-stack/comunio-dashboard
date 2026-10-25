@@ -13,10 +13,10 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: "Test (sendet sofort, ohne Zeitprüfung): eve, alarm, result oder auctions"
+        description: "Test (sendet sofort, ohne Zeitprüfung): test, eve, alarm, result oder auctions"
         type: choice
-        options: [eve, alarm, result, auctions]
-        default: eve
+        options: [test, eve, alarm, result, auctions]
+        default: test
 
 permissions:
   contents: read
@@ -73,12 +73,16 @@ jobs:
             echo "run=true" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Testnachricht
+        if: steps.mode.outputs.mode == 'test'
+        run: python scripts/push_ntfy.py --mode test
+
       - name: Abhängigkeiten
-        if: steps.go.outputs.run == 'true'
+        if: steps.go.outputs.run == 'true' && steps.mode.outputs.mode != 'test'
         run: pip install -r requirements.txt
 
       - name: Verlauf laden (verschlüsselt)
-        if: steps.go.outputs.run == 'true'
+        if: steps.go.outputs.run == 'true' && steps.mode.outputs.mode != 'test'
         uses: actions/cache/restore@v4
         with:
           path: data/history.enc
@@ -86,7 +90,7 @@ jobs:
           restore-keys: history-
 
       - name: Daten bei Comunio abrufen
-        if: steps.go.outputs.run == 'true'
+        if: steps.go.outputs.run == 'true' && steps.mode.outputs.mode != 'test'
         env:
           COMUNIO_USER: ${{ secrets.COMUNIO_USER }}
           COMUNIO_PASS: ${{ secrets.COMUNIO_PASS }}
@@ -94,20 +98,20 @@ jobs:
         run: python scripts/fetch_comunio.py
 
       - name: Daten aufbereiten
-        if: steps.go.outputs.run == 'true'
+        if: steps.go.outputs.run == 'true' && steps.mode.outputs.mode != 'test'
         env:
           PAGE_PASSWORD: ${{ secrets.PAGE_PASSWORD }}
         run: python scripts/build_data.py
 
       - name: Nachricht senden
-        if: steps.go.outputs.run == 'true'
+        if: steps.go.outputs.run == 'true' && steps.mode.outputs.mode != 'test'
         env:
           FORCE: ${{ steps.mode.outputs.force }}
           MD: ${{ steps.gate.outputs.md }}
         run: python scripts/push_ntfy.py --mode ${{ steps.mode.outputs.mode }}
 
       - name: Gemeldetes merken
-        if: steps.go.outputs.run == 'true'
+        if: steps.go.outputs.run == 'true' && steps.mode.outputs.mode != 'test'
         uses: actions/cache/save@v4
         with:
           path: data/notified.json

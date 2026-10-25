@@ -133,8 +133,15 @@ def auctions(d):
     print("Push gesendet." if ok else "Kein Push (NTFY_TOPIC fehlt oder Fehler).")
 
 
+def test(d):
+    ok = ntfy("Comunio Zentrale: Test", "✓ Push-Nachrichten funktionieren.", click=SITE, tags=["white_check_mark"])
+    print("Push gesendet." if ok else "Kein Push (NTFY_TOPIC fehlt oder Fehler).")
+
+
 def main():
     mode = sys.argv[sys.argv.index("--mode") + 1] if "--mode" in sys.argv else "eve"
+    if mode == "test":
+        return test({})
     d = json.loads((DATA / "dashboard.json").read_text())
     {"eve": eve, "alarm": alarm, "result": result, "auctions": auctions}[mode](d)
 
