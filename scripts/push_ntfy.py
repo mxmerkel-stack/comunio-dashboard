@@ -34,14 +34,29 @@ def load_sent():
 
 
 def once(key, text):
-    sent = load_sent()
+    """True, wenn diese Meldung (Schlüssel + Inhalt) noch nicht erfolgreich gesendet wurde."""
     h = hashlib.sha1(text.encode()).hexdigest()[:12]
-    if not FORCE and sent.get(key) == h:
+    if not FORCE and load_sent().get(key) == h:
         print(f"{key}: schon gemeldet.")
         return False
-    sent[key] = h
-    (DATA / "notified.json").write_text(json.dumps(sent))
     return True
+
+
+def mark(key, text):
+    """Nur nach erfolgreichem Versand merken."""
+    sent = load_sent()
+    sent[key] = hashlib.sha1(text.encode()).hexdigest()[:12]
+    (DATA / "notified.json").write_text(json.dumps(sent))
+
+
+def send(key, text, title, **kw):
+    if FORCE:  # Tests zählen nicht als gemeldet
+        ok = ntfy(title, text, **kw)
+    else:
+        ok = ntfy(title, text, **kw)
+        if ok:
+            mark(key, text)
+    print("Push gesendet." if ok else "Kein Push (NTFY_TOPIC fehlt oder Fehler).")
 
 
 def eve(d):
@@ -59,8 +74,7 @@ def eve(d):
         return
     title = f"Comunio {md}. Spieltag morgen: " + (f"{len(warn)} Warnung{'en' if len(warn) != 1 else ''}" if warn else
                                                   "Aufstellung verbessern" if swaps else "alles in Ordnung")
-    ok = ntfy(title, text, priority=4 if warn else 3, click=SITE + "#nextmatch", tags=["warning" if warn else "soccer"])
-    print("Push gesendet." if ok else "Kein Push (NTFY_TOPIC fehlt oder Fehler).")
+    send(f"eve-{md}", text, title, priority=4 if warn else 3, click=SITE + "#nextmatch", tags=["warning" if warn else "soccer"])
 
 
 def alarm(d):
@@ -75,8 +89,7 @@ def alarm(d):
     text += "\nAufstellungsschluss ist in ca. 3 Stunden."
     if not once(f"alarm-{md}", text):
         return
-    ok = ntfy(f"⚠️ Comunio {md}. Spieltag: jetzt handeln", text, priority=5, click=SITE + "#nextmatch", tags=["rotating_light"])
-    print("Push gesendet." if ok else "Kein Push (NTFY_TOPIC fehlt oder Fehler).")
+    send(f"alarm-{md}", text, f"⚠️ Comunio {md}. Spieltag: jetzt handeln", priority=5, click=SITE + "#nextmatch", tags=["rotating_light"])
 
 
 def result(d):
@@ -107,8 +120,7 @@ def result(d):
     text = "\n".join(lines)
     if not once(f"result-{m['key']}", text):
         return
-    ok = ntfy(f"Comunio {m['key']}. Spieltag: {mine} Punkte", text, priority=3, click=SITE + "#tabelle", tags=["trophy" if rank == 1 else "soccer"])
-    print("Push gesendet." if ok else "Kein Push (NTFY_TOPIC fehlt oder Fehler).")
+    send(f"result-{m['key']}", text, f"Comunio {m['key']}. Spieltag: {mine} Punkte", priority=3, click=SITE + "#tabelle", tags=["trophy" if rank == 1 else "soccer"])
 
 
 def auctions(d):
@@ -129,8 +141,7 @@ def auctions(d):
     text = "\n".join(f"• {m['name']} ({m.get('club') or '–'}), noch {int(h)} Std." for h, m in rows[:5])
     if not once("auctions-" + now.strftime("%Y-%m-%d"), text):
         return
-    ok = ntfy(f"{len(rows)} empfohlene Angebot{'e' if len(rows) != 1 else ''} laufen bald ab", text, click=SITE + "#uebersicht", tags=["hammer"])
-    print("Push gesendet." if ok else "Kein Push (NTFY_TOPIC fehlt oder Fehler).")
+    send("auctions-" + now.strftime("%Y-%m-%d"), text, f"{len(rows)} empfohlene Angebot{'e' if len(rows) != 1 else ''} laufen bald ab", click=SITE + "#uebersicht", tags=["hammer"])
 
 
 def test(d):
