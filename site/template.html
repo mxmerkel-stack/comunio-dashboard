@@ -491,7 +491,7 @@ mkBtn.onclick=()=>{ onlyComp=!onlyComp; try{ localStorage.setItem("mk-only-comp"
 document.getElementById("mk-bar").prepend(mkBtn); drawMk();
 document.getElementById("mk-note").textContent = `Kaufempfehlung: Punkte dieser Saison doppelt gewichtet plus Vorsaison${D.prevSeason?" ("+D.prevSeason+")":""} anteilig, im Verhältnis zum Marktwert. Oberes Drittel = ja, mittleres = vielleicht, unteres oder verletzt/Reha/gesperrt = nein. Übersteigt das Gebot dein Guthaben, wird aus „ja“ ein „vielleicht“. Empfohlenes Gebot = Marktwert + 2–12 % Aufschlag. „Können sich leisten“ = Manager, deren (berechneter) Kontostand das Gebot deckt. Fahre über die Empfehlung für die Begründung. Trend: die Comunio-Pfeile von steil fallend (rot, nach unten) über stabil (gelb, waagerecht) bis steil steigend (grün, nach oben); ? = unbekannt. Quelle: stats.comunio.de; fehlt ein Spieler dort, Comunio-API bzw. Marktwertverlauf der letzten 7 Tage.`;
 const mini=D.market.filter(m=>m.fromComputer && m.recommendation!=="nein").sort((a,b)=>recOrder[b.recommendation]-recOrder[a.recommendation]||b.rank-a.rank).slice(0,6);
-table("mini-market",mini,[mkCols[0],mkCols[2],mkCols[6],mkCols[8],mkCols[9],mkCols[10],mkCols[15]]);
+table("mini-market",mini,[mkCols[0],mkCols[2],mkCols[6],mkCols[8],mkCols[9],mkCols[10],mkCols[13],mkCols[15]]);
 if(!mini.length) document.getElementById("mini-market").append(el("p",{class:"note"},"Aktuell keine empfehlenswerten Computer-Spieler."));
 
 // Transfers
