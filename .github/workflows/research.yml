@@ -2,7 +2,7 @@ name: Gerüchte und Ausfälle aktualisieren
 
 on:
   schedule:
-    - cron: "17 3 * * 4"   # donnerstags ~05:17 Uhr (MESZ)
+    - cron: "17 5 * * 4"   # donnerstags ~06:17 Uhr (MEZ), nach Comunios nächtlicher Login-Sperre
   workflow_dispatch:         # Knopf "Run workflow"
 
 permissions:

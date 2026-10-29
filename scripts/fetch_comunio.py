@@ -114,7 +114,21 @@ def login():
     if not user or not pw:
         raise SystemExit("COMUNIO_USER / COMUNIO_PASS fehlen (GitHub Secrets).")
     tz = -time.timezone // 3600 if not time.daylight else -time.altzone // 3600
-    res = _request(BASE + "/api/login", data={"username": user, "password": pw.strip(), "tzoffset": tz})
+    # Comunio sperrt den Login zeitweise (z. B. nachts während der Transfers: "no login is possible,
+    # please try again later"). Dann warten und erneut versuchen – bei falschem Passwort nicht.
+    attempts = int(os.environ.get("LOGIN_ATTEMPTS", "6"))
+    wait = int(os.environ.get("LOGIN_WAIT_MIN", "5"))
+    for n in range(1, attempts + 1):
+        try:
+            res = _request(BASE + "/api/login", data={"username": user, "password": pw.strip(), "tzoffset": tz})
+            break
+        except SystemExit as e:
+            msg = str(e)
+            temporary = "try again later" in msg.lower() or "no login is possible" in msg.lower()
+            if not temporary or n == attempts:
+                raise
+            print(f"::warning title=Comunio-Login::Login vorübergehend gesperrt (Versuch {n}/{attempts}), neuer Versuch in {wait} Min.")
+            time.sleep(wait * 60)
     tok = res.get("access_token")
     if not tok:
         raise SystemExit("Login lieferte kein Token.")

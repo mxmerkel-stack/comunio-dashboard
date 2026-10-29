@@ -46,6 +46,7 @@ jobs:
       - name: Live-Daten abrufen und verschlüsseln
         if: steps.site.outputs.cache-matched-key != ''
         env:
+          LOGIN_ATTEMPTS: "1"
           COMUNIO_USER: ${{ secrets.COMUNIO_USER }}
           COMUNIO_PASS: ${{ secrets.COMUNIO_PASS }}
           PAGE_PASSWORD: ${{ secrets.PAGE_PASSWORD }}
