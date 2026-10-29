@@ -1,5 +1,5 @@
 {
- "asOf": "24.10.2026",
+ "asOf": "29.10.2026",
  "_hinweis": "Rückkehrprognosen aus öffentlichen Quellen, Schlüssel = Comunio-Spieler-ID.",
  "players": {
   "33236": {
@@ -26,30 +26,30 @@
   "34074": {
    "name": "Malanga",
    "return": "unklar",
-   "note": "Bauchmuskelverletzung, seit Mitte September, Ausfalldauer unbekannt.",
+   "note": "Bauchmuskelverletzung seit Mitte September, Dauer unbekannt.",
    "source": "LigaInsider, 26 Sep 2026",
    "url": "https://www.ligainsider.de/ligainsider_1381/ligainsider-visite-im-lazarett-der-bundesliga-klubs-414463"
   },
   "32190": {
    "name": "Karaman",
    "return": "offen",
-   "note": "Karaman leidet seit dem Heimspiel gegen den Karlsruher SC an muskulären Beschwerden und ist zudem wegen einer Gelbsperre gesperrt. Er fehlt weiterhin im Kader.",
-   "source": "fussballdaten.de (24.09.2026)",
-   "url": "https://www.fussballdaten.de/news/schalke-bangt-weiter-um-karaman-doch-ein-comeback-macht-hoffnung-a355a0f8"
+   "note": "Karaman fehlt weiterhin aufgrund einer Hüftverletzung, die bereits im August gemeldet wurde, und wird voraussichtlich noch nicht für das Pokalspiel gegen Dresden am 2. November verfügbar sein.",
+   "source": "baykusen.de (25 Oct 2026)",
+   "url": "https://www.baykusen.de/acht-ausfaelle-auf-schalke-so-realistisch-ist-eine-rueckkehr-im-pokal-gegen-dresden"
   },
   "34447": {
    "name": "Lidberg",
    "return": "offen",
    "note": "Muskuläre Probleme am Oberschenkel, ausgewechselt am 22.10., voraussichtliche Rückkehr unklar.",
-   "source": "ms-aktuell.de (22.10.2026)",
+   "source": "ms-aktuell.de (23.10.2026)",
    "url": "https://ms-aktuell.de/welt/gladbach-ausfaelle-lidberg-22-10-2026"
   },
   "34465": {
    "name": "Pimpong",
-   "return": "offen – fehlt am 7. Spieltag",
-   "note": "Oberschenkelprobleme.",
-   "source": "bundesliga.com (23.10.)",
-   "url": "https://www.bundesliga.com/de/bundesliga/news/voraussichtliche-aufstellungen-7-spieltag-ausfalle-verletzungen-sperren-39669"
+   "return": "offen",
+   "note": "Einsatz offen, kein konkreter Ausfall gemeldet.",
+   "source": "eurosport.de (27.10.2026)",
+   "url": "https://www.eurosport.de/wetten/prognosen/hamburger-sv-vs-eintracht-frankfurt-prognose-tipps-und-quoten-dfb-pokal-27-10-26"
   },
   "34187": {
    "name": "Diks",
@@ -89,23 +89,23 @@
   "34427": {
    "name": "Onyeka",
    "return": "ca. 15.11.",
-   "note": "Bänderverletzung im Fuß seit der Länderspielpause; laboriert weiterhin und droht weitere Ausfälle gegen RB Leipzig und Mainz 05.",
-   "source": "ligainsider.de (19.10.)",
-   "url": "https://www.ligainsider.de/francis-onyeka_36948/elversberg-droht-erneuter-onyeka-ausfall-419387"
+   "note": "Bänderverletzung im Fuß seit der Länderspielpause; laboriert weiterhin, droht weitere Ausfälle gegen RB Leipzig und Mainz 05.",
+   "source": "absolutfussball.com (20.10.)",
+   "url": "https://www.absolutfussball.com/deutschland/sv-elversberg/sv-elversberg-personal-sorgen-francis-onyeka-cole-campbell-fehlen-weiter-ausfaelle-verletzungen-diagnose-94549783.html"
   },
   "34395": {
    "name": "Gyamerah",
    "return": "ca. 01.11.",
-   "note": "Gyamerah hat muskuläre Probleme im Adduktorenbereich, die seit der Länderspielpause bestehen. Er trainiert wieder, aber wird voraussichtlich erst Anfang November wieder einsatzbereit sein.",
-   "source": "absolutfussball.com 17 Oct 2026",
-   "url": "https://www.absolutfussball.com/deutschland/sv-elversberg/sv-elversberg-verletzte-jan-gyamerah-ausfall-schlag-sve-francis-onyeka-verletzung-wann-comeback-94538889.html"
+   "note": "Gyamerah hat sich gegen Leipzig verletzt, vermutlich ein Muskelfaserriss im Adduktorenbereich. Die Verletzung besteht seit dem 25.10., eine Rückkehr wird voraussichtlich Anfang November erwartet.",
+   "source": "ms-aktuell.de 26 Oct 2026",
+   "url": "https://ms-aktuell.de/welt/gyamerah-elversberg-25-10-2026"
   },
   "34438": {
    "name": "Brackelmann",
    "return": "",
-   "note": "Kopfverletzung",
-   "source": "",
-   "url": ""
+   "note": "Linker hinterer Oberschenkelmuskelbeschwerden seit 30.08.2026, erneute frühe Verletzung am 26.10.2026 im Spiel gegen Union Berlin; aktuell ausfällig.",
+   "source": "LigaInsider, 26 Oct 2026",
+   "url": "https://www.br.de/nachrichten/sport/fussball-bundesliga-7-spieltag-fc-augsburg-gegen-1-fc-union-berlin,VYyMYRe"
   },
   "34486": {
    "name": "Nadir",
@@ -113,6 +113,41 @@
    "note": "Oberschenkelblessur",
    "source": "",
    "url": ""
+  },
+  "32395": {
+   "name": "Amiri",
+   "return": "",
+   "note": "Knieprobleme",
+   "source": "",
+   "url": ""
+  },
+  "33219": {
+   "name": "Batista Meier",
+   "return": "",
+   "note": "Reha nach Sprunggelenksverletzung, weiterhin ausfällt, voraussichtlich noch nicht einsatzbereit.",
+   "source": "absolutfussball.com 23.10.2026",
+   "url": "https://www.absolutfussball.com/deutschland/sc-paderborn/paderborn-weiter-ohne-batista-meier-awortwie-grant-naehert-sich-comeback-94553641.html"
+  },
+  "33858": {
+   "name": "Deman",
+   "return": "",
+   "note": "Gesichtsschmerz nach Zusammenstoß im Spiel, aktuell ausfällt, voraussichtliche Rückkehr nicht bekannt.",
+   "source": "Deichstube, 18 Aug 2026",
+   "url": "https://www.deichstube.de/news/werder-bremen-xxl-ausfallliste-13-fehlende-spieler-personal-update-bundesliga-ausfaelle-verletzte-zr-94445374.html"
+  },
+  "34467": {
+   "name": "Ruoppi",
+   "return": "",
+   "note": "Ruoppi ist leider angeschlagen, die Anlagen sehen aber gut aus bei ihm.",
+   "source": "Transfermarkt, 27 Oct 2026",
+   "url": "https://www.transfermarkt.at/dfb-pokal-vfl-bochum-1-fsv-mainz-05/thread/forum/32/thread_id/111344/post_id/495839"
+  },
+  "34503": {
+   "name": "Konstantelias",
+   "return": "",
+   "note": "Kreuzbandriss im linken Knie seit dem 1. Spieltag (1. August 2026); voraussichtlich bis zum Saisonende aus, keine Rückkehr in Sicht.",
+   "source": "LigaInsider 26.09.2026",
+   "url": "https://www.ligainsider.de/ligainsider_1381/ligainsider-visite-im-lazarett-der-bundesliga-klubs-414463"
   }
  }
 }

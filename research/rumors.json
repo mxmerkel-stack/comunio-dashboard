@@ -1,5 +1,5 @@
 {
- "asOf": "24.10.2026",
+ "asOf": "29.10.2026",
  "_hinweis": "pWinter/pSummer = geschätzte Wahrscheinlichkeit eines Vereinswechsels im Winter 2027 bzw. Sommer 2027 (eigene Einschätzung aus den Quellen). Schlüssel = Comunio-Spieler-ID.",
  "players": {
   "32206": {
@@ -48,14 +48,14 @@
   },
   "33858": {
    "name": "Deman",
-   "target": null,
-   "probability": 0.08,
-   "note": "Werder plant laut Clemens Fritz fest mit ihm, Wechsel kein Thema mehr.",
-   "source": "ligainsider / DeichStube",
-   "url": "https://ligainsider.de/olivier-deman_36310/werder-plant-naechste-saison-fest-mit-deman-413887/",
-   "status": "Keine Meldung",
-   "pWinter": 0.02,
-   "pSummer": 0.08
+   "target": "FC Brügge",
+   "probability": 0.12,
+   "note": "Am 02.09.2026 berichtete Deichstube, dass der belgische Top‑Club FC Brügge ein Interesse an Olivier Deman bekundet habe. Das Gerücht deutet auf einen möglichen Wechsel im Sommer hin, während im Winter keine konkreten Gespräche genannt wurden.",
+   "source": "Deichstube / 02.09.2026",
+   "url": "https://www.deichstube.de/news/werder-bremen-live-transfers-geruecht-wechsel-transfer-bundesliga-transfergeruechte-liveticker-zr-94187647.html",
+   "status": "Gerücht",
+   "pWinter": 0.03,
+   "pSummer": 0.12
   },
   "34014": {
    "name": "Olise",
@@ -94,7 +94,7 @@
    "name": "Daghim",
    "target": "TSG Hoffenheim",
    "probability": 0.05,
-   "note": "Am 18. Sep 2026 bestätigte 90minuten.at den Wechsel von Adam Daghim zum TSG Hoffenheim. Der Transfer ist bereits abgeschlossen, weitere Gerüchte fehlen.",
+   "note": "Am 18. Sep 2026 bestätigte 90minuten.at den Transfer von Adam Daghim zum TSG Hoffenheim. Der Wechsel ist bereits abgeschlossen, weitere Gerüchte fehlen.",
    "source": "90minuten.at – 18 Sep 2026",
    "url": "https://www.90minuten.at/de/red/magazin/transferliste/bundesliga--alle-fixen-transfers-und-geruechte-im-sommer-2026",
    "status": "Konkret",
