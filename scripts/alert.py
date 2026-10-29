@@ -79,7 +79,7 @@ def main():
     link = f"https://github.com/{repo}/actions/runs/{run}" if repo and run else SITE
     a = ntfy(title, text, priority=4, click=link, tags=["warning"])
     b = mail(title, f"{text}\n\n{link}")
-    print(f"Fehlermeldung: Push={'ja' if a else 'nein'}, Mail={'ja' if b else 'nein'}")
+    print(f"::notice title=Fehlermeldung::Push={'ja' if a else 'nein'}, Mail={'ja' if b else 'nein (MAIL_USERNAME/MAIL_APP_PASSWORD fehlen oder Fehler)'}")
 
 
 if __name__ == "__main__":

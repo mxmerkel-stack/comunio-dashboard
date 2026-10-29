@@ -73,9 +73,14 @@ jobs:
             echo "run=true" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Testnachricht
+      - name: Testnachricht (Push und Mail)
         if: steps.mode.outputs.mode == 'test'
-        run: python scripts/push_ntfy.py --mode test
+        env:
+          MAIL_USERNAME: ${{ secrets.MAIL_USERNAME }}
+          MAIL_APP_PASSWORD: ${{ secrets.MAIL_APP_PASSWORD }}
+          MAIL_TO: ${{ secrets.MAIL_TO }}
+        run: |
+          python scripts/alert.py "Comunio Zentrale: Test" "Test der Benachrichtigungen. Wenn du das liest, kommen Fehlermeldungen bei dir an."
 
       - name: Abhängigkeiten
         if: steps.go.outputs.run == 'true' && steps.mode.outputs.mode != 'test'
