@@ -10,6 +10,10 @@ on:
         description: "Morgen-Mail jetzt senden (Test)"
         type: boolean
         default: false
+      force_weekly:
+        description: "Wochenrückblick jetzt senden (Test)"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -76,6 +80,15 @@ jobs:
           MAIL_TO: ${{ secrets.MAIL_TO }}
           FORCE_MAIL: ${{ inputs.force_mail }}
         run: python scripts/send_mail.py
+
+      - name: Wochenrückblick (montags)
+        continue-on-error: true
+        env:
+          MAIL_USERNAME: ${{ secrets.MAIL_USERNAME }}
+          MAIL_APP_PASSWORD: ${{ secrets.MAIL_APP_PASSWORD }}
+          MAIL_TO: ${{ secrets.MAIL_TO }}
+          FORCE_WEEKLY: ${{ inputs.force_weekly }}
+        run: python scripts/send_weekly.py
 
       - name: TRMNL-Anzeige aktualisieren
         continue-on-error: true
