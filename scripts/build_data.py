@@ -707,23 +707,59 @@ def analyze(raw, names, ids, me_id, squads, market, md_rows, pts_of, balance_of,
                     likely.append((score, names[uid]))
             m["likelyBuyers"] = [n for _, n in sorted(likely, reverse=True)[:3]]
 
+    # --- Gebote: Zuschlagswahrscheinlichkeit aus früheren Zuschlägen und Mitbietern ---
+    prem_hist = M.winning_premiums(tx, raw.get("quotes") or {})
+    bid_model = {"n": len(prem_hist)}
+    if len(prem_hist) >= 15:
+        q = lambda f: round(prem_hist[min(len(prem_hist) - 1, int(f * len(prem_hist)))] * 100, 1)
+        bid_model.update({"median": q(0.5), "p75": q(0.75), "p90": q(0.9)})
+        by_player = defaultdict(list)
+        for b_ in buyers:
+            by_player[b_["playerId"]].append(b_)
+        for m in market:
+            if m.get("mine") or not m.get("marketValue"):
+                continue
+            rows_ = by_player.get(str(m["id"]), [])
+            mv_, mb_ = m["marketValue"], num(m.get("minBid"), 0) or m["marketValue"]
+            rivals_ = [b_ for b_ in rows_ if b_["affordable"]]
+            act_ = [b_["activity"] for b_ in rivals_]
+            cap_ = min(own_cash, mv_ * 1.35) if own_cash > 0 else 0
+            m["pWinMin"] = round(M.win_prob(mb_ / mv_ - 1.0, prem_hist, act_) or 0, 3)
+            m["pWinRec"] = round(M.win_prob((m.get("bid") or mb_) / mv_ - 1.0, prem_hist, act_) or 0, 3)
+            for tgt, key in ((0.5, "bid50"), (0.75, "bid75"), (0.9, "bid90")):
+                m[key] = M.bid_for(tgt, max(mb_, 0), cap_, prem_hist, act_, mv_)
+            m["nRivals"] = len(rivals_)
+        print(f"::notice title=Gebotsmodell::{len(prem_hist)} frühere Zuschläge; Aufschlag Median {bid_model['median']} %, "
+              f"75 % {bid_model['p75']} %, 90 % {bid_model['p90']} %")
+    else:
+        print(f"::notice title=Gebotsmodell::nur {len(prem_hist)} frühere Zuschläge mit Marktwert – Modell aus")
+
     # --- Transfer-Pläne ---
     def sale_price(s):
         return best_offer.get(s["id"]) or (s["marketValue"] or 0) * r_mean
 
     def buy_price(mk):
-        return round((num(mk.get("minBid"), 0) or num(mk.get("marketValue"), 0)) * 1.03, -3)
+        base = round((num(mk.get("minBid"), 0) or num(mk.get("marketValue"), 0)) * 1.03, -3)
+        return mk.get("bid75") or base  # Gebot mit 75 % Zuschlagschance, sonst Mindestgebot + 3 %
 
     cands_all = []
     for m in market:
         if (m.get("status") or "ACTIVE") not in ("ACTIVE", "WEAKENED"):
             continue
         cands_all.append({**mrow(m), "minBid": m.get("minBid"), "marketValue": num(m.get("marketValue")),
+                          "bid75": m.get("bid75"), "pWin75": 0.75 if m.get("bid75") else None,
                           "ownerId": str(m.get("ownerId")), "mine": bool(m.get("mine"))})
     cands = [c for c in cands_all if not c["mine"]]
     plans, _ = M.transfer_plans(own, cands, own_cash, sale_price, buy_price) if own else ([], {})
+    mk_by_id = {str(c["id"]): c for c in cands}
+    own_by = {str(r["id"]): r for r in own}
     for p in plans:
         p["delta_rest"] = round(p["delta_md"] * remaining, 1)
+        p["buyDetail"] = [{"name": mk_by_id[str(i)]["name"], "minBid": num(mk_by_id[str(i)].get("minBid")),
+                           "bid": buy_price(mk_by_id[str(i)]), "p75": bool(mk_by_id[str(i)].get("bid75"))}
+                          for i in p.get("buyIds", []) if str(i) in mk_by_id]
+        p["sellDetail"] = [{"name": own_by[str(i)]["name"], "price": round(sale_price(own_by[str(i)]))}
+                           for i in p.get("sellIds", []) if str(i) in own_by]
 
     # --- Saisonprognose ---
     md_points = defaultdict(list)
@@ -1037,7 +1073,7 @@ def analyze(raw, names, ids, me_id, squads, market, md_rows, pts_of, balance_of,
             "lineup": {"now": xi_rows(cur_ids), "best": xi_rows(best_ids), "formationNow": M.tactic_name(lu.get("tactic")),
                        "formationBest": best_form},
             "formations": formations, "offers": offers_out, "buyers": buyers, "plans": plans,
-            "forecast": fc, "calib": calib, "monthly": monthly, "opponents": opp_list, "nextMatch": next_match}
+            "bidModel": bid_model, "forecast": fc, "calib": calib, "monthly": monthly, "opponents": opp_list, "nextMatch": next_match}
 
 
 def _fernet():

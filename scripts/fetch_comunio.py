@@ -395,11 +395,13 @@ def main():
 
     # Marktwertverlauf (alle Kader + Markt) – Grundlage der Trend-Pfeile, falls Comunio keinen Trend liefert
     quotes = {}
-    for pid in sorted({str(p["id"]) for ps in squads.values() for p in ps} | {str(m["id"]) for m in market_items}):
+    # Auch Marktwerte ehemaliger Kaderspieler (längere Reihe): damit lässt sich der Aufschlag früherer Zuschläge bestimmen
+    current_ids = {str(p["id"]) for ps in squads.values() for p in ps} | {str(m["id"]) for m in market_items}
+    for pid in sorted(current_ids | ever_owned):
         try:
             q = get(f"/api/players/{pid}/quote-history")
             quotes[pid] = [[(x.get("datetime_string") or "")[:10], x.get("quotedPrice")]
-                           for x in (q.get("quoteCollection") or [])[:40] if isinstance(x, dict)]
+                           for x in (q.get("quoteCollection") or [])[:(40 if pid in current_ids else 100)] if isinstance(x, dict)]
         except SystemExit:
             pass
         time.sleep(0.15)

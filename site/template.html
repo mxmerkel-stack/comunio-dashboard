@@ -170,7 +170,7 @@ select{font:inherit;font-size:12.5px;padding:3px 5px;background:#fff;color:var(-
     <div class="card"><h2>Preis und Leistung</h2><div id="chart-pp"></div><p class="note">Marktwert gegen prognostizierte Saisonpunkte. Je weiter oben links, desto mehr Punkte pro Euro.</p></div>
     <div class="card"><h2>Mögliche Käufer</h2><div style="margin-bottom:8px"><select id="by-filter"></select></div><div id="t-buyers"></div>
       <p class="note">Aktivität = Käufe der letzten 30 Tage im Verhältnis zum aktivsten Manager. Gebotsspanne = Mindestgebot bis +12 %, begrenzt durch den (berechneten) Kontostand.</p></div>
-    <div class="card"><h2>Transfer-Pläne</h2><div id="t-plans"></div><p class="note">Kombinationen aus bis zu vier Verkaufskandidaten und bis zu drei Käufen, Gebot 3 % über Mindestgebot, Konto danach nicht negativ. Bewertet nach der besten Aufstellung (erwartete Punkte je Spieltag). Kadergrenzen sind nicht geprüft.</p></div>
+    <div class="card"><h2>Transfer-Pläne</h2><div id="t-plans"></div><p class="note">Kombinationen aus bis zu vier Verkaufskandidaten und bis zu drei Käufen, Gebot mit 75 % Zuschlagschance (sonst 3 % über Mindestgebot), Konto danach nicht negativ. Bewertet nach der besten Aufstellung (erwartete Punkte je Spieltag). Kadergrenzen sind nicht geprüft.</p></div>
   </section>
   <section id="s-live">
     <div class="toolbar"><button id="lv-refresh" class="toggle" type="button">↻ Aktualisieren</button><span id="lv-stand" style="color:#e7f2dd;font-size:12px"></span></div>
@@ -475,7 +475,9 @@ const mkCols=[{h:"Spieler",v:r=>r.name},{h:"Verein",v:r=>clubCell(r.club),s:r=>r
   {h:"Prognose Saison",v:r=>r.proj==null?"–":Math.round(r.proj),s:r=>r.proj||0,n:true},
   {h:"Mindestgebot",v:r=>mio(r.minBid),s:r=>r.minBid||0,n:true},
   {h:"Flip-Gewinn",v:r=>r.flipEv==null?"–":(r.flipEv>0?"+":"")+Math.round(r.flipEv/1000).toLocaleString("de-DE")+" T €",s:r=>r.flipEv??-1e12,n:true,cls:r=>r.flipEv==null?"":(r.flipEv>0?"pos":"neg")},
-  {h:"Empf. Gebot",v:r=>el("strong",{},eur(r.bid)),s:r=>r.bid,n:true},{h:"Aufschlag",v:r=>r.premium.toLocaleString("de-DE")+" %",s:r=>r.premium,n:true},
+  {h:"Empf. Gebot",v:r=>el("strong",{},eur(r.bid)),s:r=>r.bid,n:true},
+  {h:"Zuschlag bei Empf.",v:r=>r.pWinRec==null?"–":el("span",{title:`Beim Mindestgebot ${pct(r.pWinMin)}. ${r.nRivals??0} Mitbieter können sich das Gebot leisten.`,class:r.pWinRec>=.75?"pos":r.pWinRec<.4?"neg":""},pct(r.pWinRec)),s:r=>r.pWinRec??-1,n:true},
+  {h:"Gebot für 50 / 75 / 90 %",v:r=>r.bid75==null?"–":el("span",{title:"Kleinstes Gebot mit dieser Zuschlagschance (aus früheren Zuschlägen und den möglichen Mitbietern); „–“ = Konto reicht nicht"},[r.bid50,r.bid75,r.bid90].map(b=>b?mio(b).replace(" Mio.",""):"–").join(" / ")+" Mio."),s:r=>r.bid75??1e12,n:true},{h:"Aufschlag",v:r=>r.premium.toLocaleString("de-DE")+" %",s:r=>r.premium,n:true},
   {h:"Status",v:statusCell,s:r=>r.status},{h:"Rückkehr",v:injCell,s:r=>r.injury?r.injury.return:""},
   {h:"Bezahlbar",v:r=>r.affordable?"ja":el("span",{class:"neg"},"nein"),s:r=>r.affordable?1:0},
   {h:"Können sich leisten",v:r=>r.rivals.length?r.rivals.join(", "):"niemand",s:r=>r.rivals.length},
@@ -633,7 +635,10 @@ const drawBy=()=>table("t-buyers",(D.buyers||[]).filter(b=>!byF.value||b.player=
 byF.onchange=drawBy; drawBy();
 
 // Transfer-Pläne
-table("t-plans",D.plans||[],[{h:"Plan",v:r=>r.id},{h:"Verkaufen",v:r=>r.sell.join(", ")||"–"},{h:"Kaufen",v:r=>el("strong",{},r.buy.join(", "))},
+const planList=(rows,fmt)=>rows&&rows.length?el("div",{},rows.map(x=>el("div",{},fmt(x)))):"–";
+table("t-plans",D.plans||[],[{h:"Plan",v:r=>r.id},
+  {h:"Verkaufen",v:r=>planList(r.sellDetail,x=>[x.name+" ",el("span",{class:"note"},"≈ "+mio(x.price))]),s:r=>r.sell.join(", ")},
+  {h:"Kaufen (Mindestgebot → Gebot)",v:r=>planList(r.buyDetail,x=>[el("strong",{},x.name+" "),el("span",{class:"note",title:x.p75?"Gebot mit 75 % Zuschlagschance":"Mindestgebot + 3 %"},`${mio(x.minBid).replace(" Mio.","")} → ${mio(x.bid).replace(" Mio.","")} Mio.`+(x.p75?" (75 %)":""))]),s:r=>r.buy.join(", ")},
   {h:"Erlös",v:r=>mio(r.proceeds),s:r=>r.proceeds,n:true},{h:"Kosten",v:r=>mio(r.cost),s:r=>r.cost,n:true},{h:"Konto danach",v:r=>mio(r.cash_after),s:r=>r.cash_after,n:true,cls:()=>"money"},
   {h:"+ Punkte/Spieltag",v:r=>signed(r.delta_md,f1),s:r=>r.delta_md,n:true,cls:()=>"pos"},{h:"+ Punkte Rest",v:r=>signed(r.delta_rest,f1),s:r=>r.delta_rest,n:true,cls:()=>"pos"}]);
 if(!(D.plans||[]).length) document.getElementById("t-plans").append(el("p",{class:"note"},"Kein Plan verbessert die Aufstellung bei nicht-negativem Konto."));
@@ -719,7 +724,7 @@ const METHOD=[
  ["Saisonprognose","3.000 Simulationen der restlichen Spieltage auf Spielerebene: Spielplan mit Vereinsstärke und Heimvorteil, gemeinsame Tordifferenz je Spiel, Vereins-Schock, Einsatz/Bank, mehrwöchige Verletzungen, beste Elf je Manager und Spieltag, Kaderwechsel über die Saison. Die Spanne zeigt das 10. bis 90. Perzentil."],
  ["Rückprüfung","Bei jedem Lauf werden alle Spiele der laufenden und letzten Saison nur mit vorher bekannten Daten vorhergesagt. Daraus werden die Gewichtung der Vergangenheit, Mannschaftseffekt, Streuungen und eine Korrektur der Manager-Prognose geschätzt."],
  ["Flip-Deals","Erwarteter Gewinn = Marktwert × mittleres Computer-Angebot (aus deinen aktuellen Angeboten) − Mindestgebot. Mitbieter und Marktwertänderung über Nacht sind nicht eingerechnet."],
- ["Transfer-Pläne","Alle Kombinationen aus bis zu vier von fünf Verkaufskandidaten und bis zu drei von zwölf Marktspielern, Gebot 3 % über Mindestgebot, Konto danach nicht negativ."],
+ ["Transfer-Pläne","Alle Kombinationen aus bis zu vier von fünf Verkaufskandidaten und bis zu drei von zwölf Marktspielern, Gebot mit 75 % Zuschlagschance (sonst 3 % über Mindestgebot), Konto danach nicht negativ."],
  ["Kontostände","Basis 15 Mio. € am 27.05. plus Verkäufe, minus Käufe, plus 10.000 € je Punkt, plus spätere Strafen/Gutschriften. Dein eigener Wert ist der echte Kontostand."],
  ["Grenzen","Es wird nichts gekauft, verkauft oder geboten – das Dashboard liest nur. Kadergrenzen und Regeln zu negativem Konto sind nicht geprüft."]];
 table("t-method",METHOD.map(([a,b])=>({a,b})),[{h:"Thema",v:r=>el("strong",{},r.a)},{h:"Erklärung",v:r=>el("span",{style:"white-space:normal;display:inline-block;min-width:300px"},r.b)}]);

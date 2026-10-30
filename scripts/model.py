@@ -513,3 +513,52 @@ def hours_text(h):
     h = int(h)
     d, r = divmod(h, 24)
     return f"{d} T. {r} Std." if d else f"{r} Std."
+
+
+# ---------------------------------------------------------------- Gebote: Zuschlagswahrscheinlichkeit
+def winning_premiums(transfers, quotes, kinds=("FROM_COMPUTER",)):
+    """Aufschlag des Zuschlagspreises auf den Marktwert am Tag des Kaufs (aus Kaufpreis und Marktwertverlauf).
+    quotes: {Spieler: [[YYYY-MM-DD, Marktwert], ...]} (neueste zuerst). Liefert sortierte Liste."""
+    out = []
+    for t in transfers:
+        if t.get("kind") not in kinds or t.get("playerId") is None or not num(t.get("price")):
+            continue
+        qs = quotes.get(str(t["playerId"])) or []
+        day = (t.get("date") or "")[:10]
+        prior = [q for q in qs if q and q[0] and q[0] <= day and num(q[1])]
+        if not prior:
+            continue
+        mv = num(max(prior, key=lambda q: q[0])[1])
+        if mv and mv > 0:
+            out.append(num(t["price"]) / mv - 1.0)
+    return sorted(x for x in out if -0.2 <= x <= 1.0)
+
+
+def win_prob(premium, prem_sorted, rival_act):
+    """Wahrscheinlichkeit, mit diesem Aufschlag den Zuschlag zu bekommen.
+    prem_sorted: frühere Zuschlags-Aufschläge; rival_act: Aktivität (0–1) der Mitbieter, die sich das Gebot leisten können.
+    Ohne Mitbieter reicht das Mindestgebot; sonst zählt, wie oft frühere Zuschläge unter diesem Aufschlag lagen."""
+    p_rival = 1.0
+    for a in rival_act:
+        p_rival *= 1.0 - max(0.1, min(0.95, a))
+    p_rival = 1.0 - p_rival
+    if not prem_sorted:
+        return None
+    import bisect
+    f = bisect.bisect_right(prem_sorted, premium + 1e-9) / len(prem_sorted)
+    return (1 - p_rival) + p_rival * f
+
+
+def bid_for(target, min_bid, max_bid, prem_sorted, rival_act, mv):
+    """Kleinstes Gebot (auf 1.000 € gerundet) mit Zuschlagswahrscheinlichkeit ≥ target, nicht über max_bid."""
+    if not mv or not prem_sorted:
+        return None
+    lo = int(math.ceil(min_bid / 1000.0)) * 1000
+    hi = int(max_bid // 1000) * 1000 if max_bid else lo
+    b = lo
+    while b <= max(lo, hi):
+        pw = win_prob(b / mv - 1.0, prem_sorted, rival_act)
+        if pw is not None and pw >= target:
+            return b
+        b += max(1000, int(mv * 0.005) // 1000 * 1000)
+    return None
