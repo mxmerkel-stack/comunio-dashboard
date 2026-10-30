@@ -12,8 +12,10 @@ Grundidee
   vergangenen Spielen geschätzt – nur mit dem Wissen, das vor dem jeweiligen Spiel vorlag.
 """
 import math
+import re
 import statistics
 from collections import defaultdict
+from datetime import date, timedelta
 
 import numpy as np
 
@@ -497,7 +499,12 @@ def season_forecast(managers, squads, pinfo, fixtures, ratings, hfa, sd_gd, prm,
     p_un0 = np.array([pinfo[p]["p_unav"] for p in sq.pids])
     base = np.array([pinfo[p]["base_unav"] for p in sq.pids])
     q_in = np.clip(base * Q_OUT / np.maximum(1e-6, 1 - base), 0, 0.5)
+    out_md = np.array([(-1 if pinfo[p].get("out_mds") is None else pinfo[p]["out_mds"]) for p in sq.pids], dtype=int)
+    known = out_md >= 0
+    delay = (rng.random((S, P)) < 0.3).astype(int) * (1 + (rng.random((S, P)) < 0.4).astype(int))  # Rückkehr verzögert sich oft
     unav = rng.random((S, P)) < p_un0
+    if known.any():
+        unav = np.where(known, (out_md + delay > 0) | (rng.random((S, P)) < base), unav)
     totals = {m: np.full(S, float(standings.get(m, 0) or 0)) for m in managers}
     drift = {m: np.zeros(S) for m in managers}
     md_mean = {m: [] for m in managers}
@@ -507,6 +514,8 @@ def season_forecast(managers, squads, pinfo, fixtures, ratings, hfa, sd_gd, prm,
             rec = rng.random((S, P)) < Q_OUT
             new = rng.random((S, P)) < q_in
             unav = np.where(unav, ~rec, new)
+            if known.any():  # bekannte Rückkehr: bis dahin fehlt der Spieler, danach nur das übliche neue Verletzungsrisiko
+                unav = np.where(known, np.where(k < out_md + delay, True, new), unav)
         fl = fixtures.get(md, [])
         opp = {}
         for h, g in fl:
@@ -561,3 +570,58 @@ def season_forecast(managers, squads, pinfo, fixtures, ratings, hfa, sd_gd, prm,
     for i, r in enumerate(out):
         r["rank_final"] = i + 1
     return out
+
+
+# ---------------------------------------------------------------- Rückkehr-Angaben aus der Recherche
+MONTHS = {"januar": 1, "jan": 1, "februar": 2, "feb": 2, "märz": 3, "maerz": 3, "april": 4, "mai": 5, "juni": 6, "juli": 7,
+          "august": 8, "september": 9, "sept": 9, "oktober": 10, "okt": 10, "november": 11, "nov": 11, "dezember": 12, "dez": 12}
+
+
+def parse_return(text, today):
+    """Voraussichtliches Rückkehrdatum aus Texten wie „ca. 28.–31.10.“, „Anfang November“, „in 2–3 Wochen“.
+    Gibt ein date zurück, today bei „einsatzbereit“, None bei unklaren Angaben. Bei Spannen gilt das spätere Ende."""
+    t = (text or "").lower().strip()
+    if not t or re.search(r"unklar|offen|unbekannt|ungewiss|n/?a\b", t):
+        return None
+    if re.search(r"einsatzbereit|fit\b|zurück im training|wieder dabei", t):
+        return today
+
+    def fix(d, m, y=None):
+        try:
+            dt = date(y or today.year, m, d)
+        except ValueError:
+            return None
+        if y is None and dt < today - timedelta(days=90):
+            dt = date(today.year + 1, m, d)
+        return dt
+    m = re.search(r"(\d{1,2})\.\s*(?:–|-|bis)\s*(\d{1,2})\.(\d{1,2})\.?(\d{4})?", t)
+    if m:
+        return fix(int(m.group(2)), int(m.group(3)), int(m.group(4)) if m.group(4) else None)
+    ds = [fix(int(a), int(b), int(c) if c else None) for a, b, c in re.findall(r"(\d{1,2})\.(\d{1,2})\.(\d{4})?", t)]
+    ds = [d for d in ds if d]
+    if ds:
+        return max(ds)
+    m = re.search(r"in\s*(\d+)(?:\s*(?:–|-|bis)\s*(\d+))?\s*wochen", t) or re.search(r"(\d+)(?:\s*(?:–|-|bis)\s*(\d+))?\s*wochen", t)
+    if m:
+        return today + timedelta(days=7 * int(m.group(2) or m.group(1)))
+    m = re.search(r"(\d+)(?:\s*(?:–|-|bis)\s*(\d+))?\s*monat", t)
+    if m:
+        return today + timedelta(days=30 * int(m.group(2) or m.group(1)))
+    if re.search(r"saisonende|saison\s*aus|season", t):
+        return date(today.year + (1 if today.month > 6 else 0), 6, 1)
+    if "winterpause" in t:
+        return date(today.year + (1 if today.month > 6 else 0), 1, 10)
+    if "jahresende" in t:
+        return date(today.year, 12, 31)
+    for name, mon in MONTHS.items():
+        if re.search(rf"\b{name}\b", t):
+            day = 5 if "anfang" in t else 25 if "ende" in t else 15
+            return fix(day, mon)
+    return None
+
+
+def out_matchdays(ret, md_dates, today):
+    """Wie viele der kommenden Spieltage (md_dates: Liste Aufstellungsschluss, aufsteigend) liegen vor der Rückkehr?"""
+    if ret is None:
+        return None
+    return sum(1 for d in md_dates if d.date() < ret) if ret > today else 0

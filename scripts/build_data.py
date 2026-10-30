@@ -841,7 +841,7 @@ def analyze(raw, names, ids, me_id, squads, market, md_rows, pts_of, balance_of,
         extras[uid]["p_zero"] = (z_ + M.ZERO_K * pooled_zero) / (len(h_) + M.ZERO_K) if (h_ or pooled_zero) else 0.0
 
     # (d) Saisonsimulation auf Spielerebene (Paket 3), kalibriert durch Rückprüfung (Paket 4)
-    fc = None
+    fc, whatif = None, None
     try:
         import next_match as NM
         matches = S.matches_from_histories(histories)
@@ -880,9 +880,11 @@ def analyze(raw, names, ids, me_id, squads, market, md_rows, pts_of, balance_of,
             h_, g_ = NM.match_name(o.get("home"), lookup), NM.match_name(o.get("away"), lookup)
             if imp and h_ and g_ and rem_mds:
                 eg = 2.6 * (imp["p1"] - imp["p2"])
+                # Spieltag dieser Paarung im Spielplan suchen (Quoten gibt es oft für mehr als einen Spieltag)
+                mdx = next((md_ for md_ in rem_mds if (rev[h_], rev[g_]) in set(fixtures.get(md_, []))), rem_mds[0])
                 for c_, sg in ((rev[h_], 1), (rev[g_], -1)):
                     base_eg = S.exp_gd(rt, hfa, c_, rev[g_] if sg == 1 else rev[h_], sg == 1)
-                    odds_gd[(rem_mds[0], c_)] = 0.5 * sg * eg + 0.5 * base_eg
+                    odds_gd[(mdx, c_)] = 0.5 * sg * eg + 0.5 * base_eg
         pinfo = {}
         for uid, sq in squads.items():
             for p_ in sq:
@@ -892,9 +894,76 @@ def analyze(raw, names, ids, me_id, squads, market, md_rows, pts_of, balance_of,
                     pinfo[pid] = S.player_info(pid, histories.get(pid, []), pos_, means, p_.get("status"),
                                                str(p_.get("clubId")) if p_.get("clubId") else None,
                                                ((injuries or {}).get(pid) or {}).get("return"), sig_lvl=prm["sig_lvl"])
+        # Rückkehr-Angaben der Recherche (z. B. „ca. 08.11.“) → wie viele Spieltage fehlt der Spieler noch?
+        md_dates = sorted(d_ for d_ in (M.parse_dt(c.get("date")) for c in cal
+                                        if str(c.get("key", "")).isdigit() and int(c["key"]) in rem_mds) if d_)
+        today_d = datetime.now(timezone.utc).date()
+        n_known = 0
+        for pid, pi in pinfo.items():
+            ret_txt = ((injuries or {}).get(pid) or {}).get("return")
+            om = S.out_matchdays(S.parse_return(ret_txt, today_d), md_dates, today_d) if ret_txt else None
+            if om is not None:
+                pi["out_mds"] = om
+                n_known += 1
+        print(f"::notice title=Rückkehr-Angaben::{n_known} Spieler mit bekanntem Rückkehrtermin in der Simulation")
         squads_ids = {uid: [str(x["id"]) for x in sq if str(x["id"]) in pinfo] for uid, sq in squads.items()}
         fc = S.season_forecast(ids, squads_ids, pinfo, fixtures, rt, hfa, sd_gd, prm, rem_mds, extras,
                                pts_of, md_points, odds_gd=odds_gd)
+        # --- Was wäre wenn? Meine Prognose mit Plänen und Einzelkäufen/-verkäufen (gleiche Zufallszahlen-Startwerte) ---
+        try:
+            for m_ in market:
+                pid = str(m_["id"])
+                pos_ = m_.get("position") or pos_all.get(pid)
+                if pid not in pinfo and pos_ in M.POS_ORDER and not m_.get("mine"):
+                    pinfo[pid] = S.player_info(pid, histories.get(pid, []), pos_, means, m_.get("status"),
+                                               str(m_.get("clubId")) if m_.get("clubId") else None,
+                                               ((injuries or {}).get(pid) or {}).get("return"), sig_lvl=prm["sig_lvl"])
+            ex0 = {u: dict(v) for u, v in extras.items()}
+            ex0[me_id] = {**ex0.get(me_id, {}), "gain": 0.0}   # Guthaben-Effekt ist nach einem Kauf nicht mehr derselbe
+            me_sq = list(squads_ids.get(me_id, []))
+            mk_ = {str(c["id"]): c for c in cands}
+            sims_w = 2000
+
+            def run(sq_me):
+                sq_all = {**squads_ids, me_id: sq_me}
+                r_ = S.season_forecast(ids, sq_all, pinfo, fixtures, rt, hfa, sd_gd, prm, rem_mds, ex0, pts_of, md_points,
+                                       sims=sims_w, odds_gd=odds_gd)
+                return next(x for x in r_ if x["id"] == me_id)
+
+            base_ = run(me_sq)
+            rows_w = []
+
+            def add(kind, label, sell_ids, buy_ids, sell_info, buy_info):
+                new_sq = [i for i in me_sq if i not in sell_ids] + [i for i in buy_ids if i in pinfo]
+                r_ = run(new_sq)
+                proceeds = sum(x["price"] for x in sell_info)
+                cost = sum(x["bid"] for x in buy_info)
+                rows_w.append({"kind": kind, "label": label, "sell": sell_info, "buy": buy_info, "cash_after": round(own_cash + proceeds - cost),
+                               "exp_final": r_["exp_final"], "p_title": r_["p_title"], "p_top3": r_["p_top3"], "exp_rank": r_["exp_rank"],
+                               "d_final": r_["exp_final"] - base_["exp_final"], "d_rate": round(r_["rate"] - base_["rate"], 2), "d_title": round(r_["p_title"] - base_["p_title"], 3),
+                               "d_rank": round(r_["exp_rank"] - base_["exp_rank"], 2)})
+
+            for pl in plans[:8]:
+                add("Plan " + pl["id"], ", ".join([("− " + x["name"]) for x in pl["sellDetail"]] + [("+ " + x["name"]) for x in pl["buyDetail"]]),
+                    {str(i) for i in pl.get("sellIds", [])}, [str(i) for i in pl.get("buyIds", [])],
+                    [{"name": x["name"], "price": x["price"]} for x in pl["sellDetail"]],
+                    [{"name": x["name"], "bid": x["bid"]} for x in pl["buyDetail"]])
+            singles = [c for c in sorted(cands, key=lambda c: -(c.get("e_base") or 0)) if (buy_price(c) or 0) <= own_cash][:6]
+            for c in singles:
+                add("Nur kaufen", "+ " + c["name"], set(), [str(c["id"])], [], [{"name": c["name"], "bid": buy_price(c)}])
+            for o_ in sorted(offers_out, key=lambda o: -(o.get("price") or 0))[:4]:
+                pid_ = next((str(x["id"]) for x in squads.get(me_id, []) if x.get("name") == o_["player"]), None)
+                if pid_ and pid_ in me_sq:
+                    add("Angebot annehmen", "− " + o_["player"], {pid_}, [], [{"name": o_["player"], "price": o_["price"]}], [])
+            whatif = {"base": {"exp_final": base_["exp_final"], "p_title": base_["p_title"], "p_top3": base_["p_top3"],
+                               "exp_rank": base_["exp_rank"]}, "rows": rows_w, "sims": sims_w}
+            print(f"::notice title=Was wäre wenn::{len(rows_w)} Szenarien; Basis Meister {base_['p_title']}, Endplatz {base_['exp_rank']}; "
+                  f"bester Plan {max((r_['d_final'] for r_ in rows_w), default=0):+} Punkte")
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            print(f"::warning title=Was wäre wenn::übersprungen ({type(e).__name__}: {e})")
+            whatif = None
         calib.update({"prm": prm, "fixtures": fx_info, "hfa": round(hfa, 2), "sdGd": round(sd_gd, 2),
                       "oddsUsed": len(odds_gd) // 2, "sims": 3000, "model": "Spielerebene"})
         mp = calib.get("manager") or {}
@@ -1093,7 +1162,7 @@ def analyze(raw, names, ids, me_id, squads, market, md_rows, pts_of, balance_of,
             "lineup": {"now": xi_rows(cur_ids), "best": xi_rows(best_ids), "formationNow": M.tactic_name(lu.get("tactic")),
                        "formationBest": best_form},
             "formations": formations, "offers": offers_out, "buyers": buyers, "plans": plans,
-            "bidModel": bid_model, "forecast": fc, "calib": calib, "monthly": monthly, "opponents": opp_list, "nextMatch": next_match}
+            "bidModel": bid_model, "whatif": whatif, "forecast": fc, "calib": calib, "monthly": monthly, "opponents": opp_list, "nextMatch": next_match}
 
 
 def _fernet():

@@ -171,6 +171,7 @@ select{font:inherit;font-size:12.5px;padding:3px 5px;background:#fff;color:var(-
     <div class="card"><h2>Preis und Leistung</h2><div id="chart-pp"></div><p class="note">Marktwert gegen prognostizierte Saisonpunkte. Je weiter oben links, desto mehr Punkte pro Euro.</p></div>
     <div class="card"><h2>Mögliche Käufer</h2><div style="margin-bottom:8px"><select id="by-filter"></select></div><div id="t-buyers"></div>
       <p class="note">Aktivität = Käufe der letzten 30 Tage im Verhältnis zum aktivsten Manager. Gebotsspanne = Mindestgebot bis +12 %, begrenzt durch den (berechneten) Kontostand.</p></div>
+    <div class="card"><h2>Was wäre wenn? Auswirkung auf deine Endplatzierung</h2><div id="t-whatif"></div><p class="note" id="whatif-note"></p></div>
     <div class="card"><h2>Transfer-Pläne</h2><div id="t-plans"></div><p class="note">Kombinationen aus bis zu vier Verkaufskandidaten und bis zu drei Käufen, Gebot mit 75 % Zuschlagschance (sonst 3 % über Mindestgebot), Konto danach nicht negativ. Bewertet nach der besten Aufstellung (erwartete Punkte je Spieltag). Kadergrenzen sind nicht geprüft.</p></div>
   </section>
   <section id="s-live">
@@ -697,6 +698,21 @@ table("t-forecast",D.forecast||[],[{h:"#",v:r=>r.rank_final,n:true},{h:"Manager"
       {h:"Echt",v:r=>int(r.actual),s:r=>r.actual,n:true},{h:"Differenz",v:r=>signed(r.actual-r.pred,f1),s:r=>r.actual-r.pred,n:true,cls:r=>r.actual>=r.pred?"pos":"neg"}],{sort:0});
   }
   box.append(el("p",{class:"note"},"Rückprüfung: Jedes vergangene Spiel wird nur mit den Daten vorhergesagt, die vorher bekannt waren, und mit dem echten Ergebnis verglichen. Daraus kommen die Gewichtung, die Streuungen und eine Korrektur der Manager-Prognose. Die Endtabelle selbst lässt sich erst am Saisonende prüfen; der Verlauf der Prognose wird dafür gespeichert."));
+})();
+
+// Was wäre wenn
+(function(){
+  const W=D.whatif, note=document.getElementById("whatif-note"), box=document.getElementById("t-whatif");
+  if(!W||!(W.rows||[]).length){ box.append(el("p",{class:"note"},"Keine Szenarien gerechnet (Simulation auf Spielerebene nicht verfügbar).")); return; }
+  const b=W.base, sg=(v,f)=>signed(v,f);
+  box.append(el("p",{class:"note"},`Heute (ohne Guthaben-Effekt): ${int(b.exp_final)} Punkte am Ende, Meister ${pct(b.p_title)}, Top 3 ${pct(b.p_top3)}, Ø Platz ${f2(b.exp_rank)}.`));
+  const rows=el("div",{id:"t-whatif-tab"}); box.append(rows);
+  table("t-whatif-tab",W.rows,[{h:"Szenario",v:r=>r.kind},{h:"Änderung",v:r=>r.label},
+    {h:"Konto danach",v:r=>mio(r.cash_after),s:r=>r.cash_after,n:true,cls:r=>r.cash_after<0?"neg":"money"},
+    {h:"Endpunkte",v:r=>int(r.exp_final),s:r=>r.exp_final,n:true},{h:"Δ Punkte",v:r=>sg(r.d_final,v=>int(Math.round(v))),s:r=>r.d_final,n:true,cls:r=>r.d_final>0?"pos":r.d_final<0?"neg":""},
+    {h:"Meister",v:r=>pct(r.p_title),s:r=>r.p_title,n:true},{h:"Δ Meister",v:r=>sg(r.d_title*100,v=>v.toFixed(1).replace(".",",")+" %-Pkt."),s:r=>r.d_title,n:true,cls:r=>r.d_title>0?"pos":r.d_title<0?"neg":""},
+    {h:"Ø Platz",v:r=>f2(r.exp_rank),s:r=>r.exp_rank,n:true},{h:"Δ Platz",v:r=>sg(-r.d_rank,f2),s:r=>-r.d_rank,n:true,cls:r=>r.d_rank<0?"pos":r.d_rank>0?"neg":""}],{sort:4});
+  note.textContent=`Jedes Szenario wird mit ${int(W.sims)} Simulationen der Restsaison neu gerechnet (Kader, Aufstellung, Spielplan wie in der Prognose; Kaufpreise = Gebot mit 75 % Zuschlagschance, Verkaufspreise = Angebot bzw. Marktwert). Unterschiede unter etwa 2 Punkten bzw. 1 %-Punkt liegen im Rauschen der Simulation. Der Guthaben-Effekt ist herausgenommen, weil er sich nach einem Kauf ändert. Die Pläne oben werden nach erwarteten Punkten gebaut; die Simulation berücksichtigt zusätzlich Ausfälle und fehlende Positionen, deshalb können beide Werte voneinander abweichen.`;
 })();
 
 // Prognose im Zeitverlauf

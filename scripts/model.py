@@ -384,12 +384,15 @@ def transfer_plans(own, market, balance, sale_price, buy_price, max_buys=3, n_se
     """own/market: Listen mit id, name, position, e_next, e_base, marketValue."""
     if not own:
         return [], {}
-    _, cur_total, _, _ = best_lineup(own, key="e_base")
-    _, _, best_ids, _ = best_lineup(own, key="e_base")
+    def value(squad, exclude=()):
+        """Beste Elf; jede unbesetzte Position kostet 4 Punkte (Comunio-Regel)."""
+        _, t, ids, _ = best_lineup(squad, key="e_base", exclude=exclude)
+        return t - EMPTY_SLOT_PENALTY * max(0, 11 - len(ids))
+
+    cur_total = value(own)
     loss = {}
     for s in own:
-        _, t, _, _ = best_lineup(own, key="e_base", exclude=(s["id"],))
-        loss[s["id"]] = cur_total - t
+        loss[s["id"]] = cur_total - value(own, exclude=(s["id"],))
     sell_cands = sorted(own, key=lambda s: (loss[s["id"]] + 0.2 * s["e_base"]) / max(sale_price(s), 1e5))[:n_sell]
     buy_cands = [m for m in market if m.get("e_base", 0) > 0.5]
     buy_cands = sorted(buy_cands, key=lambda m: -(m["e_base"] / max(buy_price(m), 1e5)))[:n_buy]
@@ -404,8 +407,7 @@ def transfer_plans(own, market, balance, sale_price, buy_price, max_buys=3, n_se
                     cash = balance + proceeds - cost
                     if cash < 0:
                         continue
-                    _, total, _, _ = best_lineup(remaining + list(buys), key="e_base")
-                    delta = total - cur_total
+                    delta = value(remaining + list(buys)) - cur_total
                     if delta <= 0.2:
                         continue
                     plans.append({"sell": [s["name"] for s in sells], "buy": [b["name"] for b in buys],
