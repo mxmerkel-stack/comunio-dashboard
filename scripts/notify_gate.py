@@ -3,6 +3,7 @@
 
   MODE=eve    true um 20 Uhr (Berlin) am Tag vor dem ersten Anpfiff des nächsten Spieltags
   MODE=alarm  true, wenn der erste Anpfiff des Spieltags in 2 bis 3,2 Stunden liegt
+  MODE=last   true, wenn der erste Anpfiff des Spieltags in 45 bis 75 Minuten liegt (letzte Erinnerung)
   MODE=result true, wenn alle Spiele des letzten Spieltags beendet sind (höchstens 48 Std. her) und
               dafür noch keine Ergebnis-Nachricht gesendet wurde; schreibt außerdem md=<Spieltag>
 Erster Anpfiff = frühestes Spiel der Spieltagsgruppe des nächsten angesetzten Spiels (OpenLigaDB).
@@ -79,6 +80,8 @@ def main():
             local = now.astimezone(TZ)
             if MODE == "eve":
                 run = local.hour == 20 and first.astimezone(TZ).date() == local.date() + timedelta(days=1)
+            elif MODE == "last":
+                run = timedelta(minutes=45) < first - now <= timedelta(minutes=75)
             else:
                 run = timedelta(minutes=120) < first - now <= timedelta(minutes=192)
             print(f"Erster Anpfiff {first.astimezone(TZ):%a %d.%m. %H:%M}, jetzt {local:%a %H:%M} -> {MODE}: run={run}")

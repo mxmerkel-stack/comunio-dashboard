@@ -3,6 +3,7 @@
 
   --mode eve      Abend vor dem Spieltag (20 Uhr): alle Warnungen und Tausch-Vorschläge, sonst "alles in Ordnung"
   --mode result  Spieltagsergebnis: deine Gesamtpunkte, sobald alle Punkte feststehen (Spieltag aus Umgebungsvariable MD)
+  --mode last     1 Std. vor Anpfiff: Statusmeldung (leere Position, Konto, Ausfälle in der Aufstellung), immer
   --mode alarm    3 Std. vor Anpfiff: nur wenn das Konto im Minus ist oder eine Position unbesetzt/falsch besetzt ist
   --mode auctions Abend-Hinweis: welche empfohlenen Angebote in den nächsten ~12 Stunden enden
 Doppelte Meldungen werden über data/notified.json verhindert. Keine Beträge in den Nachrichten.
@@ -92,6 +93,42 @@ def alarm(d):
     send(f"alarm-{md}", text, f"⚠️ Comunio {md}. Spieltag: jetzt handeln", priority=5, click=SITE + "#nextmatch", tags=["rotating_light"])
 
 
+def last(d):
+    """Eine Stunde vor Aufstellungsschluss: immer eine Meldung, mit den drei Prüfpunkten."""
+    chk, nm = d.get("checks") or {}, d.get("nextMatch") or {}
+    md = nm.get("md") or chk.get("md")
+    lines, bad = [], 0
+    if not chk.get("lineupKnown"):
+        lines.append("✗ Keine Aufstellung gefunden"); bad += 1
+    else:
+        e = chk.get("emptySlots") or 0
+        lines.append(f"✗ {e} unbesetzte Position(en), −{4 * e} Punkte" if e else "✓ Alle Positionen besetzt")
+        bad += 1 if e else 0
+    if chk.get("balanceOk") is False:
+        lines.append("✗ Konto im Minus – dann gibt es keine Punkte"); bad += 1
+    else:
+        lines.append("✓ Konto positiv")
+    outs = chk.get("outInLineup") or []
+    if outs:
+        lines.append("✗ In der Aufstellung: " + ", ".join(outs)); bad += 1
+    else:
+        lines.append("✓ Kein Verletzter oder Gesperrter in der Aufstellung")
+    wrong = [i for i in chk.get("issues", []) if i["level"] == "warn" and "falschen Position" in i["title"]]
+    for w in wrong:
+        lines.append("✗ " + w["title"]); bad += 1
+    best = chk.get("best") or {}
+    if best and not best.get("optimal"):
+        lines.append(f"• Bessere Aufstellung möglich (+{f1(best['gain'])} Punkte)")
+    text = "\n".join(lines) + "\nAufstellungsschluss in ca. 1 Stunde."
+    if not once(f"last-{md}", text):
+        return
+    title = f"Comunio {md}. Spieltag in 1 Std.: " + (f"{bad} Problem{'e' if bad != 1 else ''}" if bad else "alles in Ordnung")
+    send(f"last-{md}", text, title, priority=5 if bad else 3, click=SITE + "#nextmatch", tags=["rotating_light" if bad else "white_check_mark"])
+    if bad:  # bei Problemen zusätzlich per Mail
+        from alert import mail
+        mail(title, text + "\n\n" + SITE + "#nextmatch")
+
+
 def result(d):
     mds = d.get("matchdays") or []
     ids = [s["id"] for s in d.get("standings") or []]
@@ -154,7 +191,7 @@ def main():
     if mode == "test":
         return test({})
     d = json.loads((DATA / "dashboard.json").read_text())
-    {"eve": eve, "alarm": alarm, "result": result, "auctions": auctions}[mode](d)
+    {"eve": eve, "alarm": alarm, "last": last, "result": result, "auctions": auctions}[mode](d)
 
 
 if __name__ == "__main__":
