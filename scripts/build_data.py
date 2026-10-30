@@ -438,9 +438,27 @@ def build(raw, history):
     snap = {"date": today, "balance": dict(balance_of), "points": dict(pts_of), "teamValue": dict(tv_of),
             # Prognose-Archiv: so lässt sich die Endtabellen-Prognose am Saisonende rückwirkend prüfen
             "forecast": {r["id"]: [r["exp_final"], r["p10"], r["p90"], r["p_title"]] for r in an.get("forecast") or []},
-            "forecastModel": (an.get("calib") or {}).get("model")}
+            "forecastModel": (an.get("calib") or {}).get("model"),
+            # Vorhersage für den nächsten Spieltag (Ø Punkte je Manager), später mit den echten Punkten verglichen
+            "mdPred": {"md": (an.get("status") or {}).get("nextMd"),
+                       "pred": {r["id"]: (r.get("md_mean") or [None])[0] for r in an.get("forecast") or []}}}
     history = [h for h in history if h["date"] != today] + [snap]
     history.sort(key=lambda h: h["date"])
+    fc_hist = [{"date": h["date"], "exp": {uid: v[0] for uid, v in h["forecast"].items()}}
+               for h in history if h.get("forecast")]
+    # Treffergenauigkeit: letzte Vorhersage je Spieltag gegen die echten Punkte
+    last_pred = {}
+    for h in history:
+        mp = h.get("mdPred") or {}
+        if mp.get("md") and mp.get("pred"):
+            last_pred[int(mp["md"])] = mp["pred"]
+    pred_eval = []
+    for md in md_rows:
+        k = int(md["key"])
+        for uid, pr in (last_pred.get(k) or {}).items():
+            a = md["points"].get(uid)
+            if pr is not None and a is not None:
+                pred_eval.append({"md": k, "id": uid, "name": names.get(uid, uid), "pred": round(pr, 1), "actual": a})
 
     me_rank = next(s for s in standings if s["id"] == me_id)
     return {
@@ -476,6 +494,8 @@ def build(raw, history):
                       for ps in list(raw["squads"].values()) + [raw["market"]] for p in ps
                       if p.get("club") and (raw.get("clubLogos") or {}).get(str(p.get("clubId")))},
         "history": history,
+        "fcHistory": fc_hist,
+        "predEval": pred_eval,
         **an,
     }, history
 

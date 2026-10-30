@@ -142,6 +142,7 @@ select{font:inherit;font-size:12.5px;padding:3px 5px;background:#fff;color:var(-
       <p class="note">Alle Spieler in den Kadern der Manager mit Toren in dieser Saison. „Für den Besitzer“ zählt nur Tore seit dem Kauf. Ob der Spieler dabei aufgestellt war, ist nicht berücksichtigt.</p></div>
     <div class="card"><h2>Spieltage</h2><div id="t-matchdays"></div></div>
     <div class="card"><h2>Prognose Endtabelle</h2><div id="t-forecast"></div><p class="note" id="fc-note"></p></div>
+    <div class="card"><h2>Prognose im Zeitverlauf</h2><div id="chart-fc"></div><p class="note" id="fc-hist-note"></p></div>
     <div class="card"><h2>Prognosegüte (Rückprüfung)</h2><div id="calib"></div></div>
     <div class="card"><h2>Monatswertung</h2><div id="t-monthly"></div></div>
   </section>
@@ -685,7 +686,25 @@ table("t-forecast",D.forecast||[],[{h:"#",v:r=>r.rank_final,n:true},{h:"Manager"
       {h:"Modell",v:r=>f1(r.mean),s:r=>r.mean,n:true},{h:"10–90 %",v:r=>`${int(r.p10)} – ${int(r.p90)}`,s:r=>r.p10},
       {h:"",v:r=>r.actual<r.p10?"darunter":r.actual>r.p90?"darüber":"✓",cls:r=>r.actual<r.p10||r.actual>r.p90?"neg":"pos"}],{sort:0});
   }
+  const pe=D.predEval||[];
+  if(pe.length){
+    const err=pe.map(r=>r.actual-r.pred), n=err.length, bias=err.reduce((a,b)=>a+b,0)/n, mae=err.reduce((a,b)=>a+Math.abs(b),0)/n;
+    const sec=el("div",{},el("h3",{style:"margin:12px 0 4px;font-size:13px"},`Echte Vorhersagen vor dem Spieltag (${n} Manager-Spieltage)`),
+      el("div",{class:"kv"},el("div",{},el("b",{},f1(mae)+" Pkt."),"mittlerer Fehler"),el("div",{},el("b",{},signed(bias,f1)+" Pkt."),"Abweichung (echt − Prognose)")),
+      el("div",{id:"t-predeval"}));
+    box.append(sec);
+    table("t-predeval",pe,[{h:"Spieltag",v:r=>r.md,n:true},{h:"Manager",v:r=>r.name},{h:"Prognose",v:r=>f1(r.pred),s:r=>r.pred,n:true},
+      {h:"Echt",v:r=>int(r.actual),s:r=>r.actual,n:true},{h:"Differenz",v:r=>signed(r.actual-r.pred,f1),s:r=>r.actual-r.pred,n:true,cls:r=>r.actual>=r.pred?"pos":"neg"}],{sort:0});
+  }
   box.append(el("p",{class:"note"},"Rückprüfung: Jedes vergangene Spiel wird nur mit den Daten vorhergesagt, die vorher bekannt waren, und mit dem echten Ergebnis verglichen. Daraus kommen die Gewichtung, die Streuungen und eine Korrektur der Manager-Prognose. Die Endtabelle selbst lässt sich erst am Saisonende prüfen; der Verlauf der Prognose wird dafür gespeichert."));
+})();
+
+// Prognose im Zeitverlauf
+(function(){
+  const H=D.fcHistory||[], lab=H.map(h=>new Date(h.date).toLocaleDateString("de-DE",{day:"2-digit",month:"2-digit"}));
+  CHARTS.fc=()=>lineChart("chart-fc",D.managers.map(m=>({id:m.id,name:m.name,values:H.map(h=>({y:(h.exp||{})[m.id]??null}))})),lab,v=>int(Math.round(v)));
+  CHARTS.fc();
+  document.getElementById("fc-hist-note").textContent=H.length<2?"Erwartete Endpunkte je Manager. Die Kurve füllt sich mit jedem Update (ein Punkt pro Tag).":"Erwartete Endpunkte je Manager bei jedem Update. Sprünge entstehen durch Spieltage, Transfers und neue Quoten.";
 })();
 
 // Monatswertung
