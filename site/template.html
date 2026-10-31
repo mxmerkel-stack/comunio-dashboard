@@ -234,6 +234,9 @@ const D = window.DATA;
 const eur = v => v==null ? "–" : new Intl.NumberFormat("de-DE",{maximumFractionDigits:0}).format(v) + " €";
 const mio = v => v==null ? "–" : (v/1e6).toLocaleString("de-DE",{minimumFractionDigits:2,maximumFractionDigits:2}) + " Mio.";
 const f1=v=>v==null?"–":Number(v).toLocaleString("de-DE",{minimumFractionDigits:1,maximumFractionDigits:1});
+const pct=v=>v==null?"–":Math.round(v*100)+" %";
+const f2=v=>v==null?"–":Number(v).toLocaleString("de-DE",{minimumFractionDigits:2,maximumFractionDigits:2});
+const signed=(v,fmt)=>v==null?"–":(v>0?"+":"")+fmt(v);
 const int = v => v==null ? "–" : Number(v).toLocaleString("de-DE");
 const dt = s => s ? new Date(s).toLocaleString("de-DE",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}) : "–";
 const nameOf = id => (D.managers.find(m=>m.id===String(id))||{}).name || "?";
@@ -525,9 +528,6 @@ document.getElementById("sq-note").textContent = `Gerüchte mit geschätzter Wec
 
 // ===================== Bereiche aus der Comunio Zentrale =====================
 const S=D.status||{};
-const pct=v=>v==null?"–":Math.round(v*100)+" %";
-const f2=v=>v==null?"–":Number(v).toLocaleString("de-DE",{minimumFractionDigits:2,maximumFractionDigits:2});
-const signed=(v,fmt)=>v==null?"–":(v>0?"+":"")+fmt(v);
 
 // Handlungsempfehlungen
 (function(){
