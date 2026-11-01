@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
 <meta name="theme-color" content="#1b4414">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -111,6 +111,52 @@ select{font:inherit;font-size:12.5px;padding:3px 5px;background:#fff;color:var(-
 .chips{display:flex;gap:4px;flex-wrap:wrap;margin-top:8px}
 .chip{padding:1px 7px;border:1px solid var(--line);font-size:11.5px;background:#fff}
 .chip.w{background:var(--accent-soft);border-color:var(--accent)}.chip.l{background:#f8dcd9;border-color:var(--bad)}
+
+/* ---- Handy-Ansicht ---- */
+html{-webkit-text-size-adjust:100%}
+body{padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right);padding-bottom:env(safe-area-inset-bottom)}
+header{padding-top:env(safe-area-inset-top);background:#2f6b24}
+nav .in{-webkit-overflow-scrolling:touch;scrollbar-width:none;scroll-snap-type:x proximity}
+nav .in::-webkit-scrollbar{display:none}
+nav button{scroll-snap-align:start}
+.card{-webkit-overflow-scrolling:touch}
+svg{max-width:100%;height:auto}
+@media (max-width:640px){
+  body{font-size:14px}
+  .brand{padding:10px 12px;gap:8px;row-gap:8px}
+  h1{font-size:18px;letter-spacing:.1em}
+  .sub{flex:1 1 100%;font-size:11px}
+  h1{flex:1 1 0;order:1}
+  .eye{order:2;width:44px;height:38px;margin-left:auto}
+  .gs{order:3;flex:1 1 100%;width:100%;max-width:none;min-width:0;margin-left:0;font-size:16px;padding:8px 10px}
+  .sub{order:4}
+  nav button{padding:12px 14px;font-size:13.5px}
+  main{padding:10px 8px 24px}
+  .kpis{grid-template-columns:repeat(2,1fr);margin-bottom:10px}
+  .kpi{padding:7px 9px}
+  .kpi .v{font-size:16px}
+  .kpi .l{font-size:10px}
+  .card{padding:0 8px 10px;margin-bottom:10px}
+  .card h2{margin:0 -8px 8px;padding:8px 10px;font-size:14px}
+  .kv{grid-template-columns:1fr 1fr;gap:6px 10px}
+  .kv b{font-size:14px}
+  table{font-size:12px}
+  th,td{padding:7px 6px}
+  tbody td:first-child,thead th:first-child{position:sticky;left:0;z-index:1;box-shadow:1px 0 0 rgba(17,51,13,.25)}
+  thead th:first-child{z-index:3}
+  tbody tr:nth-child(even) td:first-child{background:var(--panel)}
+  tbody tr:nth-child(odd) td:first-child{background:var(--panel2)}
+  tr.me td:first-child,tbody tr.me:nth-child(odd) td:first-child{background:var(--me)}
+  button.toggle{padding:9px 12px;font-size:13px}
+  select{font-size:16px;padding:7px 6px}
+  input,textarea{font-size:16px}
+  .toolbar{gap:8px}
+  .lvrow{grid-template-columns:minmax(70px,110px) 1fr 44px;gap:6px}
+  .lvtrack{height:20px}
+  .banner{font-size:12.5px;padding:8px 10px}
+  .note{font-size:12px}
+}
+@media (hover:none){tbody tr:hover td{background:inherit}tr.me:hover td{background:var(--me)}nav button:hover{background:none}nav button.on:hover{background:var(--on)}}
 </style>
 </head>
 <body>
