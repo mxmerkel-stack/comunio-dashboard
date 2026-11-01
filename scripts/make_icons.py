@@ -10,21 +10,34 @@ DIST = Path(os.environ.get("DIST_DIR", Path(__file__).resolve().parent.parent / 
 
 
 def icon(size):
-    img = Image.new("RGB", (size, size), "#1b4414")
+    """App-Symbol: Spielfeld von oben mit 4-3-3-Aufstellung, ein Spieler (du) in Bernstein."""
+    S = 4 * size                      # vierfach gezeichnet, dann verkleinert (glatte Kanten)
+    k = S / 512
+    img = Image.new("RGB", (S, S), "#1b4414")
     d = ImageDraw.Draw(img)
-    for i in range(size):  # Verlauf
-        c = int(0x2a - 0x1a * i / size)
-        d.line([(0, i), (size, i)], fill=(c, 0x5c - int(0x2c * i / size), int(0x20 - 0x12 * i / size)))
-    m = size * 0.16
-    d.ellipse([m, m, size - m, size - m], outline="#eaf5e2", width=max(2, size // 40))
-    d.line([(size / 2, m), (size / 2, size - m)], fill="#eaf5e2", width=max(2, size // 60))
-    d.ellipse([size * .38, size * .38, size * .62, size * .62], outline="#eaf5e2", width=max(2, size // 60))
-    try:
-        font = ImageFont.truetype("DejaVuSans-Bold.ttf", int(size * .26))
-    except OSError:
-        font = ImageFont.load_default()
-    d.text((size / 2, size * .5), "CZ", font=font, fill="#fff", anchor="mm", stroke_width=max(1, size // 120), stroke_fill="#10300c")
-    return img
+    for i in range(S):  # Verlauf von oben (hell) nach unten (dunkel), wie der Seitenkopf
+        t = i / S
+        if t < .55:
+            u = t / .55
+            col = tuple(int(a + (b - a) * u) for a, b in zip((0x2f, 0x6b, 0x24), (0x1b, 0x44, 0x14)))
+        else:
+            u = (t - .55) / .45
+            col = tuple(int(a + (b - a) * u) for a, b in zip((0x1b, 0x44, 0x14), (0x0f, 0x2d, 0x0c)))
+        d.line([(0, i), (S, i)], fill=col)
+    ov = Image.new("RGBA", (S, S), (0, 0, 0, 0))
+    o = ImageDraw.Draw(ov)
+    line = (234, 245, 226)
+    w = lambda v: max(1, int(v * k))
+    o.rounded_rectangle([50 * k, 62 * k, 462 * k, 450 * k], radius=10 * k, outline=line + (140,), width=w(7))
+    o.line([(50 * k, 256 * k), (462 * k, 256 * k)], fill=line + (90,), width=w(5))
+    o.rectangle([170 * k, 62 * k, 342 * k, 124 * k], outline=line + (90,), width=w(5))
+    o.rectangle([170 * k, 388 * k, 342 * k, 450 * k], outline=line + (90,), width=w(5))
+    for x, y in [(256, 420), (90, 335), (184, 345), (328, 345), (422, 335), (150, 245), (256, 255), (362, 245),
+                 (112, 150), (256, 128), (400, 150)]:
+        o.ellipse([(x - 17) * k, (y - 17) * k, (x + 17) * k, (y + 17) * k], fill=line + (255,))
+    o.ellipse([(256 - 26) * k, (255 - 26) * k, (256 + 26) * k, (255 + 26) * k], fill=(0xc8, 0x88, 0x2a, 255))
+    img = Image.alpha_composite(img.convert("RGBA"), ov).convert("RGB")
+    return img.resize((size, size), Image.LANCZOS)
 
 
 def main():
