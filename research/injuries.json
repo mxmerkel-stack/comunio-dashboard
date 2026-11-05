@@ -1,5 +1,5 @@
 {
- "asOf": "29.10.2026",
+ "asOf": "05.11.2026",
  "_hinweis": "Rückkehrprognosen aus öffentlichen Quellen, Schlüssel = Comunio-Spieler-ID.",
  "players": {
   "33236": {
@@ -11,16 +11,16 @@
   },
   "34285": {
    "name": "Ben Seghir",
-   "return": "ca. 08.11.",
-   "note": "Erneute Muskelverletzung (gemeldet 11./20.10.), 2–3 Wochen Pause, Aufbautraining.",
-   "source": "RotoWire / ligainsider",
-   "url": "https://www.rotowire.com/soccer/headlines/eliesse-ben-seghir-injury-out-two-to-three-weeks-523969"
+   "return": "ca. 12.11.",
+   "note": "Ben Seghir trainiert wieder, ist aber noch nicht einsatzbereit; voraussichtlich erst in ein bis zwei Wochen zurück im Kader.",
+   "source": "Kicker / 04 Nov 2026",
+   "url": "https://www.kicker.ch/trotz-trainingsrueckkehr-kofane-bade-und-ben-seghir-werden-bayers-not-kaum-lindern-1268439/artikel"
   },
   "34393": {
    "name": "Seifert",
    "return": "ca. Anfang November",
-   "note": "Syndesmoseverletzung seit Anfang Juni, befindet sich auf dem Weg der Besserung und macht individuelle Sprint‑ und Abstopp‑Übungen; voraussichtliche Rückkehr Anfang November.",
-   "source": "Absolutfussball / 20.10.2026",
+   "note": "Syndesmoseverletzung seit Anfang Juni, arbeitet an seinem Comeback, voraussichtliche Rückkehr Anfang November.",
+   "source": "Absolutfussball / 22.10.2026",
    "url": "https://www.absolutfussball.com/deutschland/sv-elversberg/sv-elversberg-personal-sorgen-francis-onyeka-cole-campbell-fehlen-weiter-ausfaelle-verletzungen-diagnose-94549783.html"
   },
   "34074": {
@@ -41,7 +41,7 @@
    "name": "Lidberg",
    "return": "offen",
    "note": "Muskuläre Probleme am Oberschenkel, ausgewechselt am 22.10., voraussichtliche Rückkehr unklar.",
-   "source": "ms-aktuell.de (23.10.2026)",
+   "source": "ms-aktuell.de (22.10.2026)",
    "url": "https://ms-aktuell.de/welt/gladbach-ausfaelle-lidberg-22-10-2026"
   },
   "34465": {
@@ -54,9 +54,9 @@
   "34187": {
    "name": "Diks",
    "return": "offen",
-   "note": "Aus privaten Gründen freigestellt, fehlt am 7. Spieltag; kein Termin bekannt.",
-   "source": "bundesliga.com (23.10.)",
-   "url": "https://www.bundesliga.com/de/bundesliga/news/voraussichtliche-aufstellungen-7-spieltag-ausfalle-verletzungen-sperren-39669"
+   "note": "Verletzung, fällt seit dem 22.10.2026 aus, kein Rückkehrtermin bekannt.",
+   "source": "fussballdaten.de (22.10.2026)",
+   "url": "https://www.fussballdaten.de/news/kevin-diks-faellt-aus-naechster-rueckschlag-borussia-moenchengladbach"
   },
   "33603": {
    "name": "Y. Engelhardt",
@@ -81,31 +81,31 @@
   },
   "34311": {
    "name": "Culbreath",
-   "return": "vermutlich einsatzbereit",
-   "note": "Team- und Aufbautraining nach Fußverletzung; in der Leverkusener Ausfallliste für den 7. Spieltag nicht mehr geführt.",
-   "source": "bundesliga.com (23.10.)",
-   "url": "https://www.bundesliga.com/de/bundesliga/news/voraussichtliche-aufstellungen-7-spieltag-ausfalle-verletzungen-sperren-39669"
+   "return": "unbekannt",
+   "note": "Fußverletzung seit Saisoneröffnung am 8. August 2026, arbeitet an seiner Rückkehr.",
+   "source": "ksta.de (24.09.2026)",
+   "url": "https://www.ksta.de/sport/bayer-04-leverkusen/bayer-04-warum-leverkusens-rechte-seite-zum-luxusproblem-werden-kann-1380469"
   },
   "34427": {
    "name": "Onyeka",
    "return": "ca. 15.11.",
-   "note": "Bänderverletzung im Fuß seit der Länderspielpause; laboriert weiterhin, droht weitere Ausfälle gegen RB Leipzig und Mainz 05.",
-   "source": "absolutfussball.com (20.10.)",
+   "note": "Bänderverletzung im Fuß seit der Länderspielpause; weiterhin ausfällig, stand am 22.10. nicht zur Verfügung.",
+   "source": "absolutfussball.com (22.10.)",
    "url": "https://www.absolutfussball.com/deutschland/sv-elversberg/sv-elversberg-personal-sorgen-francis-onyeka-cole-campbell-fehlen-weiter-ausfaelle-verletzungen-diagnose-94549783.html"
   },
   "34395": {
    "name": "Gyamerah",
    "return": "ca. 01.11.",
-   "note": "Gyamerah hat sich gegen Leipzig verletzt, vermutlich ein Muskelfaserriss im Adduktorenbereich. Die Verletzung besteht seit dem 25.10., eine Rückkehr wird voraussichtlich Anfang November erwartet.",
-   "source": "ms-aktuell.de 26 Oct 2026",
-   "url": "https://ms-aktuell.de/welt/gyamerah-elversberg-25-10-2026"
+   "note": "Gyamerah fehlt seit dem 15.10.2026 aufgrund einer Verletzung, Rückkehr unklar.",
+   "source": "absolutfussball.com 15 Oct 2026",
+   "url": "https://www.absolutfussball.com/deutschland/sv-elversberg/sv-elversberg-verletzte-jan-gyamerah-ausfall-schlag-sve-francis-onyeka-verletzung-wann-comeback-94538889.html"
   },
   "34438": {
    "name": "Brackelmann",
    "return": "",
-   "note": "Linker hinterer Oberschenkelmuskelbeschwerden seit 30.08.2026, erneute frühe Verletzung am 26.10.2026 im Spiel gegen Union Berlin; aktuell ausfällig.",
-   "source": "LigaInsider, 26 Oct 2026",
-   "url": "https://www.br.de/nachrichten/sport/fussball-bundesliga-7-spieltag-fc-augsburg-gegen-1-fc-union-berlin,VYyMYRe"
+   "note": "Calvin Brackelmann fehlt dem FC Augsburg weiterhin wegen einer Kopfverletzung seit dem 24.10.2026; kein Rückkehrtermin bekannt.",
+   "source": "AOL, 31 Oct 2026",
+   "url": "https://www.aol.ca/articles/fc-augsburg-ohne-brackelmann-claude-103802000.html"
   },
   "34486": {
    "name": "Nadir",
@@ -138,9 +138,9 @@
   "34467": {
    "name": "Ruoppi",
    "return": "",
-   "note": "Ruoppi ist leider angeschlagen, die Anlagen sehen aber gut aus bei ihm.",
-   "source": "Transfermarkt, 27 Oct 2026",
-   "url": "https://www.transfermarkt.at/dfb-pokal-vfl-bochum-1-fsv-mainz-05/thread/forum/32/thread_id/111344/post_id/495839"
+   "note": "Ruoppi befindet sich im Aufbautraining nach seiner Verletzung.",
+   "source": "Bundesliga, 23 Oct 2026",
+   "url": "https://www.bundesliga.com/de/bundesliga/news/voraussichtliche-aufstellungen-7-spieltag-ausfalle-verletzungen-sperren-39669"
   },
   "34503": {
    "name": "Konstantelias",
@@ -148,6 +148,34 @@
    "note": "Kreuzbandriss im linken Knie seit dem 1. Spieltag (1. August 2026); voraussichtlich bis zum Saisonende aus, keine Rückkehr in Sicht.",
    "source": "LigaInsider 26.09.2026",
    "url": "https://www.ligainsider.de/ligainsider_1381/ligainsider-visite-im-lazarett-der-bundesliga-klubs-414463"
+  },
+  "32654": {
+   "name": "Nicolas",
+   "return": "",
+   "note": "Reha nach muskulären Problemen",
+   "source": "",
+   "url": ""
+  },
+  "33640": {
+   "name": "Stage",
+   "return": "ca. 01.01.2027",
+   "note": "Oberschenkel-OP wegen Sehnenabriss Anfang September; voraussichtliche Rückkehr erst im neuen Jahr (ca. Januar 2027).",
+   "source": "LigaInsider – 26 Sep 2026",
+   "url": "https://www.ligainsider.de/ligainsider_1381/ligainsider-visite-im-lazarett-der-bundesliga-klubs-414463"
+  },
+  "33935": {
+   "name": "Remberg",
+   "return": "ca. 20.04.",
+   "note": "Kreuzbandriss im rechten Knie seit dem 19.10.2026, voraussichtliche Genesungsdauer mehrere Monate, Rückkehr erst voraussichtlich im Frühjahr 2027.",
+   "source": "Fussballdaten, 20.10.2026",
+   "url": "https://www.fussballdaten.de/news/hsv-trifft-ueberraschende-entscheidung-remberg-ausfall"
+  },
+  "34515": {
+   "name": "Guiu",
+   "return": "ca. 03.12.",
+   "note": "Muskelverletzung der linken hinteren Oberschenkelmuskulatur, seit Anfang Oktober, voraussichtlich mehrere Wochen aus.",
+   "source": "neunzigplus.de, 06 Oct 2026",
+   "url": "https://neunzigplus.de/bundesliga/marc-guiu-verletzung-leipzig"
   }
  }
 }

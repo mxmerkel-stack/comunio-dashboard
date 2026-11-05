@@ -1,18 +1,7 @@
 {
- "asOf": "29.10.2026",
+ "asOf": "05.11.2026",
  "_hinweis": "pWinter/pSummer = geschätzte Wahrscheinlichkeit eines Vereinswechsels im Winter 2027 bzw. Sommer 2027 (eigene Einschätzung aus den Quellen). Schlüssel = Comunio-Spieler-ID.",
  "players": {
-  "32206": {
-   "name": "Waldschmidt",
-   "target": "Hertha BSC / Hannover 96",
-   "probability": 0.5,
-   "note": "Vertrag bis 30.06.2027, keine Stammplatzgarantie. Hannover 96 (Juni) und Hertha BSC (Bild, Aug. 2026) wurden genannt. Ein Wechsel in die 2. Liga würde ihn aus Comunio nehmen.",
-   "source": "ms-aktuell / Bild",
-   "url": "https://ms-aktuell.de/?p=151275",
-   "status": "Vertrag läuft aus",
-   "pWinter": 0.08,
-   "pSummer": 0.5
-  },
   "32654": {
    "name": "Nicolas",
    "target": null,
@@ -35,6 +24,17 @@
    "pWinter": 0.01,
    "pSummer": 0.04
   },
+  "33520": {
+   "name": "Itten",
+   "target": "",
+   "probability": 0.0,
+   "pWinter": 0.0,
+   "pSummer": 0.0,
+   "note": "Noch nicht recherchiert.",
+   "source": "",
+   "url": "",
+   "status": "Keine Angabe"
+  },
   "33837": {
    "name": "Lukeba",
    "target": "FC Bayern",
@@ -46,27 +46,27 @@
    "pWinter": 0.03,
    "pSummer": 0.15
   },
-  "33858": {
-   "name": "Deman",
-   "target": "FC Brügge",
-   "probability": 0.12,
-   "note": "Am 02.09.2026 berichtete Deichstube, dass der belgische Top‑Club FC Brügge ein Interesse an Olivier Deman bekundet habe. Das Gerücht deutet auf einen möglichen Wechsel im Sommer hin, während im Winter keine konkreten Gespräche genannt wurden.",
-   "source": "Deichstube / 02.09.2026",
-   "url": "https://www.deichstube.de/news/werder-bremen-live-transfers-geruecht-wechsel-transfer-bundesliga-transfergeruechte-liveticker-zr-94187647.html",
-   "status": "Gerücht",
-   "pWinter": 0.03,
-   "pSummer": 0.12
-  },
   "34014": {
    "name": "Olise",
    "target": "Real Madrid / Liverpool",
-   "probability": 0.15,
-   "note": "Real Madrid gilt laut Bild-Reporter Falk (beIN, 17.10.) als Wunschziel, Liverpool und Arsenal werden genannt. Vertragsgespräche stocken, Olise fordert eine Ausstiegsklausel (Sport Bild, 05.10.). Bayern sieht ihn als unverkäuflich, Vertrag bis 2029.",
-   "source": "beIN Sports 17.10. / Sport Bild 05.10.",
-   "url": "https://www.beinsports.com/en-us/soccer/bundesliga/articles/michael-olise-reportedly-favors-real-madrid-as-his-next-destination-2026-10-17",
+   "probability": 0.07,
+   "note": "08.10.2026: Joyn berichtet, dass Olise im Gespräch über einen möglichen Abgang ist, wobei kein konkreter Zielverein genannt wird. Das Gerücht entsteht im Kontext von Diskussionen um Lennart Karl, bleibt jedoch unbestätigt.",
+   "source": "Joyn 08.10.2026",
+   "url": "https://ran.joyn.de/sports/fussball/bundesliga/fc-bayern-wegen-michael-olise-ploetzlich-gibt-es-bei-lennart-karl-geruechte-um-einen-transfer-197992",
    "status": "Gerücht",
-   "pWinter": 0.03,
-   "pSummer": 0.15
+   "pWinter": 0.05,
+   "pSummer": 0.07
+  },
+  "34034": {
+   "name": "Prass",
+   "target": "",
+   "probability": 0.0,
+   "pWinter": 0.0,
+   "pSummer": 0.0,
+   "note": "Noch nicht recherchiert.",
+   "source": "",
+   "url": "",
+   "status": "Keine Angabe"
   },
   "34236": {
    "name": "Massengo",
