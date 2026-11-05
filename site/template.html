@@ -7,12 +7,12 @@
 <meta name="theme-color" content="#1b4414">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Comunio">
+<meta name="apple-mobile-web-app-title" content="ComDash">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" href="icon-192.png">
-<title>Comunio Zentrale</title>
+<title>ComDash</title>
 <style>
 :root{
   --page:#1b4414;--page2:#0f2d0c;--panel:#e7f2dd;--panel2:#d8ead0;--fg:#16300f;--muted:#4a6b40;
@@ -25,7 +25,7 @@ body{margin:0;color:var(--fg);font:13.5px/1.5 Verdana,Geneva,"DejaVu Sans",-appl
 header{max-width:1100px;margin:0 auto;padding:0}
 .brand{background:linear-gradient(180deg,#36782a,#1d4a16);border:1px solid #11330d;border-bottom:0;
   padding:14px 16px 12px;display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
-h1{font-size:23px;margin:0;color:#fff;letter-spacing:.14em;text-transform:lowercase;
+h1{font-size:23px;margin:0;color:#fff;letter-spacing:.06em;text-transform:none;
   text-shadow:0 1px 0 #0d280a}
 .sub{color:#cfe6c0;font-size:11.5px;letter-spacing:.02em}
 nav{position:sticky;top:0;z-index:2;background:var(--nav);border-bottom:2px solid #11330d}
@@ -161,7 +161,7 @@ svg{max-width:100%;height:auto}
 </head>
 <body>
 <header>
-  <div class="brand"><h1>comunio zentrale</h1><div class="sub" id="meta"></div><input id="gs" class="gs" type="search" placeholder="Spieler suchen …" autocomplete="off" aria-label="Spieler suchen"><button id="eye" class="eye" type="button" title="Kontostände ausblenden" aria-label="Kontostände ausblenden" aria-pressed="false"></button></div>
+  <div class="brand"><h1>ComDash</h1><div class="sub" id="meta"></div><input id="gs" class="gs" type="search" placeholder="Spieler suchen …" autocomplete="off" aria-label="Spieler suchen"><button id="eye" class="eye" type="button" title="Kontostände ausblenden" aria-label="Kontostände ausblenden" aria-pressed="false"></button></div>
 </header>
 <nav><div class="in" id="tabs"></div></nav>
 <main>
@@ -169,7 +169,7 @@ svg{max-width:100%;height:auto}
   <div class="card" id="gs-card" hidden><h2>Suchergebnisse</h2><div id="gs-res"></div></div>
   <section id="s-uebersicht">
     <div class="kpis" id="kpis"></div>
-    <div class="card"><h2>Heute zu entscheiden</h2><div id="actions"></div></div>
+    <div class="card"><h2>Heute zu entscheiden</h2><p class="note" id="act-stand" style="margin:-4px 0 10px"></p><div id="actions"></div></div>
     <div class="card"><h2>Aufstellung: Tausch-Vorschlag</h2><div id="t-swaps-home"></div></div>
     <div class="card"><h2>Läuft bald ab</h2><div class="toolbar"><select id="end-win"><option value="6">nächste 6 Std.</option><option value="12">nächste 12 Std.</option><option value="24" selected>nächste 24 Std.</option><option value="48">nächste 48 Std.</option><option value="999">alle</option></select><span id="end-count" class="note" style="margin:0"></span></div><div id="t-ending"></div>
       <p class="note">Spieler auf dem Transfermarkt, deren Angebot bald endet, mit Restzeit, empfohlenem Gebot und erwarteten Punkten je Million Marktwert. Rot = weniger als 3 Stunden.</p></div>
@@ -385,6 +385,9 @@ const isMe = r => String(r.id)===D.me.id;
 const ageH=iso=>iso?(Date.now()-Date.parse(iso))/36e5:null;
 const ageTxt=h=>h==null?"":h<1?"vor "+Math.max(1,Math.round(h*60))+" Min.":h<48?"vor "+Math.round(h)+" Std.":"vor "+Math.round(h/24)+" Tagen";
 document.getElementById("meta").textContent = `${D.community} · Saison ${D.season||""} · Stand ${dt(D.generatedAt)} (${ageTxt(ageH(D.generatedAt))})`;
+(function(){ const n=document.getElementById("act-stand"); if(n&&D.generatedAt){ const h=ageH(D.generatedAt);
+  n.textContent=`Aktualisiert: ${new Date(D.generatedAt).toLocaleString("de-DE",{weekday:"short",day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})} Uhr (${ageTxt(h)})`;
+  if(h>30) n.classList.add("neg"); } })();
 (function(){ const b=document.getElementById("stale"); const msgs=[]; let bad=false;
   const h=ageH(D.generatedAt); if(h!=null&&h>30){ bad=true; msgs.push(`Die Daten sind ${ageTxt(h).replace("vor ","")} alt. Das tägliche Update ist vermutlich fehlgeschlagen – im Reiter „Actions“ des GitHub-Projekts nachsehen.`); }
   const parse=s=>{ const m=/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/.exec(s||""); return m?new Date(+m[3],+m[2]-1,+m[1]).getTime():null; };

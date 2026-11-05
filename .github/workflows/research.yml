@@ -65,4 +65,4 @@ jobs:
           MAIL_APP_PASSWORD: ${{ secrets.MAIL_APP_PASSWORD }}
           MAIL_TO: ${{ secrets.MAIL_TO }}
         run: |
-          python scripts/alert.py "Comunio Zentrale: Recherche fehlgeschlagen" "Die wöchentliche Recherche (Gerüchte, Ausfälle) ist fehlgeschlagen."
+          python scripts/alert.py "ComDash: Recherche fehlgeschlagen" "Die wöchentliche Recherche (Gerüchte, Ausfälle) ist fehlgeschlagen."

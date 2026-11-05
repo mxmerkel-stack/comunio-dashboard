@@ -45,7 +45,7 @@ def main():
     for name, s in (("icon-192.png", 192), ("icon-512.png", 512), ("apple-touch-icon.png", 180)):
         icon(s).save(DIST / name)
     (DIST / "manifest.webmanifest").write_text(json.dumps({
-        "name": "Comunio Zentrale", "short_name": "Comunio", "start_url": "./", "scope": "./", "display": "standalone",
+        "name": "ComDash", "short_name": "ComDash", "start_url": "./", "scope": "./", "display": "standalone",
         "background_color": "#1b4414", "theme_color": "#1b4414", "lang": "de",
         "icons": [{"src": "icon-192.png", "sizes": "192x192", "type": "image/png"},
                   {"src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"}]}))

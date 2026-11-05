@@ -27,18 +27,18 @@ LOGIN = r"""<!doctype html>
 <meta name="theme-color" content="#1b4414">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Comunio">
+<meta name="apple-mobile-web-app-title" content="ComDash">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" href="icon-192.png">
-<title>Comunio Zentrale</title>
+<title>ComDash</title>
 <style>
 :root{--panel:#e7f2dd;--fg:#16300f;--muted:#4a6b40;--line:#6d9b5c;--accent:#2e6b23;--bad:#a3261e}
 body{margin:0;min-height:100vh;display:grid;place-items:center;color:var(--fg);
  background:#10300c linear-gradient(170deg,#2a5c20 0%,#1b4414 45%,#10300c 100%) fixed;
  font:13.5px/1.5 Verdana,Geneva,"DejaVu Sans",-apple-system,Segoe UI,sans-serif;padding:16px;box-sizing:border-box}
 form{background:var(--panel);border:1px solid #11330d;padding:0 0 18px;width:100%;max-width:340px}
-h1{font-size:17px;margin:0;padding:12px 18px;color:#fff;letter-spacing:.12em;text-transform:lowercase;
+h1{font-size:17px;margin:0;padding:12px 18px;color:#fff;letter-spacing:.06em;text-transform:none;
  background:linear-gradient(180deg,#36782a,#1d4a16);text-shadow:0 1px 0 #0d280a}
 p{color:var(--muted);margin:14px 18px 14px;font-size:12px}
 input[type=password]{width:calc(100% - 36px);margin:0 18px;box-sizing:border-box;font:inherit;padding:8px 10px;
@@ -49,7 +49,7 @@ button{width:calc(100% - 36px);margin:0 18px;font:inherit;font-weight:700;paddin
 #err{color:var(--bad);font-size:12px;min-height:18px;margin:10px 18px 0}
 </style></head><body>
 <form id="f" autocomplete="on">
- <h1>comunio zentrale</h1><p>Privat. Bitte Passwort eingeben.</p>
+ <h1>ComDash</h1><p>Privat. Bitte Passwort eingeben.</p>
  <input type="text" name="username" value="comunio" autocomplete="username" hidden>
  <input id="pw" type="password" autocomplete="current-password" placeholder="Passwort" autofocus>
  <label><input id="rm" type="checkbox"> Auf diesem Gerät angemeldet bleiben</label>

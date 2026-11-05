@@ -144,4 +144,4 @@ jobs:
           MAIL_APP_PASSWORD: ${{ secrets.MAIL_APP_PASSWORD }}
           MAIL_TO: ${{ secrets.MAIL_TO }}
         run: |
-          python scripts/alert.py "Comunio Zentrale: Update fehlgeschlagen" "Das Dashboard konnte nicht aktualisiert werden. Die Seite zeigt weiter die letzten Daten."
+          python scripts/alert.py "ComDash: Update fehlgeschlagen" "Das Dashboard konnte nicht aktualisiert werden. Die Seite zeigt weiter die letzten Daten."

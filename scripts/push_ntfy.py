@@ -182,7 +182,7 @@ def auctions(d):
 
 
 def test(d):
-    ok = ntfy("Comunio Zentrale: Test", "✓ Push-Nachrichten funktionieren.", click=SITE, tags=["white_check_mark"])
+    ok = ntfy("ComDash: Test", "✓ Push-Nachrichten funktionieren.", click=SITE, tags=["white_check_mark"])
     print("Push gesendet." if ok else "Kein Push (NTFY_TOPIC fehlt oder Fehler).")
 
 

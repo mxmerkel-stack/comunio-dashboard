@@ -84,7 +84,7 @@ jobs:
           MAIL_APP_PASSWORD: ${{ secrets.MAIL_APP_PASSWORD }}
           MAIL_TO: ${{ secrets.MAIL_TO }}
         run: |
-          python scripts/alert.py "Comunio Zentrale: Test" "Test der Benachrichtigungen. Wenn du das liest, kommen Fehlermeldungen bei dir an."
+          python scripts/alert.py "ComDash: Test" "Test der Benachrichtigungen. Wenn du das liest, kommen Fehlermeldungen bei dir an."
 
       - name: Abhängigkeiten
         if: steps.go.outputs.run == 'true' && steps.mode.outputs.mode != 'test'

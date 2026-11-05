@@ -73,7 +73,7 @@ def mail(subject, text):
 
 
 def main():
-    title = sys.argv[1] if len(sys.argv) > 1 else "Comunio Zentrale: Fehler"
+    title = sys.argv[1] if len(sys.argv) > 1 else "ComDash: Fehler"
     text = sys.argv[2] if len(sys.argv) > 2 else "Ein Workflow ist fehlgeschlagen."
     repo, run = os.environ.get("GITHUB_REPOSITORY", ""), os.environ.get("GITHUB_RUN_ID", "")
     link = f"https://github.com/{repo}/actions/runs/{run}" if repo and run else SITE

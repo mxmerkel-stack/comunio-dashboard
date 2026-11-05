@@ -314,7 +314,19 @@ def build(raw, history):
         if pid in rumors:
             out["rumor"] = rumors[pid]
         if pid in injuries:
-            out["injury"] = injuries[pid]
+            inj = dict(injuries[pid])
+            ret = inj.get("return") or ""
+            today_ = datetime.now(timezone.utc).date()
+            d_ = S.parse_return(ret, today_) if ret else None
+            if d_ and d_ < today_ and not re.search(r"einsatzbereit|fit\b|wieder dabei", ret.lower()):
+                if (p.get("status") or "ACTIVE") == "ACTIVE":
+                    inj = None  # Comunio führt ihn wieder als fit: alte Verletzungsangabe nicht mehr zeigen
+                else:
+                    inj["overdue"] = True
+                    inj["plannedReturn"] = ret
+                    inj["return"] = f"überfällig (erwartet war {ret.replace('ca. ', '')})"
+            if inj:
+                out["injury"] = inj
         return out
 
     # --- Transfermarkt mit Gebots- und Kaufempfehlung ---

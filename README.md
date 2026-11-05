@@ -1,4 +1,4 @@
-# Comunio Zentrale
+# ComDash
 
 Privates Dashboard für eine Comunio-Community: Saisontabelle, Ewige Tabelle, Siege-Ranking,
 Kontostände aller Manager, Transfers, Kader und Gebotsempfehlungen für den Transfermarkt.
