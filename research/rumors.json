@@ -1,7 +1,18 @@
 {
- "asOf": "05.11.2026",
+ "asOf": "12.11.2026",
  "_hinweis": "pWinter/pSummer = geschätzte Wahrscheinlichkeit eines Vereinswechsels im Winter 2027 bzw. Sommer 2027 (eigene Einschätzung aus den Quellen). Schlüssel = Comunio-Spieler-ID.",
  "players": {
+  "32395": {
+   "name": "Amiri",
+   "target": "",
+   "probability": 0.0,
+   "pWinter": 0.0,
+   "pSummer": 0.0,
+   "note": "Noch nicht recherchiert.",
+   "source": "",
+   "url": "",
+   "status": "Keine Angabe"
+  },
   "32654": {
    "name": "Nicolas",
    "target": null,
@@ -24,6 +35,17 @@
    "pWinter": 0.01,
    "pSummer": 0.04
   },
+  "33495": {
+   "name": "Köbbing",
+   "target": "",
+   "probability": 0.0,
+   "pWinter": 0.0,
+   "pSummer": 0.0,
+   "note": "Noch nicht recherchiert.",
+   "source": "",
+   "url": "",
+   "status": "Keine Angabe"
+  },
   "33520": {
    "name": "Itten",
    "target": "",
@@ -38,24 +60,35 @@
   "33837": {
    "name": "Lukeba",
    "target": "FC Bayern",
-   "probability": 0.15,
-   "note": "Bayern beobachtet ihn als möglichen Upamecano-Ersatz (Sky, Dez. 2025). Ausstiegsklausel sinkt 2027 auf 65 Mio. €. Neuere Meldungen gibt es nicht. Ein Wechsel nach München würde ihn in der Bundesliga halten.",
-   "source": "Sky / 90min",
-   "url": "https://www.90min.de/leipzig-star-als-upamecano-ersatz-lukeba-will-zum-fc-bayern",
-   "status": "Altes Gerücht",
-   "pWinter": 0.03,
-   "pSummer": 0.15
+   "probability": 0.25,
+   "note": "06.11.2026 – Lukeba hat einen neuen Berater und signalisiert damit erneut sein Interesse an einem Vereinswechsel. Das Interview deutet darauf hin, dass ein Abgang in Aussicht steht, jedoch ohne konkreten Zielverein.",
+   "source": "ntv Sport / 06.11.2026",
+   "url": "https://www.n-tv.de/sport/fussball/transfermarkt/Transfer-Ticker-Castello-Lukeba-wechselt-Berater-Ausstiegsklausel-bei-RB-Leipzig-sinkt-auf-65-Millionen-Euro-id31500441.html",
+   "status": "Gerücht",
+   "pWinter": 0.15,
+   "pSummer": 0.25
+  },
+  "33990": {
+   "name": "Labrović",
+   "target": "",
+   "probability": 0.0,
+   "pWinter": 0.0,
+   "pSummer": 0.0,
+   "note": "Noch nicht recherchiert.",
+   "source": "",
+   "url": "",
+   "status": "Keine Angabe"
   },
   "34014": {
    "name": "Olise",
    "target": "Real Madrid / Liverpool",
-   "probability": 0.07,
-   "note": "08.10.2026: Joyn berichtet, dass Olise im Gespräch über einen möglichen Abgang ist, wobei kein konkreter Zielverein genannt wird. Das Gerücht entsteht im Kontext von Diskussionen um Lennart Karl, bleibt jedoch unbestätigt.",
-   "source": "Joyn 08.10.2026",
+   "probability": 0.06,
+   "note": "13.10.2026: Joyn berichtet, dass Olise im Zusammenhang mit Diskussionen um Lennart Karl erneut als möglicher Abgang genannt wird, jedoch ohne konkreten Zielverein. 19.09.2026: fussball-news.de spekuliert über ein mögliches Gespräch mit Liverpool, bleibt jedoch unbestätigt.",
+   "source": "Joyn 13.10.2026; fussball-news.de 19.09.2026",
    "url": "https://ran.joyn.de/sports/fussball/bundesliga/fc-bayern-wegen-michael-olise-ploetzlich-gibt-es-bei-lennart-karl-geruechte-um-einen-transfer-197992",
    "status": "Gerücht",
-   "pWinter": 0.05,
-   "pSummer": 0.07
+   "pWinter": 0.04,
+   "pSummer": 0.06
   },
   "34034": {
    "name": "Prass",
@@ -123,16 +156,16 @@
    "pWinter": 0.02,
    "pSummer": 0.08
   },
-  "34527": {
-   "name": "Gagzow",
-   "target": null,
-   "probability": 0.08,
-   "note": "Keine aktuellen Wechselgerüchte gefunden (kicker, transfermarkt.de, Bild, ligainsider, Vereinsseite).",
-   "source": "eigene Recherche",
-   "url": null,
-   "status": "Keine Meldung",
-   "pWinter": 0.02,
-   "pSummer": 0.08
+  "34454": {
+   "name": "Gruber",
+   "target": "",
+   "probability": 0.0,
+   "pWinter": 0.0,
+   "pSummer": 0.0,
+   "note": "Noch nicht recherchiert.",
+   "source": "",
+   "url": "",
+   "status": "Keine Angabe"
   }
  }
 }

@@ -1,20 +1,20 @@
 {
- "asOf": "05.11.2026",
+ "asOf": "12.11.2026",
  "_hinweis": "Rückkehrprognosen aus öffentlichen Quellen, Schlüssel = Comunio-Spieler-ID.",
  "players": {
   "33236": {
    "name": "Musiala",
-   "return": "ca. Ende November",
-   "note": "Muskelfaserriss rechter Oberschenkel (24.09.). Comeback verzögert sich: Bayern will 100 % Fitness, Steigerung in der Länderspielpause, danach Einsatz möglich (Eberl, 03.11.).",
-   "source": "fcbinside / fussball-news",
-   "url": "https://fcbinside.de/2026/11/03/musiala-comeback-verzoegert-sich-eberl-verraet-neuen-bayern-zeitplan/"
+   "return": "tbd",
+   "note": "Musiala verletzte sich vor zwei Wochen am rechten Oberschenkel. Der FC Bayern gibt ein positives Update, ein genauer Rückkehrtermin wurde nicht genannt.",
+   "source": "sport1.de / 13.10.2026",
+   "url": "https://www.sport1.de/news/fussball/bundesliga/2026/10/fc-bayern-jamal-musiala-ist-zurueck-auf-dem-platz"
   },
   "34285": {
    "name": "Ben Seghir",
-   "return": "ca. 12.11.",
-   "note": "Ben Seghir trainiert wieder, ist aber noch nicht einsatzbereit; voraussichtlich erst in ein bis zwei Wochen zurück im Kader.",
-   "source": "Kicker / 04 Nov 2026",
-   "url": "https://www.kicker.ch/trotz-trainingsrueckkehr-kofane-bade-und-ben-seghir-werden-bayers-not-kaum-lindern-1268439/artikel"
+   "return": "ca. 29.10.",
+   "note": "Ben Seghir ist seit dem 22.10.2026 wieder auf dem Trainingsplatz, jedoch noch nicht spielbereit; Rückkehr ins Team wird für Ende Oktober erwartet.",
+   "source": "Absolutfussball / 22 Oct 2026",
+   "url": "https://www.absolutfussball.com/deutschland/bayer-04-leverkusen/bayer-leverkusen-verletzungen-christian-kofane-eliesse-ben-seghir-zurueck-auf-dem-trainingsplatz-94550382.html"
   },
   "34393": {
    "name": "Seifert",
@@ -47,7 +47,7 @@
   "34465": {
    "name": "Pimpong",
    "return": "offen",
-   "note": "Einsatz offen, kein konkreter Ausfall gemeldet.",
+   "note": "Oberschenkelprobleme, Einsatz noch offen, kein konkreter Ausfall gemeldet.",
    "source": "eurosport.de (27.10.2026)",
    "url": "https://www.eurosport.de/wetten/prognosen/hamburger-sv-vs-eintracht-frankfurt-prognose-tipps-und-quoten-dfb-pokal-27-10-26"
   },
@@ -75,9 +75,9 @@
   "34215": {
    "name": "Darvich",
    "return": "unbekannt",
-   "note": "Muskelverletzung, seit dem 23.10.2026 im Training, aktuell nicht einsatzfähig.",
-   "source": "sportbuzzer.de (24.10.)",
-   "url": "https://www.sportbuzzer.de/fussball/rb-leipzig-gegen-elversberg-heute-live-wer-zeigt-das-bundesliga-spiel-im-tv-und-stream-ON5QEP2Z6VD3BCPGDMOQKMZKZQ.html"
+   "note": "Muskelverletzung, seit dem 23.10.2026, aktuell nicht einsatzfähig.",
+   "source": "HYLO.sport (28.10.2026)",
+   "url": "https://hylo.sport/news/category/fussball"
   },
   "34311": {
    "name": "Culbreath",
@@ -88,31 +88,31 @@
   },
   "34427": {
    "name": "Onyeka",
-   "return": "ca. 15.11.",
-   "note": "Bänderverletzung im Fuß seit der Länderspielpause; weiterhin ausfällig, stand am 22.10. nicht zur Verfügung.",
-   "source": "absolutfussball.com (22.10.)",
-   "url": "https://www.absolutfussball.com/deutschland/sv-elversberg/sv-elversberg-personal-sorgen-francis-onyeka-cole-campbell-fehlen-weiter-ausfaelle-verletzungen-diagnose-94549783.html"
+   "return": "ca. 17.11.",
+   "note": "Seit Anfang Oktober fehlt Onyeka wegen einer Bänderverletzung im Fuß. Wagner (10.11.) nennt ein Rückkehrzeitfenster von etwa einer Woche, sodass eine Rückkehr um den 17.11. erwartet wird.",
+   "source": "ligainsider.de (10. Nov 2026)",
+   "url": "https://www.ligainsider.de/francis-onyeka_36948/wagner-umreisst-zeitfenster-fuer-onyeka-rueckkehr-418998"
   },
   "34395": {
    "name": "Gyamerah",
-   "return": "ca. 01.11.",
-   "note": "Gyamerah fehlt seit dem 15.10.2026 aufgrund einer Verletzung, Rückkehr unklar.",
-   "source": "absolutfussball.com 15 Oct 2026",
-   "url": "https://www.absolutfussball.com/deutschland/sv-elversberg/sv-elversberg-verletzte-jan-gyamerah-ausfall-schlag-sve-francis-onyeka-verletzung-wann-comeback-94538889.html"
+   "return": "unbekannt",
+   "note": "Gyamerah hat sich am 25.10.2026 gegen Leipzig einen Muskelfaserriss im Oberschenkel zugezogen und fehlt seitdem. Trainer hofft auf baldige Genesung, ein genauer Rückkehrtermin ist noch nicht bekannt.",
+   "source": "ms-aktuell.de 29 Oct 2026",
+   "url": "https://ms-aktuell.de/welt/gyamerah-elversberg-25-10-2026"
   },
   "34438": {
    "name": "Brackelmann",
    "return": "",
-   "note": "Calvin Brackelmann fehlt dem FC Augsburg weiterhin wegen einer Kopfverletzung seit dem 24.10.2026; kein Rückkehrtermin bekannt.",
-   "source": "AOL, 31 Oct 2026",
+   "note": "Calvin Brackelmann fehlt dem FC Augsburg seit dem 24.10.2026 wegen einer Kopfverletzung; ein Rückkehrtermin ist noch nicht bekannt.",
+   "source": "AOL, 29 Oct 2026",
    "url": "https://www.aol.ca/articles/fc-augsburg-ohne-brackelmann-claude-103802000.html"
   },
   "34486": {
    "name": "Nadir",
    "return": "",
-   "note": "Oberschenkelblessur",
-   "source": "",
-   "url": ""
+   "note": "Muskelverletzung im Oberschenkel, seit 29.10.2026, Rückkehr unbestimmt.",
+   "source": "Transfermarkt, 29.10.2026",
+   "url": "https://www.transfermarkt.de/hsv-bestatigt-verletzungen-bei-vieira-und-nadir-marokkaner-hat-es-schwerer-erwischt/view/news/489505"
   },
   "32395": {
    "name": "Amiri",
@@ -131,9 +131,9 @@
   "33858": {
    "name": "Deman",
    "return": "",
-   "note": "Gesichtsschmerz nach Zusammenstoß im Spiel, aktuell ausfällt, voraussichtliche Rückkehr nicht bekannt.",
-   "source": "Deichstube, 18 Aug 2026",
-   "url": "https://www.deichstube.de/news/werder-bremen-xxl-ausfallliste-13-fehlende-spieler-personal-update-bundesliga-ausfaelle-verletzte-zr-94445374.html"
+   "note": "Demans Ausfall bleibt bestehen, Rückkehr noch nicht absehbar.",
+   "source": "Werder.de, 29 Oct 2026",
+   "url": "https://www.werder.de/news/maenner/2026-2027/kurzpasse-28102026"
   },
   "34467": {
    "name": "Ruoppi",
@@ -151,21 +151,21 @@
   },
   "32654": {
    "name": "Nicolas",
-   "return": "",
-   "note": "Reha nach muskulären Problemen",
-   "source": "",
-   "url": ""
+   "return": "ca. 10.10.",
+   "note": "Muskelbündelriss seit Anfang September, voraussichtliche Rückkehr Anfang Oktober.",
+   "source": "LigaInsider, 26 Sep 2026",
+   "url": "https://www.ligainsider.de/ligainsider_1381/ligainsider-visite-im-lazarett-der-bundesliga-klubs-414463"
   },
   "33640": {
    "name": "Stage",
    "return": "ca. 01.01.2027",
-   "note": "Oberschenkel-OP wegen Sehnenabriss Anfang September; voraussichtliche Rückkehr erst im neuen Jahr (ca. Januar 2027).",
+   "note": "Oberschenkel-OP (Sehnenabriss) Anfang September; voraussichtliche Rückkehr erst im neuen Jahr (ca. Januar 2027).",
    "source": "LigaInsider – 26 Sep 2026",
    "url": "https://www.ligainsider.de/ligainsider_1381/ligainsider-visite-im-lazarett-der-bundesliga-klubs-414463"
   },
   "33935": {
    "name": "Remberg",
-   "return": "ca. 20.04.",
+   "return": "ca. 20.04.2027",
    "note": "Kreuzbandriss im rechten Knie seit dem 19.10.2026, voraussichtliche Genesungsdauer mehrere Monate, Rückkehr erst voraussichtlich im Frühjahr 2027.",
    "source": "Fussballdaten, 20.10.2026",
    "url": "https://www.fussballdaten.de/news/hsv-trifft-ueberraschende-entscheidung-remberg-ausfall"
@@ -173,9 +173,37 @@
   "34515": {
    "name": "Guiu",
    "return": "ca. 03.12.",
-   "note": "Muskelverletzung der linken hinteren Oberschenkelmuskulatur, seit Anfang Oktober, voraussichtlich mehrere Wochen aus.",
-   "source": "neunzigplus.de, 06 Oct 2026",
+   "note": "Muskelverletzung der linken hinteren Oberschenkelmuskulatur, seit Mitte September, voraussichtlich mehrere Wochen aus.",
+   "source": "neunzigplus.de, 18 Sep 2026",
    "url": "https://neunzigplus.de/bundesliga/marc-guiu-verletzung-leipzig"
+  },
+  "33214": {
+   "name": "Ngankam",
+   "return": "",
+   "note": "Zerrung im Adduktorenbereich",
+   "source": "",
+   "url": ""
+  },
+  "33857": {
+   "name": "Conté",
+   "return": "ca. 08.11.",
+   "note": "Conté befindet sich in der Reha nach muskulären Problemen im Adduktorenbereich und soll voraussichtlich zum Spiel gegen Schalke am 08.11. wieder einsatzbereit sein.",
+   "source": "BILD.de 06.11.2026",
+   "url": "https://www.bild.de/sport/fussball/bundesliga-star-ausfall-beim-bvb-alle-infos-und-aufstellungen-zum-9-spieltag-6aed8ce947b5fce02f879c94"
+  },
+  "34042": {
+   "name": "Gebel",
+   "return": "",
+   "note": "Reha nach Kreuzbandriss im rechten Knie",
+   "source": "",
+   "url": ""
+  },
+  "34051": {
+   "name": "Gendrey",
+   "return": "",
+   "note": "Wadenbeinbruch seit 28.10.2026, langfristig ausfallend, kein genauer Rückkehrtermin",
+   "source": "ms-aktuell.de 01.11.2026",
+   "url": "https://ms-aktuell.de/welt/hoffenheim-verletzte-01-11-2026"
   }
  }
 }
