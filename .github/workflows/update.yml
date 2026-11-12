@@ -29,7 +29,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: github-pages
-      url: ${{ steps.deploy.outputs.page_url }}
+      url: ${{ steps.deploy.outputs.page_url || steps.deploy2.outputs.page_url }}
     env:
       DATA_DIR: data
       DIST_DIR: dist
@@ -134,6 +134,16 @@ jobs:
           path: dist
 
       - id: deploy
+        uses: actions/deploy-pages@v4
+        continue-on-error: true
+
+      # GitHub meldet beim Veröffentlichen gelegentlich kurzzeitige Fehler („artifact … not found“): nach einer Minute erneut versuchen
+      - name: Kurz warten (zweiter Veröffentlichungsversuch)
+        if: steps.deploy.outcome == 'failure'
+        run: sleep 60
+
+      - id: deploy2
+        if: steps.deploy.outcome == 'failure'
         uses: actions/deploy-pages@v4
 
       - name: Fehlermeldung senden

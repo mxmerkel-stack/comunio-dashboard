@@ -59,7 +59,7 @@ def _request(url, data=None, token=None, retries=3):
 def download_image(url, token):
     """Wappen als data:-URI laden (mit Anmeldung). Gibt None zurück, wenn es kein kleines Bild ist."""
     import base64
-    req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept": "image/*", "Authorization": "Bearer " + token})
+    req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept": "image/avif,image/webp,image/png,image/svg+xml,image/*,*/*;q=0.8", "Authorization": "Bearer " + token})
     try:
         with urllib.request.urlopen(req, timeout=30) as r:
             ctype = (r.headers.get("Content-Type") or "").split(";")[0].strip().lower()
