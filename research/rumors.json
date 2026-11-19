@@ -1,18 +1,7 @@
 {
- "asOf": "12.11.2026",
+ "asOf": "19.11.2026",
  "_hinweis": "pWinter/pSummer = geschätzte Wahrscheinlichkeit eines Vereinswechsels im Winter 2027 bzw. Sommer 2027 (eigene Einschätzung aus den Quellen). Schlüssel = Comunio-Spieler-ID.",
  "players": {
-  "32395": {
-   "name": "Amiri",
-   "target": "",
-   "probability": 0.0,
-   "pWinter": 0.0,
-   "pSummer": 0.0,
-   "note": "Noch nicht recherchiert.",
-   "source": "",
-   "url": "",
-   "status": "Keine Angabe"
-  },
   "32654": {
    "name": "Nicolas",
    "target": null,
@@ -68,17 +57,6 @@
    "pWinter": 0.15,
    "pSummer": 0.25
   },
-  "33990": {
-   "name": "Labrović",
-   "target": "",
-   "probability": 0.0,
-   "pWinter": 0.0,
-   "pSummer": 0.0,
-   "note": "Noch nicht recherchiert.",
-   "source": "",
-   "url": "",
-   "status": "Keine Angabe"
-  },
   "34014": {
    "name": "Olise",
    "target": "Real Madrid / Liverpool",
@@ -115,13 +93,13 @@
   "34238": {
    "name": "Maksimović",
    "target": null,
-   "probability": 0.08,
-   "note": "Keine aktuellen Wechselgerüchte gefunden (kicker, transfermarkt.de, Bild, ligainsider, Vereinsseite).",
-   "source": "eigene Recherche",
-   "url": null,
-   "status": "Keine Meldung",
-   "pWinter": 0.02,
-   "pSummer": 0.08
+   "probability": 0.12,
+   "note": "Am 16.11.2026 berichtete die LVZ im Rahmen einer Autogrammstunde von Andrija Maksimovic, dass ein Wechselgerücht im Umlauf sei. Es wurde jedoch kein konkreter Zielverein genannt, sodass die Wahrscheinlichkeit eines Wechsels als gering eingeschätzt wird.",
+   "source": "LVZ 16.11.2026",
+   "url": "https://www.lvz.de/sport/regional/rb-leipzig-rb-laedt-zur-autogrammstunde-mit-demichelis-und-maksimovic-news-vom-16-11-2026-FEUNU4PZA4TRPOCCO5RAO35JFA.html",
+   "status": "Gerücht",
+   "pWinter": 0.07,
+   "pSummer": 0.12
   },
   "34294": {
    "name": "Daghim",
@@ -133,17 +111,6 @@
    "status": "Konkret",
    "pWinter": 0.05,
    "pSummer": 0.03
-  },
-  "34405": {
-   "name": "Zobel",
-   "target": "Erzgebirge Aue",
-   "probability": 0.9,
-   "note": "Am 03.09.2026 berichtete Sky Sport in einer Transferübersicht, dass Tristan Zobel nach seiner Leihe bei Erzgebirge Aue nun dauerhaft zu diesem Verein wechselt. Der Bericht gilt als bestätigte Transfermeldung für den Sommer 2026.",
-   "source": "Sky Sport, 03.09.2026",
-   "url": "https://sport.sky.de/fussball/artikel/transfer-uebersicht-alle-wechsel-wer-kommt-wer-geht/12525683/35313",
-   "status": "Konkret",
-   "pWinter": 0.05,
-   "pSummer": 0.9
   },
   "34438": {
    "name": "Brackelmann",
@@ -162,10 +129,10 @@
    "probability": 0.0,
    "pWinter": 0.0,
    "pSummer": 0.0,
-   "note": "Noch nicht recherchiert.",
-   "source": "",
-   "url": "",
-   "status": "Keine Angabe"
+   "note": "Am 02.10.2026 erschien auf Transfermarkt ein Gerüchte‑Eintrag zu Fabio Gruber, jedoch ohne konkretes Ziel oder Transfergerücht. Es gibt keine Hinweise auf einen bevorstehenden Wechsel im Winter oder Sommer.",
+   "source": "Transfermarkt, 02.10.2026",
+   "url": "https://www.transfermarkt.de/fabio-gruber/geruechte/spieler/594731",
+   "status": "Kein Gerücht"
   }
  }
 }
